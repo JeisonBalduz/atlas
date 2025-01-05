@@ -61,8 +61,6 @@ use App\Atlas\config\App;
                             <th scope="col">Identificación</th>
                             <th scope="col">Edad</th>
                             <th scope="col">Acciones</th>
-
-
                         </tr>
                     </thead>
                     <tbody>
