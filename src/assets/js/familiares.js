@@ -194,6 +194,22 @@ $(function () {
   });
 
 
+  $("#edad").on("input", function() {
+    const edad = parseInt($(this).val());
+
+    if (!isNaN(edad)) {
+      if (edad >= 8) {
+        console.log("si es mayor a 8");
+        let nuevoCodigo = `<p>El número ingresado es mayor o igual a 8. ¡Felicidades!</p>`;
+
+      // Agregar el código al formulario
+      $("#cedula").append(nuevoCodigo);
+      } else {
+        alert("El valor es menor a 8.");
+      }
+    }
+  });
+
   
 
   // Selector para todos los inputs y selects dentro del formulario
