@@ -1,0 +1,67 @@
+:root {
+  --brand-deep: oklch(0.28 0.095 260);
+}
+
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("../fonts/Instrument_Sans/InstrumentSans-VariableFont_wdth,wght.ttf")
+    format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+}
+
+body {
+  margin: 0;
+  font-family: "Instrument Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button,
+a,
+input,
+select,
+summary {
+  outline-offset: 4px;
+}
+button,
+a,
+summary {
+  touch-action: manipulation;
+}
+button,
+summary {
+  cursor: pointer;
+}
+button {
+  border: 0;
+}
+
+[hidden],
+.oculto {
+  display: none !important;
+}
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.login-overlay {
+  background: color-mix(in oklch, var(--brand-deep) 78%, transparent);
+}
+
+.form-control:focus-visible,
+.form-control:focus-within {
+  --bs-focus-ring-offset: -1px;
+  outline: none;
+  /* outline-offset: var(--bs-focus-ring-offset); */
+}
+
+/* pruebas */

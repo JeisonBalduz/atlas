@@ -1,0 +1,17 @@
+{
+    "name": "app/atlas",
+    "autoload": {
+        "psr-4": {
+            "App\\Atlas\\": "app/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Jeison Balduz",
+            "email": "jeisonbalduz12@gmail.com"
+        }
+    ],
+    "require": {
+        "flightphp/core": "^3.19"
+    }
+}

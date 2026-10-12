@@ -1,0 +1,31 @@
+[
+  {
+    "cedula": "12345678",
+    "password": "123",
+    "nombre": "juan",
+    "rol": "admin",
+    "permisos": ["panel_completo", "verUsuarios", "gestionar_empleados"]
+  },
+  {
+    "cedula": "V-87654321",
+    "password": "123",
+    "nombre": "Analista INCES",
+    "rol": "analista",
+    "permisos": ["panel_completo", "solo_ver_usuarios", "gestionar_empleados"]
+  },
+  {
+    "cedula": "V-11223344",
+    "password": "123",
+    "nombre": "Personal Comedor",
+    "rol": "comedor",
+    "permisos": ["panel_completo", "solo_ver_usuarios", "verComidas"]
+  },
+
+  {
+    "cedula": "V-11223355",
+    "password": "123",
+    "nombre": "Personal Comedor",
+    "rol": "comedor",
+    "permisos": []
+  }
+]

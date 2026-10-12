@@ -1,0 +1,22 @@
+[
+  {"id": 1, "nombre": "Juan Pérez", "cargo": "Instructor", "departamento": "Formación"},
+  {"id": 2, "nombre": "María Gómez", "cargo": "Asistente", "departamento": "Administración"},
+  {"id": 3, "nombre": "Carlos Silva", "cargo": "Analista", "departamento": "Tecnología"},
+  {"id": 4, "nombre": "Ana Rodríguez", "cargo": "Coordinadora", "departamento": "Talento Humano"},
+  {"id": 5, "nombre": "Luis Martínez", "cargo": "Operador", "departamento": "Mantenimiento"},
+  {"id": 6, "nombre": "Elena Torres", "cargo": "Secretaria", "departamento": "Dirección"},
+  {"id": 7, "nombre": "Pedro Castillo", "cargo": "Supervisor", "departamento": "Seguridad"},
+  {"id": 8, "nombre": "Sofía Morales", "cargo": "Contador", "departamento": "Finanzas"},
+  {"id": 9, "nombre": "José Ramírez", "cargo": "Técnico", "departamento": "Redes"},
+  {"id": 10, "nombre": "Carmen Herrera", "cargo": "Psicólogo", "departamento": "Bienestar"},
+  {"id": 11, "nombre": "Miguel Rojas", "cargo": "Abogado", "departamento": "Legal"},
+  {"id": 12, "nombre": "Lucía Mendoza", "cargo": "Recepcionista", "departamento": "Atención"},
+  {"id": 13, "nombre": "Gabriel Vargas", "cargo": "Diseñador", "departamento": "Prensa"},
+  {"id": 14, "nombre": "Valeria Castro", "cargo": "Evaluador", "departamento": "Calidad"},
+  {"id": 15, "nombre": "Fernando Ortiz", "cargo": "Almacenista", "departamento": "Logística"},
+  {"id": 16, "nombre": "Daniela Ruiz", "cargo": "Nutricionista", "departamento": "Comedor"},
+  {"id": 17, "nombre": "Ricardo Silva", "cargo": "Cocinero", "departamento": "Comedor"},
+  {"id": 18, "nombre": "Mariana Flores", "cargo": "Asistente Social", "departamento": "Bienestar"},
+  {"id": 19, "nombre": "Alejandro Blanco", "cargo": "Auditor", "departamento": "Control"},
+  {"id": 20, "nombre": "Beatriz Ramos", "cargo": "Archivista", "departamento": "Documentación"}
+]
