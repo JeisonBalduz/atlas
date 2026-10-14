@@ -24,4 +24,4 @@
   <script src="/atlas/node_modules/flyonui/dist/accordion.js"></script>
 
 </head>
-<body class="min-h-screen bg-white">
+<body class="min-h-screen bg-black">
