@@ -4,6 +4,6 @@
     # EXCEPCIÓN: Si la petición pide algo de node_modules o storage, NO lo mandes a public/
     RewriteCond %{REQUEST_URI} !^/atlas/node_modules/ [NC]
     
-        
+    RewriteCond %{REQUEST_URI} !^/atlas/app/lib/ [NC]
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>

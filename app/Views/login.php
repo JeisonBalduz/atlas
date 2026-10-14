@@ -5,7 +5,7 @@ use App\Atlas\Config\App;
 <section id="vista-login" class="flex min-h-screen w-full flex-col md:flex-row">
   <!-- Columna visual institucional -->
   <div class="relative flex min-h-[220px] flex-col justify-end overflow-hidden p-8 md:w-1/2 md:min-h-screen md:p-14">
-    <img src="./descargar/img/fondo.png" alt="Taller de formación técnica"
+    <img src="./assets/img/fondo.png" alt="Taller de formación técnica"
       class="absolute inset-0 h-full w-full object-cover" />
 
     <div class="absolute inset-0 login-overlay"></div>
@@ -15,7 +15,7 @@ use App\Atlas\Config\App;
   <div class="flex w-full flex-1 items-center justify-center bg-white px-6 py-12 md:w-1/2">
     <form id="form-login" class="w-full max-w-sm" novalidate>
       <div class="mb-2 flex flex-col items-center justify-center">
-        <img src="./descargar/icons/logo_atlas.png" alt="" class="mb-3 w-16 h-16" alt="Foto">
+        <img src="./assets/icons/logo_atlas.png" alt="" class="mb-3 w-16 h-16" alt="Foto">
         <h2 class="font-medium text-zinc-800 text-2xl">
           Inicia sesión en tu cuenta
         </h2>

@@ -79,3 +79,25 @@ Flight::route('GET /node_modules/@path...', function ($path) {
     readfile($file);
     exit;
 });
+
+Flight::route('GET /app/lib/@path...', function ($path) {
+    // Computa viam absolutam ad radicem projecti
+    $file = __DIR__ . '/../../app/lib/' . $path;
+
+    if (!file_exists($file) || is_dir($file)) {
+        Flight::notFound();
+        return;
+    }
+
+    $ext = pathinfo($file, PATHINFO_EXTENSION);
+    if ($ext === 'js') {
+        header('Content-Type: application/javascript');
+    } elseif ($ext === 'css') {
+        header('Content-Type: text/css');
+    } else {
+        header('Content-Type: ' . (mime_content_type($file) ?: 'text/plain'));
+    }
+
+    readfile($file);
+    exit;
+});

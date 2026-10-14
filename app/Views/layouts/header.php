@@ -14,14 +14,14 @@
   <!-- FAVAICON -->
   <link rel="shortcut icon" href="./descargar/icons/favicon.webp" type="image/x-icon">
   <!-- CSS GLOBAL -->
-  <link rel="stylesheet" href="./css/utils/app.css" /> 
+  <link rel="stylesheet" href="./assets/css/utils/app.css" /> 
   <!-- CSS TAILWIND -->
   <link rel="stylesheet" href="./output.css" /> 
   <!-- LUCIDE ICONS -->
-  <script src="./lib/js/lucideIcons/lucide.min.js"></script>
+  <script src="./app/lib/js/lucideIcons/lucide.min.js"></script>
   <!-- FLYONUI -->
-  <script src="/atlas/node_modules/flyonui/flyonui.js"></script>
-  <script src="/atlas/node_modules/flyonui/dist/accordion.js"></script>
+  <script src="./node_modules/flyonui/flyonui.js"></script>
+  <script src="./node_modules/flyonui/dist/accordion.js"></script>
 
 </head>
 <body class="min-h-screen bg-black">
