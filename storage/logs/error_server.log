@@ -16,3 +16,21 @@
 #0 {main}
 =======================================================================
 
+=======================================================================
+⏰ FECHA/HORA: [2026-10-14 22:22:56]
+🚨 TIPO ERROR: WARNING
+💬 MENSAJE:   require_once(/var/www/html/atlas/public/../app/Routers/we.php): Failed to open stream: No such file or directory
+📂 ARCHIVO:   /var/www/html/atlas/public/index.php
+📍 LÍNEA:     22
+=======================================================================
+
+=======================================================================
+⏰ FECHA/HORA: [2026-10-14 22:22:56]
+🚨 TIPO ERROR: EXCEPTION_FATAL
+💬 MENSAJE:   Failed opening required '/var/www/html/atlas/public/../app/Routers/we.php' (include_path='.:/usr/share/php')
+📂 ARCHIVO:   /var/www/html/atlas/public/index.php
+📍 LÍNEA:     22
+🔍 TRAZA (STACK TRACE):
+#0 {main}
+=======================================================================
+

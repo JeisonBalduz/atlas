@@ -46,7 +46,7 @@ class LoggerSystem {
 
     public static function handleFatalError() {
         $error = error_get_last();
-        if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        if ($error && \in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
             self::writeLog('FATAL_ERROR', $error['message'], $error['file'], $error['line']);
         }
     }
