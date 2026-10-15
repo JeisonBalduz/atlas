@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Atlas\Controllers;
+namespace App\Atlas\controllers;
 
-use App\Atlas\Config\MapeoVistas; // Tu mapa de palabras clave
-use App\Atlas\Error\ErrorRouter;
+use App\Atlas\config\MapeoVistas; // Tu mapa de palabras clave
+use App\Atlas\error\ErrorRouter;
 
 class VistaController {
 

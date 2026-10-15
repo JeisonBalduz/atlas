@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Atlas\Error;
+namespace App\Atlas\error;
 
-use App\Atlas\Interfaces\ErrorInterfaces;
+use App\Atlas\interfaces\ErrorInterfaces;
 
 class ErrorRouter implements ErrorInterfaces { 
     public static array $arrayErrores = [

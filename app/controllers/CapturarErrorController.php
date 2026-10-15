@@ -1,7 +1,7 @@
 <?php
-namespace App\Atlas\Helpers;
+namespace App\Atlas\controllers;
 
-class LoggerSystem {
+class CapturarErrorController {
     // 1. Declaramos la propiedad limpia sin asignarle valor aquí arriba
     private static string $logFile;
 

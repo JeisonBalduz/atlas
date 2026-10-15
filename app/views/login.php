@@ -1,5 +1,5 @@
 <?php
-use App\Atlas\Config\App;
+ use App\Atlas\support\App;
 ?>
 
 <section id="vista-login" class="flex min-h-screen w-full flex-col md:flex-row">
@@ -84,4 +84,4 @@ use App\Atlas\Config\App;
   </div>
 </section>
 
-<script src="<?= App::URL_JS_MODULES ?>/login.js"></script>
+<script src="<?= App::URL_JS_MODULES?>/login.js"></script>

@@ -2,25 +2,21 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use App\Atlas\Helpers\Router;
-use App\Atlas\Helpers\LoggerSystem;
+use App\Atlas\controllers\CapturarErrorController;
+use App\Atlas\controllers\RouterController;
 
-LoggerSystem::init();
-// Lempiardor de las URL 
-Flight::request()->url = Router::obtenerPathLimpio();
+CapturarErrorController::init();
 
-// Define la base de rutas de las vistas
-Flight::set('flight.views.path', __DIR__ . '/../app/Views');
+Flight::set('flight.views.path', __DIR__ . '/../app/views');
 
-// Define de la base de la URL del proyecto
+Flight::request()->url = RouterController::obtenerPathLimpio();
+
 Flight::set('flight.base_url', '/atlas/public');
 
-
-
 //Endponits de router para las vistas y las peticiones
-require_once __DIR__ . '/../app/Routers/admin.php';
-require_once __DIR__ . '/../app/Routers/we.php';
-require_once __DIR__ . '/../app/Routers/api.php';
+
+require_once __DIR__ . '/../app/routers/web.php';
+require_once __DIR__ . '/../app/routers/api.php';
 
 
 //Inicializador 

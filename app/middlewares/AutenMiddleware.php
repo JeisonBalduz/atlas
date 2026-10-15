@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Atlas\Middlewares;
+namespace App\Atlas\middlewares;
 
 use Flight;
 

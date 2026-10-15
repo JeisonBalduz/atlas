@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Atlas\Helpers;
+namespace App\Atlas\controllers;
 
-use App\Atlas\Error\ErrorRouter;
 
-class Router {
+class RouterController {
 
     public static function obtenerPathLimpio(): string {
         // 1. Obtenemos la URI completa de la peticion
@@ -30,5 +29,9 @@ class Router {
         $path = '/' . trim($path, '/');
         
         return ($path === '/' || $path === '') ? '/' : $path;
+    }
+
+    public static function router (){
+       // Inicializa el enrutador de Flight
     }
 }

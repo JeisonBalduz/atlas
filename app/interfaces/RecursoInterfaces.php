@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Atlas\Interfaces;
+namespace App\Atlas\interfaces;
 
 interface RecursoInterfaces{
 

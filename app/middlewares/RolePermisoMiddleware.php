@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Atlas\Middlewares;
+namespace App\Atlas\middlewares;
 
-use App\Atlas\Error\ErrorAccess;
+use App\Atlas\error\ErrorAccess;
 
 class RolePermisoMiddleware{
 

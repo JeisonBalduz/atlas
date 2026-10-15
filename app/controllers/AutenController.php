@@ -1,7 +1,7 @@
 <?php
 
-namespace App\Atlas\Controllers;
-use App\Atlas\Config\App;
+namespace App\Atlas\controllers;
+use App\Atlas\config\App;
 
 class AutenController {
 

@@ -1,5 +1,5 @@
 <?php
-namespace App\Atlas\Models;
+namespace App\Atlas\models;
 
 class UsuarioModel {
     public static function encontrarPorEmail($email) {

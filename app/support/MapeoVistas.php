@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Atlas\Config;
+namespace App\Atlas\support;
 
-use App\Atlas\Interfaces\RecursoInterfaces;
+use App\Atlas\interfaces\RecursoInterfaces;
 
 class MapeoVistas implements RecursoInterfaces {
     private static array $arrayRutas = [

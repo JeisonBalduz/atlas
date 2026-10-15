@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Atlas\Interfaces;
+namespace App\Atlas\interfaces;
 
 interface ErrorInterfaces{
     public static function imprimirError(int $indiceError, int $codigo) : void;
