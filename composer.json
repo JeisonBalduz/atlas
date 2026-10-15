@@ -1,23 +1,20 @@
 {
-    "name": "app/atlas",
-    "autoload": {
-        "files": [
-            "app/helpers/globalView.php"
-        ],
-        "psr-4": {
-            "App\\Atlas\\": "app/"
-        }
-    },
-    "authors": [
-        {
-            "name": "Jeison Balduz",
-            "email": "jeisonbalduz12@gmail.com"
-        }
+  "name": "app/atlas",
+  "autoload": {
+    "files": [
+      "app/helpers/globalView.php"
     ],
-    "require": {
-        "flightphp/core": "^3.19",
-        "illuminate/routing": "^13.36",
-        "illuminate/events": "^13.36",
-        "illuminate/http": "^13.36"
+    "psr-4": {
+      "App\\Atlas\\": "app/"
     }
+  },
+  "authors": [
+    {
+      "name": "Jeison Balduz",
+      "email": "jeisonbalduz12@gmail.com"
+    }
+  ],
+  "require": {
+    "flightphp/core": "^3.19"
+  }
 }
