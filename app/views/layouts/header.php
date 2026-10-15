@@ -18,7 +18,7 @@
   <!-- CSS TAILWIND -->
   <link rel="stylesheet" href="./output.css" /> 
   <!-- LUCIDE ICONS -->
-  <script src="./assets/lib/js/lucideIcons/lucide.min.js"></script>
+  <script src="./app/lib/js/lucideIcons/lucide.min.js"></script>
   <!-- FLYONUI -->
   <script src="./node_modules/flyonui/flyonui.js"></script>
   <script src="./node_modules/flyonui/dist/accordion.js"></script>
