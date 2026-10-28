@@ -64,7 +64,7 @@ if (DatabaseFactory::isEnabled($config)) {
 // ---------------------------------------------------------------------------
 // BladeOne (Reemplazando a Twig)
 // ---------------------------------------------------------------------------
-$viewsPath = $projectRoot . $ds . 'app' . $ds . 'views';
+$viewsPath = $projectRoot . $ds . 'resources' . $ds . 'views';
 $bladeCache = $projectRoot . $ds . 'app' . $ds . 'cache' . $ds . 'blade';
 if (!is_dir($bladeCache)) {
     mkdir($bladeCache, 0775, true);
