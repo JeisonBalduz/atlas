@@ -18,13 +18,5 @@ $router->group('', function (Router $router) use ($config) {
     $router->get('/', [HomeController::class, 'index']);
 
     // Posts demo requires SimplePdo (PostController). Skip when DB is disabled.
-    if (DatabaseFactory::isEnabled($config)) {
-        $router->get('/posts', [PostController::class, 'index']);
-        $router->get('/posts/@id:[0-9]+', [PostController::class, 'show']);
-
-        $router->group('/api', function (Router $router) {
-            $router->get('/posts', [PostController::class, 'apiIndex']);
-            $router->get('/posts/@id:[0-9]+', [PostController::class, 'apiShow']);
-        });
-    }
+    
 }, [SecurityHeadersMiddleware::class]);

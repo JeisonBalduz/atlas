@@ -6,9 +6,9 @@
  * Bootstrap (web) provides:
  *   @var \flight\Engine<object> $app
  *   @var \App\Utils\Config      $config
- *   @var string                 $projectRoot
- *   @var string                 $ds
- *   @var string                 $nonce
+ *   @var string                $projectRoot
+ *   @var string                $ds
+ *   @var string                $nonce
  *
  * Runway 1.x also requires this file after loading config.php, with $config as
  * the raw array and no $app. Skip full wiring in that CLI context.
@@ -17,13 +17,12 @@
 use App\Utils\Config;
 use App\Utils\DatabaseFactory;
 use Dice\Dice;
+use eftec\bladeone\BladeOne;
 use flight\database\SimplePdo;
 use flight\debug\tracy\TracyExtensionLoader;
 use flight\Engine;
 use flight\Session;
 use Tracy\Debugger;
-use Twig\Environment;
-use Twig\Loader\FilesystemLoader;
 
 // Runway loads config.php then services.php for config:get/set. No Engine yet.
 if (!isset($app) || !($app instanceof Engine) || !($config instanceof Config)) {
@@ -63,33 +62,25 @@ if (DatabaseFactory::isEnabled($config)) {
 }
 
 // ---------------------------------------------------------------------------
-// Twig
+// BladeOne (Reemplazando a Twig)
 // ---------------------------------------------------------------------------
 $viewsPath = $projectRoot . $ds . 'app' . $ds . 'views';
-$twigCache = $projectRoot . $ds . 'app' . $ds . 'cache' . $ds . 'twig';
-if (!is_dir($twigCache)) {
-    mkdir($twigCache, 0775, true);
+$bladeCache = $projectRoot . $ds . 'app' . $ds . 'cache' . $ds . 'blade';
+if (!is_dir($bladeCache)) {
+    mkdir($bladeCache, 0775, true);
 }
 
-$loader = new FilesystemLoader($viewsPath);
-$twig = new Environment($loader, [
-    'cache' => $config->isDebug() ? false : $twigCache,
-    'debug' => $config->isDebug(),
-    'auto_reload' => $config->isDebug(),
-]);
+// Instanciar BladeOne correctamente
+$blade = new BladeOne($viewsPath, $bladeCache, BladeOne::MODE_AUTO);
 
-$twig->addGlobal('csp_nonce', $nonce);
-$twig->addGlobal('app_env', $config->env());
-// Always trailing slash so {{ base_url }}posts joins correctly under subpaths
-$twig->addGlobal('base_url', $config->baseUrl());
+// Compartir variables globales con todas las vistas de Blade
+$blade->share('csp_nonce', $nonce);
+$blade->share('app_env', $config->env());
+$blade->share('base_url', $config->baseUrl());
 
-// Map Flight render → Twig (single documented view path)
-$app->map('render', function (string $template, array $data = []) use ($app, $twig) {
-    // Allow "welcome" or "welcome.twig"
-    if (substr($template, -5) !== '.twig') {
-        $template .= '.twig';
-    }
-    $app->response()->write($twig->render($template, $data));
+// Mapear Flight::render() para que use BladeOne
+$app->map('render', function (string $template, array $data = []) use ($app, $blade) {
+    $app->response()->write($blade->run($template, $data));
 });
 
 // ---------------------------------------------------------------------------
@@ -118,7 +109,7 @@ $container = new Dice();
 $substitutions = [
     Engine::class => $app,
     Config::class => $config,
-    Environment::class => $twig,
+    BladeOne::class => $blade,
     Session::class => $session,
 ];
 
@@ -132,7 +123,7 @@ $container = $container->addRule('*', [
 
 // Shared rules for classes resolved by name (belt + suspenders)
 $container = $container->addRule(Config::class, ['shared' => true]);
-$container = $container->addRule(Environment::class, ['shared' => true]);
+$container = $container->addRule(BladeOne::class, ['shared' => true]);
 $container = $container->addRule(Session::class, ['shared' => true]);
 if ($db instanceof SimplePdo) {
     $container = $container->addRule(SimplePdo::class, ['shared' => true]);
