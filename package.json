@@ -1,6 +1,32 @@
 {
-  "dependencies": {
+  "name": "atlas",
+  "version": "1.0.0",
+  "description": "Official starter for [Flight PHP](https://docs.flightphp.com) — a fast, simple, extensible micro-framework.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
-    "tailwindcss": "^4.3.3"
-  }
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.5"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JeisonBalduz/atlas.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/JeisonBalduz/atlas/issues"
+  },
+  "homepage": "https://github.com/JeisonBalduz/atlas#readme"
 }

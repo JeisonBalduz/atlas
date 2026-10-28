@@ -28,6 +28,17 @@ class SecurityHeadersMiddleware
      */
     public function before(array $params): void
     {
+        // ==========================================
+        // ENTORNO LOCAL: Desactiva la CSP para desarrollo con Vite
+        // ==========================================
+        $isLocal = true; // Cambiar a false cuando despliegues a producción
+        if ($isLocal) {
+            return;
+        }
+
+        // ==========================================
+        // ENTORNO DE PRODUCCIÓN: Seguridad estricta
+        // ==========================================
         $nonce = (string) $this->app->get('csp_nonce');
 
         // Tracy debug bar injects inline CSS in development
