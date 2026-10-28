@@ -62,23 +62,25 @@ $app->set('flight.case_sensitive', false);
 $app->set('flight.log_errors', true);
 // Let Tracy handle errors when debug is on
 $app->set('flight.handle_errors', $config->isDebug() === false);
-$app->set('flight.views.path', __DIR__ . $ds . '..' . $ds . 'views');
-$app->set('flight.views.extension', '.twig');
+
+// Apuntar al directorio resources/views en la raíz del proyecto (fuera de app/)
+$app->set('flight.views.path', $projectRoot . $ds . 'resources' . $ds . 'views');
+$app->set('flight.views.extension', '.blade.php');
+
 $app->set('flight.content_length', false);
 // Harden: do not allow X-HTTP-Method-Override / _method spoofing unless you need it
 $app->set('flight.allow_method_override', false);
-// Harden: keep native View templates inside flight.views.path (Twig has its own loader root).
-// Harmless on older core that ignores the key; applied when flightphp/core supports it.
+// Harden: keep native View templates inside flight.views.path
 $app->set('flight.views.restrict_to_path', true);
 
-// CSP nonce per request (used by SecurityHeadersMiddleware + Twig globals)
+// CSP nonce per request (usado por middlewares y globales)
 $nonce = bin2hex(random_bytes(16));
 $app->set('csp_nonce', $nonce);
 
 // Expose project root for commands/services that need filesystem paths
 $app->set('app.project_root', $projectRoot);
 
-// Services: Tracy, DB, Twig, Session, Dice + container handler
+// Services: Tracy, DB, BladeOne, Session, Dice + container handler
 require __DIR__ . $ds . 'services.php';
 
 $router = $app->router();
