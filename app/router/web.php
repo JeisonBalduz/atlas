@@ -15,4 +15,4 @@ use flight\net\Router;
 
 // Ruta de bienvenida
 
-//$router->get('/', [HomeController::class, 'index']);
+$router->get('/', [HomeController::class, 'index']);
