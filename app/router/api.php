@@ -9,7 +9,6 @@
  */
 
 use App\Controller\HomeController;
-use App\Utils\DatabaseFactory;
 use flight\net\Router;
 
 $router->get('/', [HomeController::class, 'index']);

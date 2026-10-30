@@ -10,7 +10,6 @@
  */
 
 use App\Controller\HomeController;
-use App\Utils\DatabaseFactory;
 use flight\net\Router;
 
 // Ruta de bienvenida
