@@ -23,6 +23,7 @@ use flight\debug\tracy\TracyExtensionLoader;
 use flight\Engine;
 use flight\Session;
 use Tracy\Debugger;
+use Illuminate\Database\Capsule\Manager as Capsule;
 
 // Runway loads config.php then services.php for config:get/set. No Engine yet.
 if (!isset($app) || !($app instanceof Engine) || !($config instanceof Config)) {
@@ -137,3 +138,28 @@ $app->registerContainerHandler(function ($class, $params) use ($container) {
 $app->map('make', function ($class, $params = []) use ($container) {
     return $container->create($class, $params);
 });
+
+
+// ---------------------------------------------------------------------------
+// ELEMENT Eloquent ORM 
+//
+// 1. Inicializamos el Capsule Manager de Eloquent
+$capsule = new Capsule;
+
+// 2. Registramos la conexión usando los datos de tu arreglo $config
+$capsule->addConnection([
+    'driver'    => 'pgsql', // <-- Forzamos explícitamente pgsql aquí por seguridad
+    'host'      => $config->get('database.host', 'localhost'),
+    'port'      => $config->get('database.port', '5432'),
+    'database'  => $config->get('database.dbname', 'talento_humano'),
+    'username'  => $config->get('database.user', 'postgres'),
+    'password'  => $config->get('database.password', ''),
+    'charset'   => 'utf8',
+    'prefix'    => '',
+    'schema'    => 'public',
+]);
+// 3. Hacemos que la instancia esté disponible globalmente (estática)
+$capsule->setAsGlobal();
+
+// 4. Arrancamos Eloquent ORM
+$capsule->bootEloquent();
