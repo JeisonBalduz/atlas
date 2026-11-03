@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title><?php echo $this->yieldContent('title', 'Sistema Atlas - INCES'); ?></title>
+ <!-- Vite Client & Styles para tu entorno local FlightPHP -->
+ <script type="module" src="http://localhost:5173/@vite/client"></script>
+ <!-- Estilos globales de la aplicacion -->
+ <link rel="stylesheet" href="./css/app.css">
+ <link rel="stylesheet" href="./css/output.css">
+ <?php echo  $this->CompileStackFinal('styles'); ?> <!--Inyección de css de las vistas -->
+
+</head>
+
+<body class="">
+ <!-- Inyección de contenido -->
+ <main class="">
+ <?php echo $this->yieldContent('content'); ?>
+ </main>
+
+ <!-- Inyección de scripts -->
+ <?php echo  $this->CompileStackFinal('scripts'); ?>
+</body>
+</html>
