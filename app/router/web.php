@@ -10,6 +10,7 @@
  */
 
 use App\Controller\HomeController;
+use App\Controller\EmpleadoController;
 use flight\net\Router;
 
 // Ruta de bienvenida
@@ -17,3 +18,5 @@ use flight\net\Router;
 $router->get('/', [HomeController::class, 'index']);
 
 $router->get('/empleado/actualizar/@id',[HomeController::class,'mostrarEmpleado']);
+
+$router->get('/empleados', [EmpleadoController::class, 'index']);

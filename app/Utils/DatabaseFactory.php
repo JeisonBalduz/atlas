@@ -9,36 +9,35 @@ use InvalidArgumentException;
 use PDO;
 
 /**
- * Builds a SimplePdo connection from Config.
- * Shared helper for bootstrap services and CLI (migrate).
+ * Fábrica de conexión exclusiva para PostgreSQL en el sistema Atlas.
  */
 final class DatabaseFactory
 {
     /**
-     * Whether database is configured (driver non-empty).
+     * Verifica si la base de datos está configurada.
      */
     public static function isEnabled(Config $config): bool
     {
-        $driver = (string) $config->get('database.driver', '');
-        return $driver !== '';
+        $dbname = (string) $config->get('database.dbname', '');
+        return $dbname !== '';
     }
 
     /**
-     * Create a SimplePdo instance from config.
-     *
-     * @throws InvalidArgumentException When driver is empty or unsupported
+     * Crea y retorna una instancia de SimplePdo conectada exclusivamente a PostgreSQL.
      */
     public static function create(Config $config): SimplePdo
     {
-        $driver = strtolower((string) $config->get('database.driver', ''));
-
-        if ($driver === '') {
-            throw new InvalidArgumentException(
-                'Database is not configured. Set database.driver in config.php or DB_DRIVER in .env'
-            );
+        $host   = (string) $config->get('database.host', 'localhost');
+        $port   = (string) $config->get('database.port', '5432');
+        $dbname = (string) $config->get('database.dbname', 'talento_humano');
+        
+        if ($dbname === '') {
+            throw new InvalidArgumentException('El nombre de la base de datos (database.dbname) es obligatorio en config.php');
         }
 
-        $dsn = self::buildDsn($config, $driver);
+        // DSN estricto para PostgreSQL
+        $dsn = "pgsql:host={$host};port={$port};dbname={$dbname}";
+        
         $user = $config->get('database.user');
         $password = $config->get('database.password');
 
@@ -54,32 +53,5 @@ final class DatabaseFactory
             $password !== null ? (string) $password : null,
             $options
         );
-    }
-
-    private static function buildDsn(Config $config, string $driver): string
-    {
-        if ($driver === 'sqlite') {
-            $path = (string) $config->get('database.file_path', '');
-            if ($path === '') {
-                throw new InvalidArgumentException('database.file_path is required for sqlite');
-            }
-
-            $dir = dirname($path);
-            if (!is_dir($dir)) {
-                mkdir($dir, 0775, true);
-            }
-
-            return 'sqlite:' . $path;
-        }
-
-        if ($driver === 'mysql') {
-            $host = (string) $config->get('database.host', 'localhost');
-            $dbname = (string) $config->get('database.dbname', '');
-            $charset = (string) $config->get('database.charset', 'utf8mb4');
-
-            return 'mysql:host=' . $host . ';dbname=' . $dbname . ';charset=' . $charset;
-        }
-
-        throw new InvalidArgumentException('Unsupported database driver: ' . $driver);
     }
 }
