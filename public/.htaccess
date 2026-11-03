@@ -1,10 +1,12 @@
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php [QSA,L]
+<IfModule mod_rewrite.c>
+    RewriteEngine On
 
-# BEGIN GZIP
-<ifmodule mod_deflate.c>
-AddOutputFilterByType DEFLATE text/text text/html text/plain text/xml text/css application/x-javascript application/javascript
-</ifmodule>
-# END GZIP
+    # Forzar que cualquier petición a /css/... o /js/... vaya directamente a FlightPHP (index.php)
+    RewriteRule ^css/(.*)$ index.php [QSA,L]
+    RewriteRule ^js/(.*)$ index.php [QSA,L]
+
+    # Regla estándar para el resto de la aplicación
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>

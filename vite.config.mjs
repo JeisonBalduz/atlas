@@ -1,9 +1,7 @@
 import { defineConfig } from 'vite';
-import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
     plugins: [
-        tailwindcss(), // <-- Tailwind integrado nativamente en Vite
         {
             name: 'blade-reload',
             handleHotUpdate({ file, server }) {
