@@ -37,4 +37,33 @@ class HomeController
             'debug' => $this->config->isDebug(),
         ]);
     }
+
+    public function mostrarEmpleado(string $id): void
+    {   
+        // Si internamente necesitas usarlo como número para la base de datos, 
+        // simplemente lo conviertes (cast) a entero dentro de la función:
+        
+        if(is_numeric($id)) {
+             $idEntero = (int) $id;
+            var_dump("Convertido a entero: " . $idEntero);
+         
+        } else {
+           
+            var_dump("no es entero" . $id);
+        }
+    }
+
+    public function actualizar(): void
+    {   
+        // ¡Aquí usas tu función global directamente con total libertad!
+        $nombre = $this->app->request()->data->nombre;
+        $correo = $this->app->request()->data->apellido;
+
+        // O si prefieres usar la nativa de Flight:
+        // $nombre = Flight::request()->data->nombre;
+
+        // Tu lógica de negocio / base de datos aquí...
+        var_dump("Nombre enviado por fetch: " . $nombre);
+        var_dump("Correo enviado por fetch: " . $correo);
+    }
 }

@@ -64,14 +64,18 @@
 
         let idEmpleado = 5;
 
-        fetch(`empleado/actualizar/${idEmpleado}`, {
+        fetch(`/empleado/create/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     nombre: 'Nuevo Nombre',
-                    id: idEmpleado
+                    id: idEmpleado,
+                    apellido: 'Nuevo Apellido',
+                    cedula: '12345678',
+                    ciudad: 'Nueva Ciudad',
+                    direccion: 'Nueva Dirección',
                 })
             })
             .then(response => response.json())
