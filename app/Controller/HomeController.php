@@ -14,15 +14,10 @@ use flight\Engine;
  */
 class HomeController
 {
-    /** @var Engine<object> */
     private Engine $app;
 
-    /** @var Config */
     private Config $config;
 
-    /**
-     * @param Engine<object> $app
-     */
     public function __construct(Engine $app, Config $config)
     {
         $this->app = $app;
@@ -38,28 +33,23 @@ class HomeController
         ]);
     }
 
-    public function  mostrarEmpleado(string $id): void
-    {   
-        // Si internamente necesitas usarlo como número para la base de datos, 
-        // simplemente lo conviertes (cast) a entero dentro de la función:
-        
-        if(is_numeric($id)) {
-             $idEntero = (int) $id;
+    public function mostrarEmpleado(string $id): void
+    {
+        if (is_numeric($id)) {
+            $idEntero = (int) $id;
             var_dump("Convertido a entero: " . $idEntero);
-         
         } else {
-           
-            var_dump("no es entero" . $id);
+            var_dump("no es entero: " . $id);
         }
     }
 
     public function actualizar(): void
     {
-        /** @var object $data */
+        // Forma 1 (Recomendada con PHPStan): acceso por array/Collection
         $data = $this->app->request()->data;
 
-        $nombre = $data->nombre;
-        $correo = $data->apellido;
+        $nombre = is_string($data['nombre'] ?? null) ? $data['nombre'] : '';
+        $correo = is_string($data['apellido'] ?? null) ? $data['apellido'] : '';
 
         var_dump("Nombre enviado por fetch: " . $nombre);
         var_dump("Correo enviado por fetch: " . $correo);
