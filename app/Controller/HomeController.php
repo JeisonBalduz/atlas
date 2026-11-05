@@ -15,10 +15,10 @@ use flight\Engine;
 class HomeController
 {
     /** @var Engine<object> */
-    private $app;
+    private Engine $app;
 
     /** @var Config */
-    private $config;
+    private Config $config;
 
     /**
      * @param Engine<object> $app
@@ -38,7 +38,7 @@ class HomeController
         ]);
     }
 
-    public function mostrarEmpleado(string $id): void
+    public function  mostrarEmpleado(string $id): void
     {   
         // Si internamente necesitas usarlo como número para la base de datos, 
         // simplemente lo conviertes (cast) a entero dentro de la función:
@@ -54,15 +54,13 @@ class HomeController
     }
 
     public function actualizar(): void
-    {   
-        // ¡Aquí usas tu función global directamente con total libertad!
-        $nombre = $this->app->request()->data->nombre;
-        $correo = $this->app->request()->data->apellido;
+    {
+        /** @var object $data */
+        $data = $this->app->request()->data;
 
-        // O si prefieres usar la nativa de Flight:
-        // $nombre = Flight::request()->data->nombre;
+        $nombre = $data->nombre;
+        $correo = $data->apellido;
 
-        // Tu lógica de negocio / base de datos aquí...
         var_dump("Nombre enviado por fetch: " . $nombre);
         var_dump("Correo enviado por fetch: " . $correo);
     }
