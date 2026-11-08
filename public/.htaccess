@@ -4,6 +4,8 @@
     # Forzar que cualquier petición a /css/... o /js/... vaya directamente a FlightPHP (index.php)
     RewriteRule ^css/(.*)$ index.php [QSA,L]
     RewriteRule ^js/(.*)$ index.php [QSA,L]
+    RewriteRule ^lib/(.*)$ index.php [QSA,L]
+
 
     # Regla estándar para el resto de la aplicación
     RewriteCond %{REQUEST_FILENAME} !-f

@@ -4,8 +4,11 @@ $uri = urldecode(
     parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)
 );
 
+// Ruta física real en la carpeta public del proyecto
+$filePath = dirname(__DIR__, 2) . '/public' . $uri;
+
 // Si el archivo estático (CSS, JS, imágenes, fuentes) existe en public, sírvelo directo
-if ($uri !== '/' && file_exists(__DIR__ . $uri)) {
+if ($uri !== '/' && file_exists($filePath)) {
     return false;
 }
 

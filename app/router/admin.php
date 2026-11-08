@@ -46,6 +46,36 @@ Flight::route('/js/*', function() {
     }
 });
 
+
+Flight::route('/lib/*', function() {
+    $request = Flight::request();
+    $path = str_replace('/lib/', '', $request->url);
+    $filePath = __DIR__ . '/../../app/lib/' . $path;
+    
+    if (file_exists($filePath) && !is_dir($filePath)) {
+        $ext = pathinfo($filePath, PATHINFO_EXTENSION);
+        $mimeTypes = [
+            'css' => 'text/css',                  // <--- Añadido para archivos CSS
+            'js' => 'application/javascript',
+            'mjs' => 'application/javascript',
+            'json' => 'application/json',
+            'png' => 'image/png',                 // <--- Opcional si guardas imágenes ahí
+            'jpg' => 'image/jpeg',                // <--- Opcional
+            'svg' => 'image/svg+xml',             // <--- Opcional
+            'woff2' => 'font/woff2',              // <--- Opcional para fuentes
+        ];
+        
+        // Cabecera por defecto text/plain o binaria genérica si no está mapeada
+        $contentType = $mimeTypes[$ext] ?? mime_content_type($filePath) ?: 'application/octet-stream';
+        
+        header('Content-Type: ' . $contentType);
+        readfile($filePath);
+        exit;
+    } else {
+        Flight::halt(404, 'Archivo no encontrado');
+    }
+});
+
 //Ruta dinamica para servir las fotos de los empleados
 Flight::route('/photo/*', function() {
     $request = Flight::request();

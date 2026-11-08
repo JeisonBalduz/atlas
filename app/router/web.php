@@ -9,13 +9,10 @@
  */
 use flight\net\Router;
 use App\Controller\HomeController;
-use App\Controller\EmpleadoController;
-use App\Controller\FamiliaresController;
-
-
-
+use App\Controller\LoginController;
 
 // Ruta de bienvenida
-
 $router->get('/', [HomeController::class, 'render']);
 
+// Ruta para el módulo Login
+$router->get('/login', [LoginController::class, 'render']);

@@ -7,9 +7,16 @@
  <title><?php echo $this->yieldContent('title', 'Sistema Atlas - INCES'); ?></title>
  <!-- Vite Client & Styles para tu entorno local FlightPHP -->
  <script type="module" src="http://localhost:5173/@vite/client"></script>
+
+ <script src="./lib/js/lucideIcons/lucide.min.js"></script>
+
  <!-- Estilos globales de la aplicacion -->
  <link rel="stylesheet" href="./css/app.css">
  <link rel="stylesheet" href="./css/output.css">
+
+
+
+
  <?php echo  $this->CompileStackFinal('styles'); ?> <!--Inyección de css de las vistas -->
 
 </head>
@@ -22,5 +29,12 @@
 
  <!-- Inyección de scripts -->
  <?php echo  $this->CompileStackFinal('scripts'); ?>
+
+ <script>
+ if (typeof lucide !== 'undefined') {
+ lucide.createIcons();
+ }
+ </script>
 </body>
+
 </html>
