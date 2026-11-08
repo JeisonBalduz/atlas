@@ -6,7 +6,7 @@ namespace App\Command;
 
 use flight\commands\AbstractBaseCommand;
 
-class MakeControllerCommand extends AbstractBaseCommand {
+class MakeControllerCustomCommand extends AbstractBaseCommand {
 
     public function __construct($name = 'make:controller_custom') {
         parent::__construct(
