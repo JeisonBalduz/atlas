@@ -37,8 +37,8 @@ class MakeViewCommand extends AbstractBaseCommand {
         if (!file_exists($viewFile)) {
             $viewContent = "@extends('layouts.app')\n\n" .
                            "@section('content')\n" .
-                           "<div class=\"max-w-4xl mx-auto bg-white p-6 rounded-xl border border-slate-200 shadow-sm\">\n" .
-                           "    <h1 class=\"text-2xl font-bold text-slate-800 mb-4\">Listado de {$baseName}s</h1>\n" .
+                           "<div>\n" .
+                           "    <h1 class=\"text-2xl font-bold text-slate-800 mb-4\">Vista de {$baseName}s</h1>\n" .
                            "    <p class=\"text-slate-600\">Vista generada para el sistema Atlas.</p>\n" .
                            "</div>\n" .
                            "@endsection\n";

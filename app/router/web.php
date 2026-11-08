@@ -13,6 +13,7 @@ use App\Controller\EmpleadoController;
 use App\Controller\FamiliaresController;
 
 
+
 // Ruta de bienvenida
 
 $router->get('/', [HomeController::class, 'render']);
