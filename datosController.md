@@ -2,7 +2,7 @@
 
 ### 1. Listado principal
 * **Inglés:** `index`
-* **Español:** `index` / `listar`
+* **Español:** `index` / `listar` / `render`
 * **Descripción:** Muestra la vista principal con la tabla de registros (ej. listado de empleados o vistas de PostgreSQL).
 
 ### 2. Formulario de creación

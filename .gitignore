@@ -1,1 +1,15 @@
 .idea/
+/vendor/
+/composer.lock
+/.vscode/
+/.vagrant/
+/.runway-creds.json
+/database.sqlite
+/app/cache/*
+!/app/cache/.gitkeep
+/app/log/*
+!/app/log/.gitkeep
+/.phpunit.result.cache
+/phpunit.xml
+/coverage/
+/clover.xml

@@ -17,5 +17,3 @@ $router->post('/descargar-foto-cedula', function(){
 });
 
 
-$router->post('/empleado/create', [HomeController::class, 'actualizar']);
-

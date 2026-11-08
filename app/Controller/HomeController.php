@@ -24,7 +24,7 @@ class HomeController
         $this->config = $config;
     }
 
-    public function index(): void
+    public function render(): void
     {
         $this->app->render('welcome', [
             'message' => 'You are gonna do great things!',

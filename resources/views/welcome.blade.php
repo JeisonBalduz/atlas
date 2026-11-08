@@ -32,47 +32,4 @@
 @endsection
 
 @push('scripts')
-    <script>
-        document.getElementById('formCedula').addEventListener('submit', function (event) {
-            event.preventDefault();
-
-            const cedulaValor = document.getElementById('cedulaInput').value;
-            console.log("Enviando cédula:", cedulaValor);
-
-            const formData = new FormData();
-            formData.append('cedula', cedulaValor);
-
-            fetch('descargar-foto-cedula', {
-                method: 'POST',
-                // Sin headers de Content-Type aquí
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data);
-                })
-                .catch(error => console.error('Error:', error));
-        });
-
-        let idEmpleado = 5;
-
-        fetch(`/empleado/create/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                nombre: 'Nuevo Nombre',
-                id: idEmpleado,
-                apellido: 'Nuevo Apellido',
-                cedula: '12345678',
-                ciudad: 'Nueva Ciudad',
-                direccion: 'Nueva Dirección',
-            })
-        })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data);
-            });
-    </script>
 @endpush
