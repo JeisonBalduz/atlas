@@ -14,7 +14,8 @@
     <link rel="stylesheet" href="./css/app.css">
     <link rel="stylesheet" href="./css/output.css">
 
-
+    <!-- FAVAICON -->
+    <link rel="shortcut icon" href="./assets/icons/favicon.webp" type="image/x-icon">
 
 
     @stack('styles') <!--Inyección de css de las vistas -->

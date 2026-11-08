@@ -9,11 +9,14 @@
  */
 
 use App\Controller\HomeController;
+use App\Controller\LoginController;
 use flight\net\Router;
 
 $router->post('/descargar-foto-cedula', function(){
     $cedula = Flight::request()->data['cedula'] ?? $_POST['cedula'] ?? null;
     var_dump($cedula);
 });
+
+$router->post('/api/login', [LoginController::class, 'authenticate']);
 
 

@@ -13,21 +13,16 @@ use flight\Engine;
  * No Flight:: facade. No $_ENV. Inject what you need.
  */
 class HomeController
-{
-    private Engine $app;
-
-    private Config $config;
-
-    public function __construct(Engine $app, Config $config)
-    {
-        $this->app = $app;
-        $this->config = $config;
-    }
+{   
+    public function __construct(
+        private Engine $app, 
+        private Config $config
+    ){}
 
     public function render(): void
     {
         $this->app->render('welcome', [
-            'message' => 'You are gonna do great things!',
+            'message' => 'Bienvenido a Atlas',
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
         ]);

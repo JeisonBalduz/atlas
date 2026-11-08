@@ -8,33 +8,35 @@
 
 @section('content')
 
-    <section id="vista-login" class="flex min-h-screen w-full flex-col md:flex-row">
-        <!-- Columna visual institucional -->
-        <div class="relative md:flex flex-col justify-end overflow-hidden hidden p-8 md:w-1/2 md:min-h-screen md:p-14">
-            <img src="./assets/img/fondo.webp " loading="lazy" alt="Taller de formación técnica"
-                class="absolute inset-0 h-full w-full object-cover hidden md:block" />
+    <section id="vista-login" class="flex min-h-svh w-full flex-col md:flex-row bg-white">
+        <!-- Columna visual institucional (Visible solo en desktop) -->
+        <div class="relative hidden md:flex md:w-1/2 flex-col justify-end p-8 md:p-14 overflow-hidden">
+            <!-- El fallback de min-h-screen se maneja en el padre con min-h-svh, aquí usamos h-full absoluto -->
+            <img src="./assets/img/fondo.webp" loading="lazy" alt="Taller de formación técnica"
+                class="absolute inset-0 h-full w-full object-cover" />
 
-            <div class="absolute inset-0 login-overlay"></div>
+            <div class="absolute inset-0 login-overlay bg-black/40"></div>
         </div>
 
-        <!-- Formulario -->
-        <div class="flex w-full flex-1 items-center justify-center bg-white  md:px-6 md:py-12 md:w-1/2">
+        <!-- Formulario (Flexible y adaptado a móviles) -->
+        <div class="flex flex-1 w-full md:w-1/2 items-center justify-center p-6 sm:p-8 md:p-12">
             <form id="form-login" class="w-full max-w-sm" novalidate>
-                <div class="mb-2 flex flex-col items-center justify-center">
-                    <img src="./assets/icons/logo_atlas.png" alt="" class="mb-3 w-16 h-16" alt="Foto">
-                    <h2 class="font-medium text-zinc-800 text-2xl">
+                <!-- Cabecera del Formulario -->
+                <div class="mb-6 flex flex-col items-center justify-center text-center">
+                    <img src="./assets/icons/logo_atlas.png" alt="Logo Atlas" class="mb-4 h-16 w-16 object-contain" />
+                    <h2 class="text-2xl font-semibold text-zinc-900 tracking-tight">
                         Inicia sesión en tu cuenta
                     </h2>
-                    <p class="mt-3 text-center text-sm text-gray-600">
+                    <p class="mt-2 text-sm text-zinc-600">
                         Introduce tu correo electrónico y contraseña a continuación para iniciar sesión
                     </p>
                 </div>
 
-
+                <!-- Input: Usuario -->
                 @component('components.input', [
                     'label' => 'Usuario',
                     'id' => 'user',
-                    'name' => 'usuario',
+                    'name' => 'user',
                     'icon' => 'user',
                     'placeholder' => 'Usuario',
                     'maxlength' => 40,
@@ -43,23 +45,20 @@
                 ])
                 @endcomponent
 
-                <div class="flex items-center justify-between mb-1.5 mt-5 text-sm font-medium">
-                    <!-- Lado Izquierdo: Etiqueta del campo -->
-                    <label for="password" class="text-zinc-900 cursor-pointer">
+                <!-- Input: Contraseña con su cabecera accesible -->
+                <div class="mt-5 mb-1.5 flex items-center justify-between text-sm">
+                    <label for="password" class="font-medium text-zinc-900 cursor-pointer">
                         Contraseña
                     </label>
-
-                    <!-- Lado Derecho: Enlaces y pregunta -->
-                    <div class="flex items-center space-x-1 text-sm text-black font-normal">
-                        <a href="#" class=" underline underline-offset-6">
-                            <span>¿Olvidaste tu contraseña?</span>
-                        </a>
-                    </div>
+                    <a href="#"
+                        class="text-zinc-600 hover:text-zinc-900 underline underline-offset-4 transition-colors">
+                        ¿Olvidaste tu contraseña?
+                    </a>
                 </div>
 
                 @component('components.input', [
                     'id' => 'password',
-                    'name' => 'clave',
+                    'name' => 'password',
                     'isPassword' => true,
                     'icon' => 'lock',
                     'placeholder' => '••••••••',
@@ -69,24 +68,23 @@
                 ])
                 @endcomponent
 
-
-
-
-                <p id="login-error" role="alert"
-                    class="oculto mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                <!-- Contenedor de Error Dinámico -->
+                <p id="login-error" role="alert" aria-live="assertive"
+                    class="hidden mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 </p>
 
+                <!-- Botón de Acción Principal -->
                 <button type="submit" id="btn-entrar"
-                    class="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-2.5 text-sm 
-                    font-semibold text-white shadow-sm transition-all duration-200 hover:bg-bg-zinc-900  hover:shadow-md 
-                    focus:outline-none focus:ring-4 focus:ring-zinc-200 active:scale-[0.99]">
-                    Iniciar Sesión
-                    <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                    class="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-zinc-800 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-zinc-950 active:scale-[0.98] disabled:opacity-50">
+                    <span>Iniciar Sesión</span>
+                    <i data-lucide="arrow-right" class="h-4 w-4" aria-hidden="true"></i>
                 </button>
 
-                <div class="flex items-center justify-center space-x-1 text-sm mt-4">
+                <!-- Registro / Soporte -->
+                <div class="mt-6 flex items-center justify-center gap-1 text-sm">
                     <span class="text-zinc-600">¿No tienes cuenta?</span>
-                    <a href="#" class="font-medium underline text-black underline-offset-4">
+                    <a href="#"
+                        class="font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-700 transition-colors">
                         Solicitar
                     </a>
                 </div>
@@ -96,5 +94,5 @@
 @endsection
 
 @push('scripts')
-    <script src="./js/login.js"></script>
+    <script type="module" src="./js/login.js"></script>
 @endpush
