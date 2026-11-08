@@ -14,26 +14,36 @@ class UserModel extends Model
     public $incrementing = false;
     public $timestamps = false;
 
-    public function getUser(string $usuario): ? UserModel
+    // Recupera la contraseña del usuario por su nombre de usuario
+    public static function getPasswordByUsername(string $usuario): ?string
     {
-        return self::select('usuario_id', 'nombre_usuario', 'contrasena')
-            ->where('nombre_usuario', $usuario)
-            ->first();
-
+        return static::where('nombre_usuario', $usuario)->value('contrasena');
     }
 
-    // public static function findUserIfExists(int $id): ? array
-    // {
-    //     // Ejecutamos la consulta usando selectRaw y pasamos el $id de forma segura
-    //     $resultado = static::selectRaw("nombre_de_tu_funcion(?) as datos_usuario", [$id])
-    //         ->first();
+    // Verifica si un usuario existe por su nombre de usuario
+    public static function userExists(string $usuario): bool
+    {
+        return static::where('nombre_usuario', $usuario)->exists();
+    }
 
-    //     // Si la función de la BD no encontró al usuario, el registro o la columna vendrán vacíos
-    //     if (!$resultado || empty($resultado->datos_usuario)) {
-    //         return null;
-    //     }
+    // Recupera el ID del usuario por su nombre de usuario
+    public static function getIdByUsername(string $usuario): ?int
+    {
+        return self::where('nombre_usuario', $usuario)->value('usuario_id');
+    }
 
-    //     // Como PostgreSQL devuelve el JSON como una cadena de texto, lo decodificamos a un array asociativo de PHP
-    //     return json_decode($resultado->datos_usuario, true);
-    // }
+    // Recupera todos los datos del usuario por su ID
+    public function getUserAllId(string|int $userID): ?array
+    {
+        $resultado = self::selectRaw("fn_obtener_datos_usuario(?) as datos", [$userID])
+            ->first();
+
+        if (!$resultado || empty($resultado->datos)) {
+            return null;
+        }
+
+        // Pasamos el string JSON que envió Postgres a un array nativo asociativo de PHP
+        return json_decode($resultado->datos, true);
+    }
+
 }

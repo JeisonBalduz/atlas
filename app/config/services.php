@@ -102,6 +102,9 @@ if (PHP_SAPI === 'cli') {
 }
 $session = new Session($sessionOptions);
 
+Flight::map('session', function() use ($session) {
+    return $session;
+});
 // ---------------------------------------------------------------------------
 // Dice + Engine substitutions (required — see Flight DI docs)
 // ---------------------------------------------------------------------------

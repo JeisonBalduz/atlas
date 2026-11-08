@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http;
 
-class LimpiezaInputs
+class CleanInputs
 {
     private array $data = [];
 
