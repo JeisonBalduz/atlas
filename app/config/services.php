@@ -74,6 +74,7 @@ if (!is_dir($bladeCache)) {
 // Instanciar BladeOne correctamente
 $blade = new BladeOne($viewsPath, $bladeCache, BladeOne::MODE_AUTO);
 
+
 // Compartir variables globales con todas las vistas de Blade
 $blade->share('csp_nonce', $nonce);
 $blade->share('app_env', $config->env());

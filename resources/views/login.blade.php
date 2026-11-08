@@ -10,15 +10,15 @@
 
     <section id="vista-login" class="flex min-h-screen w-full flex-col md:flex-row">
         <!-- Columna visual institucional -->
-        <div class="relative flex min-h-75 flex-col justify-end overflow-hidden p-8 md:w-1/2 md:min-h-screen md:p-14">
+        <div class="relative md:flex flex-col justify-end overflow-hidden hidden p-8 md:w-1/2 md:min-h-screen md:p-14">
             <img src="./assets/img/fondo.webp " loading="lazy" alt="Taller de formación técnica"
-                class="absolute inset-0 h-full w-full object-cover" />
+                class="absolute inset-0 h-full w-full object-cover hidden md:block" />
 
             <div class="absolute inset-0 login-overlay"></div>
         </div>
 
         <!-- Formulario -->
-        <div class="flex w-full flex-1 items-center justify-center bg-white px-6 py-12 md:w-1/2">
+        <div class="flex w-full flex-1 items-center justify-center bg-white  md:px-6 md:py-12 md:w-1/2">
             <form id="form-login" class="w-full max-w-sm" novalidate>
                 <div class="mb-2 flex flex-col items-center justify-center">
                     <img src="./assets/icons/logo_atlas.png" alt="" class="mb-3 w-16 h-16" alt="Foto">
@@ -30,18 +30,18 @@
                     </p>
                 </div>
 
-                <label for="user" class="mb-1.5 block text-sm font-medium text-slate-900">Usuario</label>
 
-                <div class="relative">
-                    <i data-lucide="user"
-                        class="
-                        pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-                    <input id="user" name="usuario" type="text" autocomplete="username" maxlength="40"
-                        placeholder="Usuario"
-                        class="w-full rounded-lg border border-slate-300 
-                      bg-slate-50 py-2.5 pl-10 text-sm text-black outline-none transition 
-                      focus:bg-white focus:border-black focus:ring-2 focus:ring-black focus:ring-offset-2" />
-                </div>
+                @component('components.input', [
+                    'label' => 'Usuario',
+                    'id' => 'user',
+                    'name' => 'usuario',
+                    'icon' => 'user',
+                    'placeholder' => 'Usuario',
+                    'maxlength' => 40,
+                    'autocomplete' => 'username',
+                    'required' => true,
+                ])
+                @endcomponent
 
                 <div class="flex items-center justify-between mb-1.5 mt-5 text-sm font-medium">
                     <!-- Lado Izquierdo: Etiqueta del campo -->
@@ -57,19 +57,20 @@
                     </div>
                 </div>
 
-                <div class="relative ">
-                    <i data-lucide="lock"
-                        class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-                    <input id="password" name="clave" type="password" autocomplete="current-password" maxlength="64"
-                        placeholder="••••"
-                        class="w-full rounded-lg border border-slate-300 
-                      bg-slate-50 py-2.5 pl-10 text-sm text-black outline-none transition 
-                      focus:bg-white focus:border-black focus:ring-2 focus:ring-black focus:ring-offset-2" />
-                    <button id="btn-ver-clave" type="button" aria-label="Mostrar contraseña"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
-                        <i data-lucide="eye" class="h-4 w-4"></i>
-                    </button>
-                </div>
+                @component('components.input', [
+                    'id' => 'password',
+                    'name' => 'clave',
+                    'isPassword' => true,
+                    'icon' => 'lock',
+                    'placeholder' => '••••••••',
+                    'maxlength' => 64,
+                    'autocomplete' => 'current-password',
+                    'required' => true,
+                ])
+                @endcomponent
+
+
+
 
                 <p id="login-error" role="alert"
                     class="oculto mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
