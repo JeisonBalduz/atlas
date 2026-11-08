@@ -33,51 +33,43 @@
 
 @push('scripts')
     <script>
-        document.getElementById('formCedula').addEventListener('submit', function(event) {
-            // 1. Evitamos que el formulario recargue la página por defecto
+        document.getElementById('formCedula').addEventListener('submit', function (event) {
             event.preventDefault();
 
-            // 2. Capturamos el valor del input de la cédula
             const cedulaValor = document.getElementById('cedulaInput').value;
-
             console.log("Enviando cédula:", cedulaValor);
 
-            // 3. Realizamos la petición POST usando fetch con FormData (para que $_POST lo reciba tal cual)
             const formData = new FormData();
             formData.append('cedula', cedulaValor);
 
             fetch('descargar-foto-cedula', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // 'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({
-                        /* tus datos */
-                    })
-                })
+                method: 'POST',
+                // Sin headers de Content-Type aquí
+                body: formData
+            })
                 .then(response => response.json())
                 .then(data => {
                     console.log(data);
-                });
+                })
+                .catch(error => console.error('Error:', error));
         });
 
         let idEmpleado = 5;
 
         fetch(`/empleado/create/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    nombre: 'Nuevo Nombre',
-                    id: idEmpleado,
-                    apellido: 'Nuevo Apellido',
-                    cedula: '12345678',
-                    ciudad: 'Nueva Ciudad',
-                    direccion: 'Nueva Dirección',
-                })
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                nombre: 'Nuevo Nombre',
+                id: idEmpleado,
+                apellido: 'Nuevo Apellido',
+                cedula: '12345678',
+                ciudad: 'Nueva Ciudad',
+                direccion: 'Nueva Dirección',
             })
+        })
             .then(response => response.json())
             .then(data => {
                 console.log(data);

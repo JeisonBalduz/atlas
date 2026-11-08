@@ -16,10 +16,4 @@ use flight\net\Router;
 
 // Ruta de bienvenida
 
-$router->get('/', [HomeController::class, 'index']);
-
-$router->get('/empleado/actualizar/@id',[HomeController::class,'mostrarEmpleado']);
-
-$router->get('/empleados', [EmpleadoController::class, 'index']);
-
-$router->get('/familiares', [FamiliaresController::class, 'index']);
+$router->get('/', [HomeController::class, 'render']);
