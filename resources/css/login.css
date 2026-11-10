@@ -10,3 +10,7 @@
   display: none !important;
 }
 
+#toggle-password > * {
+  width: 1rem;
+  height: 1rem;
+}

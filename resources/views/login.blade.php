@@ -37,7 +37,7 @@
                     'label' => 'Usuario',
                     'id' => 'user',
                     'name' => 'user',
-                    'icon' => 'user',
+                    'leftIcon' => 'user',
                     'placeholder' => 'Usuario',
                     'maxlength' => 40,
                     'autocomplete' => 'username',
@@ -59,12 +59,14 @@
                 @component('components.input', [
                     'id' => 'password',
                     'name' => 'password',
-                    'isPassword' => true,
-                    'icon' => 'lock',
+                    'type' => 'password',
+                    'leftIcon' => 'lock',
+                    'rightIcon' => 'eye',
+                    'idIcon' => 'toggle-password',
                     'placeholder' => '••••••••',
                     'maxlength' => 64,
                     'autocomplete' => 'current-password',
-                    'required' => true,
+                    'required' => true
                 ])
                 @endcomponent
 
