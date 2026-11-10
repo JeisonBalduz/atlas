@@ -1,8 +1,9 @@
 import { loginRequest } from "./api/authService.js";
-import { showError, hiddenError } from "./utils/displayError.js";
+import { showError } from "./ui/displayError.js";
 import { showToast } from "./components/toast.js";
-import { togglePassword } from "./components/togglePassword.js";
-import { buttonLoading } from "./components/loading.js";    
+import { togglePassword } from "./ui/togglePassword.js";
+import { buttonLoading } from "./components/loading.js";
+import { Request } from "./class/Request.js";   
 
 document.addEventListener("DOMContentLoaded", () => {
   const formLogin = document.getElementById("form-login");
@@ -14,23 +15,23 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault(); // Evita el envío tradicional del formulario
 
     // Obtenemos los valores de los inputs
-    const dataUser = inputUser.value.trim();
-    const dataPass = inputPass.value.trim();
+    const user = inputUser.value.trim();
+    const pass = inputPass.value.trim();
 
     // Validación básica en cliente
-    if (!dataUser && !dataPass) {
+    if (!user && !pass) {
       showError(".login__error", "Por favor, completa todos los campos");
       return;
     }
 
     // Validación del usuario
-    if (!dataUser) {
+    if (!user) {
       showError(".login__error", "Por favor, ingresa tu nombre de usuario");
       return;
     }
 
     // Validación de contraseña
-    if (!dataPass) {
+    if (!pass) {
       showError(".login__error", "Por favor, ingresa tu contraseña");
       return;
     }
@@ -38,24 +39,27 @@ document.addEventListener("DOMContentLoaded", () => {
     // Deshabilitar botón mientras procesa
     buttonLoading(btnEntrar, true);
 
+    const dataUser = {
+        user:user,
+        password: pass
+    }
+    
     // Realizar petición a la API
-    const resultado = await loginRequest(dataUser, dataPass);
-
+    const resultado = await Request.post("/api/login", dataUser);
+    
     buttonLoading(btnEntrar, false);
 
     if (resultado.ok) {
       // Login exitoso: Redirigir al dashboard o panel principal
       showToast("success", resultado.message || "Inicio de sesión exitoso");
       setTimeout(() => {
-        window.location.href = resultado.redirect || "/Home"; 
-      }, 1500); 
+        window.location.href = resultado.redirect || "/Home";
+      }, 1500);
     } else {
       // Mostrar mensaje de error devuelto por el servidor (ej. "Credenciales incorrectas")
-      mostrarError(resultado.message || "Usuario o contraseña incorrectos.");
+      showError(".login__error", resultado.message);
     }
   });
 
-
-
- togglePassword("password", "toggle-password");
+  togglePassword("password", "toggle-password");
 });

@@ -4,9 +4,9 @@ export const showError = (selector, mensaje) => {
   errorElement.classList.remove("hidden");
 }
 
-export const hiddenError = (selector, mensaje) => {
-  const errorElement = document.querySelector(selector);
-  errorElement.textContent = '';
-  errorElement.classList.add("hidden");
+export const hiddenError = (selector) => {
+  const hiddenElement = document.querySelector(selector);
+  hiddenElement.textContent = '';
+  hiddenElement.classList.add("hidden");
   
 }

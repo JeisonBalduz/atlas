@@ -42,7 +42,7 @@ class LoginController
     public function authenticate(): void
     {
         // 1. Validamos que los campos obligatorios no estén vacíos
-        $errorValidacion = $this->input->validate(['usuario', 'clave']);
+        $errorValidacion = $this->input->validate(['user', 'password']);
         if ($errorValidacion !== null) {
             $this->app->json([
                 'ok' => false,
@@ -52,8 +52,8 @@ class LoginController
         }
 
         // Obtenemos los valores limpios
-        $usuario = $this->input->get('usuario');
-        $clave = $this->input->get('clave');
+        $usuario = $this->input->get('user');
+        $clave = $this->input->get('password');
 
         // Verificamos que el usuario exista
         $user = $this->userModel->userExists($usuario);
@@ -62,7 +62,7 @@ class LoginController
         if (!$user) {
             $this->app->json([
                 'ok' => false,
-                'message' => 'El usuario ingresado no existe.'
+                'message' => 'El usuario ingresado no existe'
             ], 404);
             return;
         }
@@ -72,7 +72,7 @@ class LoginController
         if (!PasswordManager::verify($clave, $possword)) {
             $this->app->json([
                 'ok' => false,
-                'message' => 'La contraseña es incorrecta.'
+                'message' => 'La contraseña es incorrecta'
             ], 401);
             return;
         }
@@ -83,7 +83,7 @@ class LoginController
         if (!$userId) {
             $this->app->json([
                 'ok' => false,
-                'message' => 'Error interno al procesar la identidad del usuario.'
+                'message' => 'Error interno al procesar la identidad del usuario'
             ], 500); // 500 Internal Server Error
             return;
         }
@@ -94,7 +94,7 @@ class LoginController
         if (empty($userAllData)) {
             $this->app->json([
                 'ok' => false,
-                'message' => 'No se pudieron recuperar los datos de perfil del usuario.'
+                'message' => 'No se pudieron recuperar los datos de perfil del usuario'
             ], 422); // 422 Unprocessable Entity
             return;
         }
