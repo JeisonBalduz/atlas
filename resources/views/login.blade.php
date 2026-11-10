@@ -69,8 +69,8 @@
                 @endcomponent
 
                 <!-- Contenedor de Error Dinámico -->
-                <p id="login-error" role="alert" aria-live="assertive"
-                    class="hidden mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                <p id="login__error" role="alert"
+                    class="login__error hidden mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 </p>
 
                 <!-- Botón de Acción Principal -->

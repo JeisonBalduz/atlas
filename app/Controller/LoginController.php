@@ -11,6 +11,8 @@ use App\Services\PasswordManager;
 use App\Services\AuthSession;
 use flight\Engine;
 use InvalidArgumentException;
+
+
 class LoginController
 {
 
@@ -96,7 +98,7 @@ class LoginController
             ], 422); // 422 Unprocessable Entity
             return;
         }
-        // 5. Gestión del inicio de sesión y manejo seguro del estado de la aplicación
+        // Gestión del inicio de sesión y manejo seguro del estado de la aplicación
         try {
             AuthSession::login($userAllData);
 
