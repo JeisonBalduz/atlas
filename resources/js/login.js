@@ -1,4 +1,4 @@
-import { loginRequest } from "./api/authService.js";
+
 import { showError } from "./ui/displayError.js";
 import { showToast } from "./components/toast.js";
 import { togglePassword } from "./ui/togglePassword.js";
@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
         user:user,
         password: pass
     }
-    
+
     // Realizar petición a la API
     const resultado = await Request.post("/api/login", dataUser);
     
@@ -55,6 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => {
         window.location.href = resultado.redirect || "/Home";
       }, 1500);
+      
     } else {
       // Mostrar mensaje de error devuelto por el servidor (ej. "Credenciales incorrectas")
       showError(".login__error", resultado.message);
