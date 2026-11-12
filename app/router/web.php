@@ -7,17 +7,22 @@
  * @var \flight\Engine<object> $app
  * @var \App\Utils\Config $config
  */
+
 use flight\net\Router;
 use App\Controller\HomeController;
 use App\Controller\LoginController;
 use App\Services\AuthSession;
 
 // Ruta de bienvenida
-$router->get('/', [HomeController::class, 'render']);
+$router->get('/', [LoginController::class, 'render']);
 
 // Ruta para el módulo Login
 $router->get('/login', [LoginController::class, 'render']);
-$router->get('/test-login-session', function() {
+
+
+
+
+$router->get('/test-login-session', function () {
     // Simulamos los datos de un usuario autenticado
     $usuarioPrueba = [
         'usuario_id' => 1,
@@ -28,10 +33,10 @@ $router->get('/test-login-session', function() {
     AuthSession::login($usuarioPrueba);
 
     Flight::json([
-    'status' => 'success',
-    'mensaje' => '¡Sesión iniciada correctamente!',
-    'esta_logueado' => AuthSession::check(),
-    'usuario_id' => AuthSession::get('user_id'), // <--- Cambiado a 'user_id'
-    'nombre' => AuthSession::get('nombre_usuario')
-]);
+        'status' => 'success',
+        'mensaje' => '¡Sesión iniciada correctamente!',
+        'esta_logueado' => AuthSession::check(),
+        'usuario_id' => AuthSession::get('user_id'), // <--- Cambiado a 'user_id'
+        'nombre' => AuthSession::get('nombre_usuario')
+    ]);
 });
