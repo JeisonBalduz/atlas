@@ -18,15 +18,23 @@
     <link rel="shortcut icon" href="./assets/icons/favicon.webp" type="image/x-icon">
 
 
-    @stack('styles') <!--Inyección de css de las vistas -->
+    @stack('styles')
+    <!--Inyección de css de las vistas -->
 
 </head>
 
 <body class="">
-    <!-- Inyección de contenido -->
-    <main class="">
+
+    {{-- @include('layouts.siderbar') --}}
+    @yield('siderbar')
+    <main id="main-content"
+        class="ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto bg-white px-6 md:px-10 pb-12 pt-6">
+        {{-- @include('layouts.header') --}}
+
+        @yield('header')
         @yield('content')
     </main>
+
 
     <!-- Inyección de scripts -->
     @stack('scripts')

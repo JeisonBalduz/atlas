@@ -11,6 +11,7 @@
 use flight\net\Router;
 use App\Controller\HomeController;
 use App\Controller\LoginController;
+use App\Controller\PruebaController;
 use App\Services\AuthSession;
 
 // Ruta de bienvenida
@@ -19,6 +20,7 @@ $router->get('/', [LoginController::class, 'render']);
 // Ruta para el módulo Login
 $router->get('/login', [LoginController::class, 'render']);
 
+$router->get('/prueba', [PruebaController::class, 'render']);
 
 
 

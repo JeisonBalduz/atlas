@@ -18,15 +18,23 @@
  <link rel="shortcut icon" href="./assets/icons/favicon.webp" type="image/x-icon">
 
 
- <?php echo  $this->CompileStackFinal('styles'); ?> <!--Inyección de css de las vistas -->
+ <?php echo  $this->CompileStackFinal('styles'); ?>
+ <!--Inyección de css de las vistas -->
 
 </head>
 
 <body class="">
- <!-- Inyección de contenido -->
- <main class="">
+
+ <?php /* <?php echo $this->runChild('layouts.siderbar'); ?> */ ?>
+ <?php echo $this->yieldContent('siderbar'); ?>
+ <main id="main-content"
+ class="ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto bg-white px-6 md:px-10 pb-12 pt-6">
+ <?php /* <?php echo $this->runChild('layouts.header'); ?> */ ?>
+
+ <?php echo $this->yieldContent('header'); ?>
  <?php echo $this->yieldContent('content'); ?>
  </main>
+
 
  <!-- Inyección de scripts -->
  <?php echo  $this->CompileStackFinal('scripts'); ?>
