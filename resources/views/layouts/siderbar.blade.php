@@ -281,7 +281,7 @@
         <button class="flex items-center w-full h-12 text-left rounded-full cursor-pointer group">
             <div
                 class="w-12 h-12 overflow-hidden transition-colors border-2 rounded-full shrink-0 border-zinc-800 group-hover:border-zinc-500">
-                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=150&auto=format&fit=crop"
+                <img src="./assets/icons/usuarioPrueba.webp"
                     class="object-cover w-full h-full shrink-0" alt="User">
             </div>
             <div

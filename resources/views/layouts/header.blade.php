@@ -1,8 +1,8 @@
 {{-- HEADER FLUÍDO  --}}
 
-<header class="relative z-40 flex items-center justify-between gap-4 mb-10">
-    <!-- Izquierda: Hamburguesa (Toggle Sidebar) y Logo -->
-    <div class="flex items-center gap-3 shrink-0">
+<header class="relative z-40 flex items-center justify-between gap-4 mb-10 bg-white p-2 rounded-2xl shadow-xs mx-auto max-w-400">
+    {{-- Izquierda: Hamburguesa (Toggle Sidebar) y Logo --}}
+    <div class="flex items-center gap-4 shrink-0">
         <button id="hamburger-btn"
             class="p-2 transition-colors text-zinc-400 hover:text-zinc-900 rounded-xl hover:bg-zinc-100 focus:outline-none">
             <i data-lucide="menu" class="w-6 h-6 shrink-0"></i>
@@ -10,7 +10,7 @@
         <img src="./assets/icons/inces.png" title="INCES" alt="Logo INCES" class="hidden object-contain w-auto h-7 sm:block">
     </div>
 
-    <!-- Centro: Buscador -->
+    {{-- Centro: Buscador  --}}
     <div class="flex justify-center flex-1">
         <div class="relative hidden w-full max-w-lg sm:block">
             <i data-lucide="search" class="absolute w-4 h-4 -translate-y-1/2 left-4 top-1/2 text-zinc-400 shrink-0"></i>
@@ -19,24 +19,24 @@
         </div>
     </div>
 
-    <!-- Derecha: Acciones -->
+    {{-- Derecha: Acciones  --}}
     <div class="flex items-center gap-2 sm:gap-4">
-        <!-- Modo Oscuro -->
+         {{-- Modo Oscuro  --}}
         <button class="p-2.5 text-zinc-400 hover:text-zinc-900 transition-colors rounded-full hover:bg-zinc-100">
             <i data-lucide="moon" class="w-5 h-5 shrink-0"></i>
         </button>
 
-        <!-- Notificaciones -->
+        {{-- Notificaciones  --}}
         <div class="relative">
             <button id="noti-btn"
                 class="p-2.5 text-zinc-400 hover:text-zinc-900 transition-colors rounded-full hover:bg-zinc-100 relative">
-                <i data-lucide="bell" class="w-5 h-5 shrink-0"></i>
+                <i data-lucide="bell" class="w-5 h-5 shrink-0 cursor-pointer"></i>
                 <span
                     class="box-content absolute w-2 h-2 border-2 border-white rounded-full top-2 right-2 bg-rose-500"></span>
             </button>
-            <!-- Burbuja Blanca Notificaciones -->
+             {{-- Burbuja Blanca Notificaciones --}}
             <div id="noti-bubble"
-                class="absolute right-0 top-[calc(100%+8px)] w-80 bg-white rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] opacity-0 pointer-events-none transform scale-y-0 origin-top transition-all duration-200 ease-out z-110 p-2">
+                class="mt-2 absolute right-0 top-[calc(100%+8px)] w-80 bg-white rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] opacity-0 pointer-events-none transform scale-y-0 origin-top transition-all duration-200 ease-out z-110 p-2">
                 <div class="flex items-center justify-between p-3 border-b border-zinc-100">
                     <span class="text-sm font-bold text-zinc-900">Notificaciones</span>
                 </div>
@@ -69,7 +69,7 @@
             </div>
         </div>
 
-        <!-- Perfil (Restaurado Desarrollador / Activo) -->
+         {{-- Perfil (Restaurado Desarrollador / Activo)  --}}
         <div class="relative flex items-center pl-4 ml-2 border-l border-zinc-200">
             <div class="flex-col items-end justify-center hidden mr-3 sm:flex">
                 <span class="text-sm font-bold leading-none text-zinc-900">Desarrollador</span>
@@ -87,15 +87,15 @@
             <button id="profile-btn"
                 class="flex items-center gap-2 p-1 transition-colors border border-transparent rounded-full hover:bg-zinc-50 hover:border-zinc-200">
                 <div class="overflow-hidden border rounded-full w-9 h-9 border-zinc-200 shrink-0">
-                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=150&auto=format&fit=crop"
+                    <img src="./assets/icons/usuarioPrueba.webp"
                         class="object-cover w-full h-full shrink-0" alt="User">
                 </div>
                 <i data-lucide="chevron-down" class="hidden w-4 h-4 mr-1 text-zinc-400 md:block"></i>
             </button>
 
-            <!-- Burbuja Blanca Perfil -->
+            {{--  Burbuja Blanca Perfil --}}
             <div id="profile-bubble"
-                class="absolute right-0 top-[calc(100%+8px)] w-56 bg-white rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] opacity-0 pointer-events-none transform scale-y-0 origin-top transition-all duration-200 ease-out z-110 p-2">
+                class="mt-2 absolute right-0 top-[calc(100%+8px)] w-56 bg-white rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] opacity-0 pointer-events-none transform scale-y-0 origin-top transition-all duration-200 ease-out z-110 p-2">
                 <ul class="flex flex-col text-sm font-medium">
                     <li
                         class="px-3 py-2.5 hover:bg-zinc-50 text-zinc-700 hover:text-zinc-900 rounded-xl transition-colors cursor-pointer flex items-center gap-3">
