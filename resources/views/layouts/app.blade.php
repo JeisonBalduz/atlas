@@ -17,7 +17,8 @@
     <!-- FAVAICON -->
     <link rel="shortcut icon" href="./assets/icons/favicon.webp" type="image/x-icon">
 
-
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     @stack('styles')
     <!--Inyección de css de las vistas -->
 
@@ -25,15 +26,15 @@
 
 <body class="">
 
-    {{-- @include('layouts.siderbar') --}}
+{{-- class="ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto bg-white px-6 md:px-10 pb-12 pt-6" --}}
     @yield('siderbar')
-    <main id="main-content"
-        class="ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto bg-white px-6 md:px-10 pb-12 pt-6">
-        {{-- @include('layouts.header') --}}
+    <main id="main-content" class="@yield('main_class')">
 
         @yield('header')
         @yield('content')
     </main>
+
+    
 
 
     <!-- Inyección de scripts -->

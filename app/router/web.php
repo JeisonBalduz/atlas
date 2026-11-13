@@ -20,7 +20,7 @@ $router->get('/', [LoginController::class, 'render']);
 // Ruta para el módulo Login
 $router->get('/login', [LoginController::class, 'render']);
 
-$router->get('/prueba', [PruebaController::class, 'render']);
+$router->get('/home', [HomeController::class, 'render']);
 
 
 

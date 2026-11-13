@@ -23,7 +23,7 @@ class HomeController
 
     public function render(): void
     {
-        $this->app->render('welcome', [
+        $this->app->render('home', [
             'message' => 'Bienvenido a Atlas',
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),

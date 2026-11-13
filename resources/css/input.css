@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+/* stylelint-disable at-rule-no-unknown */
+@theme {
+  /* Tono base directo (te permite usar bg-marca, text-marca, etc.) */
+  --color-marca: #052659;
+
+  /* Escala completa (te permite usar bg-marca-500, text-marca-800, etc.) */
+  --color-marca-10: #f8fbfe;
+  --color-marca-50: #edf3fd;
+  --color-marca-100: #d7e4f9;
+  --color-marca-200: #a8c8fa;
+  --color-marca-300: #6ea4f7;
+  --color-marca-400: #2b79f3;
+  --color-marca-500: #0c59d0;
+  --color-marca-600: #09449f;
+  --color-marca-700: #073479;
+  --color-marca-800: #052659;
+  --color-marca-900: #051b3d;
+  --color-marca-950: #031126;
+}
+/* stylelint-enable at-rule-no-unknown */
