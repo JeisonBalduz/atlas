@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Utils\Config;
 use flight\Engine;
+use App\Services\AuthSession;
 
 /**
  * Welcome page controller — canonical controller example for the skeleton.
@@ -23,10 +24,12 @@ class HomeController
 
     public function render(): void
     {
+    
         $this->app->render('home', [
             'message' => 'Bienvenido a Atlas',
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
+            'usuario' =>(object) AuthSession::all()
         ]);
     }
 

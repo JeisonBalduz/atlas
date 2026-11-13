@@ -33,9 +33,9 @@ class UserModel extends Model
     }
 
     // Recupera todos los datos del usuario por su ID
-    public function getUserAllId(string|int $userID): ?array
+    public function getUserAllId(string|int $user_id): ?array
     {
-        $resultado = self::selectRaw("fn_obtener_datos_usuario(?) as datos", [$userID])
+        $resultado = self::selectRaw("fn_obtener_datos_usuario(?) as datos", [$user_id])
             ->first();
 
         if (!$resultado || empty($resultado->datos)) {

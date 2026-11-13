@@ -11,7 +11,6 @@
 use flight\net\Router;
 use App\Controller\HomeController;
 use App\Controller\LoginController;
-use App\Controller\PruebaController;
 use App\Services\AuthSession;
 
 // Ruta de bienvenida

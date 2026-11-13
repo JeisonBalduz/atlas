@@ -20,7 +20,7 @@
     {{-- CABECERA --}}
     <div class="col-span-full flex flex-col sm:flex-row sm:items-start justify-between gap-6 mb-4 md:mb-8">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-marca cascade-enter">Menú principal</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-marca cascade-enter">{{ $usuario->id }}</h1>
             <p class="mt-1 text-sm font-medium text-zinc-500 cascade-enter" style="animation-delay: 0.1s;">
                 Jueves, 12 de Noviembre de 2026
             </p>
@@ -121,12 +121,12 @@
         <div class="relative z-10 max-w-2xl">
             <h2 id="welcome-title"
                 class="mb-4 text-3xl md:text-4xl font-bold tracking-tight text-white transition-colors duration-300">
-                Bienvenido al entorno Atlas, Jeison.
+                Bienvenido al entorno Atlas,{{' ' . $usuario->username}}
             </h2>
             <p id="welcome-text"
                 class="text-sm md:text-base font-medium leading-relaxed text-zinc-400 transition-colors duration-300">
                 Es un excelente día para impulsar, cuidar y acompañar a tu equipo, construyendo un entorno de bienestar
-                donde cada persona se sienta valorada y tenga el apoyo necesario para crecer y dar lo mejor de sí.
+                donde cada persona se sienta valorada y tenga el apoyo necesario para crecer y dar lo mejor de sí
             </p>
         </div>
     </div>

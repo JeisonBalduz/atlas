@@ -72,7 +72,7 @@
          {{-- Perfil (Restaurado Desarrollador / Activo)  --}}
         <div class="relative flex items-center pl-4 ml-2 border-l border-zinc-200">
             <div class="flex-col items-end justify-center hidden mr-3 sm:flex">
-                <span class="text-sm font-bold leading-none text-zinc-900">Desarrollador</span>
+                <span class="text-sm font-bold leading-none text-zinc-900">{{ $usuario->username }}</span>
                 <div class="flex items-center gap-1.5 mt-1.5">
                     <span class="relative flex w-2 h-2">
                         <span

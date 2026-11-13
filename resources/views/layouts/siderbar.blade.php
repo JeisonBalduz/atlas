@@ -286,8 +286,8 @@
             </div>
             <div
                 class="flex-col justify-center flex-1 hidden ml-3 truncate transition-opacity duration-300 opacity-0 sidebar-text">
-                <p class="text-sm font-bold leading-tight text-white">Jeison Balduz</p>
-                <p class="text-[11px] font-medium text-zinc-500 mt-0.5 uppercase tracking-wider">Desarrollador</p>
+                <p class="text-sm font-bold leading-tight text-white">{{ $usuario->username }}</p>
+                <p class="text-[11px] font-medium text-zinc-500 mt-0.5 uppercase tracking-wider">{{ $usuario->role }}</p>
             </div>
         </button>
     </div>
