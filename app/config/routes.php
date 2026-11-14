@@ -7,11 +7,7 @@
  * @var \flight\Engine<object> $app
  * @var \App\Utils\Config $config
  */
-
-use App\Controller\HomeController;
-use App\Controller\PostController;
 use App\Middleware\SecurityHeadersMiddleware;
-use App\Utils\DatabaseFactory;
 use flight\net\Router;
 
 // Grupo global que envuelve todas tus rutas con el middleware de seguridad del esqueleto
