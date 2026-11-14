@@ -256,7 +256,13 @@ class ComposerStaticInitd5dc39c3d55e01cb56c0af056de2f718
     );
 
     public static $classMap = array (
-        'App\\Command\\MigrateCommand' => __DIR__ . '/../..' . '/app/commands/MigrateCommand.php',
+        'App\\commands\\MakeControllerCustomCommand' => __DIR__ . '/../..' . '/app/commands/MakeControllerCustomCommand.php',
+        'App\\commands\\MakeCrudCommand' => __DIR__ . '/../..' . '/app/commands/MakeCrudCommand.php',
+        'App\\commands\\MakeMiddleware' => __DIR__ . '/../..' . '/app/commands/MakeMiddleware.php',
+        'App\\commands\\MakeModelCommand' => __DIR__ . '/../..' . '/app/commands/MakeModelCommand.php',
+        'App\\commands\\MakeRouteCommand' => __DIR__ . '/../..' . '/app/commands/MakeRouteCommand.php',
+        'App\\commands\\MakeViewCommand' => __DIR__ . '/../..' . '/app/commands/MakeViewCommand.php',
+        'App\\commands\\MigrateCommand' => __DIR__ . '/../..' . '/app/commands/MigrateCommand.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'DelayedTargetValidation' => __DIR__ . '/..' . '/symfony/polyfill-php85/Resources/stubs/DelayedTargetValidation.php',
         'Deprecated' => __DIR__ . '/..' . '/symfony/polyfill-php84/Resources/stubs/Deprecated.php',

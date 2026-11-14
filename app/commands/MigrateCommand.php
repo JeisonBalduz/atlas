@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Command;
+namespace App\commands;
 
 use App\Utils\Config;
 use App\Utils\DatabaseFactory;

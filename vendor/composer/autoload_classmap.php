@@ -6,7 +6,13 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'App\\Command\\MigrateCommand' => $baseDir . '/app/commands/MigrateCommand.php',
+    'App\\commands\\MakeControllerCustomCommand' => $baseDir . '/app/commands/MakeControllerCustomCommand.php',
+    'App\\commands\\MakeCrudCommand' => $baseDir . '/app/commands/MakeCrudCommand.php',
+    'App\\commands\\MakeMiddleware' => $baseDir . '/app/commands/MakeMiddleware.php',
+    'App\\commands\\MakeModelCommand' => $baseDir . '/app/commands/MakeModelCommand.php',
+    'App\\commands\\MakeRouteCommand' => $baseDir . '/app/commands/MakeRouteCommand.php',
+    'App\\commands\\MakeViewCommand' => $baseDir . '/app/commands/MakeViewCommand.php',
+    'App\\commands\\MigrateCommand' => $baseDir . '/app/commands/MigrateCommand.php',
     'Composer\\InstalledVersions' => $vendorDir . '/composer/InstalledVersions.php',
     'DelayedTargetValidation' => $vendorDir . '/symfony/polyfill-php85/Resources/stubs/DelayedTargetValidation.php',
     'Deprecated' => $vendorDir . '/symfony/polyfill-php84/Resources/stubs/Deprecated.php',
