@@ -76,4 +76,27 @@ class AuthSession
     /**
      * Destruye la sesión (Cerrar sesión)
      */
+    public static function logout(): void
+    {
+        $session = Flight::session();
+
+        // 1. Limpiamos todos los datos del contenedor de sesión de Flight de forma segura
+        if (method_exists($session, 'clear')) {
+            $session->clear();
+        }
+
+        // 2. Invalidamos y borramos la cookie PHPSESSID del navegador para cerrar la sesión por completo
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(), 
+                '', 
+                time() - 42000,
+                $params["path"], 
+                $params["domain"],
+                $params["secure"], 
+                $params["httponly"]
+            );
+        }
+    }
 }
