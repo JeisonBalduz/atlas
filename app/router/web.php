@@ -22,4 +22,4 @@ $router->get('/login', [AuthController::class, 'render']);
 $router->get('/home', [HomeController::class, 'render'])->addMiddleware(AuthMiddleware::class);
 
 //Cerramos la session
-$router->get('/logout', [AuthController::class, 'logout']);
+$router->get('/logout', [AuthController::class, 'logout'])->addMiddleware(AuthMiddleware::class);;
