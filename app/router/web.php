@@ -27,18 +27,22 @@ $router->get('/login', [AuthController::class, 'render']);
 
 // Ruta para el módulo Dashboard
 $router->get('/home', [HomeController::class, 'render'])
-    ->addMiddleware([
-        AuthMiddleware::class,
-        PermissionMidleware::permission('beneficios.ver')
-    ]);
+    ->addMiddleware(AuthMiddleware::class);
 
 //Cerramos la session
 $router->get('/logout', [AuthController::class, 'logout'])
     ->addMiddleware(AuthMiddleware::class);
 
-    //Cerramos la session
+//ruta de pruebas
 $router->get('/login-test', function() {
     echo '<pre>';
     print_r(AuthContext::permissions());
     echo '</pre>';
 });
+
+
+// $router->get('/home', [HomeController::class, 'render'])
+//     ->addMiddleware([
+//         AuthMiddleware::class,
+//         PermissionMidleware::permission('beneficios.ver')
+//     ]);

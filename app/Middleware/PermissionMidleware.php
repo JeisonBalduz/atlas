@@ -25,18 +25,13 @@ class PermissionMidleware
     {
 
         // Excepción de seguridad: El Administrador tiene acceso total
-        if (AuthContext::role() === 'admin_prueba') {
+        if (AuthContext::role() === 'Administrador') {
             return; // Permite continuar la ejecución
         }
 
-        $tienePermisoVer = array_any(
-            AuthContext::permissions(),
-            fn(array $permiso): bool =>
-            $permiso['nombre_permiso'] === $this->permissionRequire
-                && str_ends_with($permiso['nombre_permiso'], '.ver')
-        );
+        $namePermision = array_column(AuthContext::permissions(), 'nombre_permiso');
 
-        if (!$tienePermisoVer) {
+        if (!in_array($this->permissionRequire, $namePermision, true)) {
             $this->restrictAccess();
         }
     }
