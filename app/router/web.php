@@ -9,9 +9,16 @@
  */
 
 use flight\net\Router;
+
+//Controllers
 use App\Controller\HomeController;
 use App\Controller\AuthController;
+
+//Middleware
 use App\Middleware\AuthMiddleware;
+use App\Middleware\PermissionMidleware;
+
+use App\Services\AuthContext;
 // Ruta de bienvenida
 $router->get('/', [AuthController::class, 'render']);
 
@@ -19,7 +26,19 @@ $router->get('/', [AuthController::class, 'render']);
 $router->get('/login', [AuthController::class, 'render']);
 
 // Ruta para el módulo Dashboard
-$router->get('/home', [HomeController::class, 'render'])->addMiddleware(AuthMiddleware::class);
+$router->get('/home', [HomeController::class, 'render'])
+    ->addMiddleware([
+        AuthMiddleware::class,
+        PermissionMidleware::permission('beneficios.ver')
+    ]);
 
 //Cerramos la session
-$router->get('/logout', [AuthController::class, 'logout'])->addMiddleware(AuthMiddleware::class);;
+$router->get('/logout', [AuthController::class, 'logout'])
+    ->addMiddleware(AuthMiddleware::class);
+
+    //Cerramos la session
+$router->get('/login-test', function() {
+    echo '<pre>';
+    print_r(AuthContext::permissions());
+    echo '</pre>';
+});
