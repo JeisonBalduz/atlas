@@ -106,10 +106,13 @@
                         <i data-lucide="settings" class="w-4 h-4 shrink-0 text-zinc-400"></i> Configuración
                     </li>
                     <div class="h-px mx-2 my-1 bg-zinc-100"></div>
-                    <li
+                    <a href="/logout">
+                        <li
                         class="px-3 py-2.5 hover:bg-red-50 text-red-600 hover:text-red-700 rounded-xl transition-colors cursor-pointer flex items-center gap-3">
                         <i data-lucide="log-out" class="w-4 h-4 text-red-500 shrink-0"></i> Cerrar Sesión
                     </li>
+                    </a>
+                    
                 </ul>
             </div>
         </div>

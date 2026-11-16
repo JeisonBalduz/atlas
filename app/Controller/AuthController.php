@@ -13,7 +13,7 @@ use flight\Engine;
 use InvalidArgumentException;
 
 
-class LoginController
+class AuthController
 {
 
     private CleanInputs $input;
@@ -39,7 +39,7 @@ class LoginController
         ]);
     }
 
-    public function authenticate(): void
+    public function login(): void
     {
         // 1. Validamos que los campos obligatorios no estén vacíos
         $errorValidacion = $this->input->validate(['user', 'password']);
@@ -116,6 +116,10 @@ class LoginController
                 'message' => $e->getMessage()
             ], 422);
         }
+    }
+
+    public function logout(){
+        AuthSession::logout();
     }
 
 }

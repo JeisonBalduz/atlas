@@ -45,11 +45,10 @@ class AuthSession
      */
     public static function logout(): void
     {
-        $session = Flight::session();
 
         // 1. Limpiamos todos los datos del contenedor de sesión de Flight de forma segura
-        if (method_exists($session, 'clear')) {
-            $session->clear();
+        if (method_exists(AuthContext::session(), 'clear')) {
+            AuthContext::session()->clear();
         }
 
         // 2. Invalidamos y borramos la cookie PHPSESSID del navegador para cerrar la sesión por completo
@@ -65,6 +64,8 @@ class AuthSession
                 $params["httponly"]
             );
         }
+
+        Flight::redirect('/Login');
     }
 
 }
