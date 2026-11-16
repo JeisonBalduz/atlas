@@ -65,7 +65,7 @@ class AuthSession
             );
         }
 
-        Flight::redirect('/Login');
+        Flight::redirect('/login');
     }
 
 }

@@ -16,7 +16,7 @@ use App\Middleware\AuthMiddleware;
 $router->get('/', [AuthController::class, 'render']);
 
 // Ruta para el módulo Login
-$router->get('/Login', [AuthController::class, 'render']);
+$router->get('/login', [AuthController::class, 'render']);
 
 // Ruta para el módulo Dashboard
 $router->get('/home', [HomeController::class, 'render'])->addMiddleware(AuthMiddleware::class);

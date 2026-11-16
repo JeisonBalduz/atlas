@@ -17,6 +17,6 @@ $router->post('/descargar-foto-cedula', function(){
     var_dump($cedula);
 });
 
-$router->post('/api/Login', [AuthController::class, 'login']);
+$router->post('/api/login', [AuthController::class, 'login']);
 
 

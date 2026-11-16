@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Login exitoso: Redirigir al dashboard o panel principal
       showToast("success", resultado.message || "Inicio de sesión exitoso");
       setTimeout(() => {
-        window.location.href = resultado.redirect || "/Home";
+        window.location.href = resultado.redirect || "/home";
       }, 1500);
       
     } else {
