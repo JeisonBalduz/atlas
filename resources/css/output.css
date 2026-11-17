@@ -18,6 +18,15 @@
     --color-amber-100: oklch(96.2% 0.059 95.617);
     --color-amber-500: oklch(76.9% 0.188 70.08);
     --color-amber-600: oklch(66.6% 0.179 58.318);
+    --color-yellow-50: oklch(98.7% 0.026 102.212);
+    --color-yellow-200: oklch(94.5% 0.129 101.54);
+    --color-yellow-500: oklch(79.5% 0.184 86.047);
+    --color-yellow-900: oklch(42.1% 0.095 57.708);
+    --color-green-50: oklch(98.2% 0.018 155.826);
+    --color-green-200: oklch(92.5% 0.084 155.995);
+    --color-green-400: oklch(79.2% 0.209 151.711);
+    --color-green-500: oklch(72.3% 0.219 149.579);
+    --color-green-800: oklch(44.8% 0.119 151.328);
     --color-emerald-50: oklch(97.9% 0.021 166.113);
     --color-emerald-100: oklch(95% 0.052 163.051);
     --color-emerald-400: oklch(76.5% 0.177 163.223);
@@ -76,6 +85,7 @@
     --text-5xl--line-height: 1;
     --text-6xl: 3.75rem;
     --text-6xl--line-height: 1;
+    --font-weight-normal: 400;
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
@@ -100,8 +110,11 @@
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
     --color-marca: #052659;
+    --color-marca-100: #d7e4f9;
+    --color-marca-200: #a8c8fa;
     --color-marca-300: #6ea4f7;
     --color-marca-500: #0c59d0;
+    --color-marca-600: #09449f;
     --color-marca-700: #073479;
     --color-marca-800: #052659;
     --color-marca-900: #051b3d;
@@ -265,6 +278,17 @@
   .visible {
     visibility: visible;
   }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
+  }
   .absolute {
     position: absolute;
   }
@@ -412,6 +436,9 @@
   .mb-2 {
     margin-bottom: calc(var(--spacing) * 2);
   }
+  .mb-3 {
+    margin-bottom: calc(var(--spacing) * 3);
+  }
   .mb-4 {
     margin-bottom: calc(var(--spacing) * 4);
   }
@@ -531,6 +558,9 @@
   }
   .min-h-\[260px\] {
     min-height: 260px;
+  }
+  .min-h-\[300px\] {
+    min-height: 300px;
   }
   .min-h-screen {
     min-height: 100vh;
@@ -665,6 +695,9 @@
   .cursor-pointer {
     cursor: pointer;
   }
+  .list-none {
+    list-style-type: none;
+  }
   .grid-cols-1 {
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
@@ -680,9 +713,6 @@
   .flex-col-reverse {
     flex-direction: column-reverse;
   }
-  .flex-wrap {
-    flex-wrap: wrap;
-  }
   .items-center {
     align-items: center;
   }
@@ -691,6 +721,9 @@
   }
   .items-start {
     align-items: flex-start;
+  }
+  .items-stretch {
+    align-items: stretch;
   }
   .justify-between {
     justify-content: space-between;
@@ -734,11 +767,6 @@
     margin-inline-start: calc(calc(var(--spacing) * -2) * var(--tw-space-x-reverse));
     margin-inline-end: calc(calc(var(--spacing) * -2) * calc(1 - var(--tw-space-x-reverse)));
   }
-  :where(.-space-x-3 > :not(:last-child)) {
-    --tw-space-x-reverse: 0;
-    margin-inline-start: calc(calc(var(--spacing) * -3) * var(--tw-space-x-reverse));
-    margin-inline-end: calc(calc(var(--spacing) * -3) * calc(1 - var(--tw-space-x-reverse)));
-  }
   :where(.divide-y > :not(:last-child)) {
     --tw-divide-y-reverse: 0;
     border-bottom-style: var(--tw-border-style);
@@ -748,6 +776,9 @@
   }
   :where(.divide-zinc-100 > :not(:last-child)) {
     border-color: var(--color-zinc-100);
+  }
+  .self-start {
+    align-self: flex-start;
   }
   .truncate {
     overflow: hidden;
@@ -774,9 +805,6 @@
   }
   .rounded-3xl {
     border-radius: var(--radius-3xl);
-  }
-  .rounded-4xl {
-    border-radius: var(--radius-4xl);
   }
   .rounded-\[1rem\] {
     border-radius: 1rem;
@@ -830,14 +858,11 @@
     border-left-style: var(--tw-border-style);
     border-left-width: 2px;
   }
-  .border-amber-100 {
-    border-color: var(--color-amber-100);
+  .border-green-200 {
+    border-color: var(--color-green-200);
   }
-  .border-emerald-100 {
-    border-color: var(--color-emerald-100);
-  }
-  .border-marca-900 {
-    border-color: var(--color-marca-900);
+  .border-marca {
+    border-color: var(--color-marca);
   }
   .border-red-200 {
     border-color: var(--color-red-200);
@@ -856,6 +881,15 @@
   }
   .border-white {
     border-color: var(--color-white);
+  }
+  .border-white\/10 {
+    border-color: color-mix(in srgb, #fff 10%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-white) 10%, transparent);
+    }
+  }
+  .border-yellow-200 {
+    border-color: var(--color-yellow-200);
   }
   .border-zinc-50 {
     border-color: var(--color-zinc-50);
@@ -881,12 +915,6 @@
       border-color: color-mix(in oklab, var(--color-zinc-900) 50%, transparent);
     }
   }
-  .bg-amber-50 {
-    background-color: var(--color-amber-50);
-  }
-  .bg-amber-500 {
-    background-color: var(--color-amber-500);
-  }
   .bg-black {
     background-color: var(--color-black);
   }
@@ -896,26 +924,29 @@
       background-color: color-mix(in oklab, var(--color-black) 40%, transparent);
     }
   }
-  .bg-emerald-50 {
-    background-color: var(--color-emerald-50);
-  }
   .bg-emerald-400 {
     background-color: var(--color-emerald-400);
   }
   .bg-emerald-500 {
     background-color: var(--color-emerald-500);
   }
+  .bg-green-50 {
+    background-color: var(--color-green-50);
+  }
+  .bg-green-400 {
+    background-color: var(--color-green-400);
+  }
+  .bg-green-500 {
+    background-color: var(--color-green-500);
+  }
   .bg-marca {
     background-color: var(--color-marca);
   }
-  .bg-marca-700 {
-    background-color: var(--color-marca-700);
-  }
-  .bg-marca-900 {
-    background-color: var(--color-marca-900);
-  }
   .bg-red-50 {
     background-color: var(--color-red-50);
+  }
+  .bg-red-500 {
+    background-color: var(--color-red-500);
   }
   .bg-rose-50 {
     background-color: var(--color-rose-50);
@@ -937,6 +968,18 @@
     @supports (color: color-mix(in lab, red, red)) {
       background-color: color-mix(in oklab, var(--color-white) 5%, transparent);
     }
+  }
+  .bg-white\/10 {
+    background-color: color-mix(in srgb, #fff 10%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-white) 10%, transparent);
+    }
+  }
+  .bg-yellow-50 {
+    background-color: var(--color-yellow-50);
+  }
+  .bg-yellow-500 {
+    background-color: var(--color-yellow-500);
   }
   .bg-zinc-50 {
     background-color: var(--color-zinc-50);
@@ -1046,6 +1089,9 @@
   }
   .py-3 {
     padding-block: calc(var(--spacing) * 3);
+  }
+  .py-3\.5 {
+    padding-block: calc(var(--spacing) * 3.5);
   }
   .py-4 {
     padding-block: calc(var(--spacing) * 4);
@@ -1167,6 +1213,10 @@
     --tw-font-weight: var(--font-weight-medium);
     font-weight: var(--font-weight-medium);
   }
+  .font-normal {
+    --tw-font-weight: var(--font-weight-normal);
+    font-weight: var(--font-weight-normal);
+  }
   .font-semibold {
     --tw-font-weight: var(--font-weight-semibold);
     font-weight: var(--font-weight-semibold);
@@ -1186,26 +1236,23 @@
   .whitespace-nowrap {
     white-space: nowrap;
   }
-  .text-amber-600 {
-    color: var(--color-amber-600);
-  }
   .text-black {
     color: var(--color-black);
   }
-  .text-blue-500 {
-    color: var(--color-blue-500);
-  }
-  .text-emerald-600 {
-    color: var(--color-emerald-600);
+  .text-green-800 {
+    color: var(--color-green-800);
   }
   .text-indigo-400 {
     color: var(--color-indigo-400);
   }
-  .text-marca {
-    color: var(--color-marca);
+  .text-marca-100 {
+    color: var(--color-marca-100);
   }
-  .text-marca-300 {
-    color: var(--color-marca-300);
+  .text-marca-200 {
+    color: var(--color-marca-200);
+  }
+  .text-marca-600 {
+    color: var(--color-marca-600);
   }
   .text-marca-700 {
     color: var(--color-marca-700);
@@ -1215,6 +1262,9 @@
   }
   .text-red-600 {
     color: var(--color-red-600);
+  }
+  .text-red-700 {
+    color: var(--color-red-700);
   }
   .text-red-800 {
     color: var(--color-red-800);
@@ -1236,6 +1286,9 @@
   }
   .text-white {
     color: var(--color-white);
+  }
+  .text-yellow-900 {
+    color: var(--color-yellow-900);
   }
   .text-zinc-300 {
     color: var(--color-zinc-300);
@@ -1335,19 +1388,9 @@
     --tw-shadow: 0 20px 25px -5px var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 8px 10px -6px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
-  .shadow-xs {
-    --tw-shadow: 0 1px 2px 0 var(--tw-shadow-color, rgb(0 0 0 / 0.05));
-    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-  }
   .ring-2 {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-  }
-  .shadow-marca-500\/20 {
-    --tw-shadow-color: color-mix(in srgb, #0c59d0 20%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      --tw-shadow-color: color-mix(in oklab, color-mix(in oklab, var(--color-marca-500) 20%, transparent) var(--tw-shadow-alpha), transparent);
-    }
   }
   .ring-white {
     --tw-ring-color: var(--color-white);
@@ -1428,6 +1471,9 @@
       border-color: var(--color-zinc-500);
     }
   }
+  .placeholder\:text-zinc-500::placeholder {
+    color: var(--color-zinc-500);
+  }
   .last\:border-0:last-child {
     border-style: var(--tw-border-style);
     border-width: 0px;
@@ -1443,8 +1489,8 @@
     .hover\:border-zinc-300:hover {
       border-color: var(--color-zinc-300);
     }
-    .hover\:bg-marca-800:hover {
-      background-color: var(--color-marca-800);
+    .hover\:bg-marca-700:hover {
+      background-color: var(--color-marca-700);
     }
     .hover\:bg-red-50:hover {
       background-color: var(--color-red-50);
@@ -1480,11 +1526,14 @@
     .hover\:text-black:hover {
       color: var(--color-black);
     }
-    .hover\:text-blue-600:hover {
-      color: var(--color-blue-600);
+    .hover\:text-marca-800:hover {
+      color: var(--color-marca-800);
     }
     .hover\:text-red-700:hover {
       color: var(--color-red-700);
+    }
+    .hover\:text-red-800:hover {
+      color: var(--color-red-800);
     }
     .hover\:text-slate-700:hover {
       color: var(--color-slate-700);
@@ -1502,8 +1551,14 @@
   .focus\:border-black:focus {
     border-color: var(--color-black);
   }
+  .focus\:border-marca-500:focus {
+    border-color: var(--color-marca-500);
+  }
   .focus\:bg-white:focus {
     background-color: var(--color-white);
+  }
+  .focus\:underline:focus {
+    text-decoration-line: underline;
   }
   .focus\:ring-2:focus {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
@@ -1546,8 +1601,11 @@
     grid-template-rows: 1fr;
   }
   @media (width >= 40rem) {
-    .sm\:col-span-1 {
-      grid-column: span 1 / span 1;
+    .sm\:col-span-6 {
+      grid-column: span 6 / span 6;
+    }
+    .sm\:mb-4 {
+      margin-bottom: calc(var(--spacing) * 4);
     }
     .sm\:ml-auto {
       margin-left: auto;
@@ -1557,6 +1615,18 @@
     }
     .sm\:flex {
       display: flex;
+    }
+    .sm\:h-5 {
+      height: calc(var(--spacing) * 5);
+    }
+    .sm\:h-10 {
+      height: calc(var(--spacing) * 10);
+    }
+    .sm\:w-5 {
+      width: calc(var(--spacing) * 5);
+    }
+    .sm\:w-10 {
+      width: calc(var(--spacing) * 10);
     }
     .sm\:w-auto {
       width: auto;
@@ -1582,6 +1652,20 @@
     .sm\:gap-4 {
       gap: calc(var(--spacing) * 4);
     }
+    .sm\:gap-6 {
+      gap: calc(var(--spacing) * 6);
+    }
+    :where(.sm\:-space-x-3 > :not(:last-child)) {
+      --tw-space-x-reverse: 0;
+      margin-inline-start: calc(calc(var(--spacing) * -3) * var(--tw-space-x-reverse));
+      margin-inline-end: calc(calc(var(--spacing) * -3) * calc(1 - var(--tw-space-x-reverse)));
+    }
+    .sm\:self-auto {
+      align-self: auto;
+    }
+    .sm\:p-5 {
+      padding: calc(var(--spacing) * 5);
+    }
     .sm\:p-6 {
       padding: calc(var(--spacing) * 6);
     }
@@ -1591,13 +1675,31 @@
     .sm\:px-5 {
       padding-inline: calc(var(--spacing) * 5);
     }
+    .sm\:px-6 {
+      padding-inline: calc(var(--spacing) * 6);
+    }
+    .sm\:py-4 {
+      padding-block: calc(var(--spacing) * 4);
+    }
+    .sm\:py-5 {
+      padding-block: calc(var(--spacing) * 5);
+    }
+    .sm\:text-3xl {
+      font-size: var(--text-3xl);
+      line-height: var(--tw-leading, var(--text-3xl--line-height));
+    }
+    .sm\:text-5xl {
+      font-size: var(--text-5xl);
+      line-height: var(--tw-leading, var(--text-5xl--line-height));
+    }
+    .sm\:text-lg {
+      font-size: var(--text-lg);
+      line-height: var(--tw-leading, var(--text-lg--line-height));
+    }
   }
   @media (width >= 48rem) {
     .md\:col-span-2 {
       grid-column: span 2 / span 2;
-    }
-    .md\:mb-8 {
-      margin-bottom: calc(var(--spacing) * 8);
     }
     .md\:block {
       display: block;
@@ -1639,17 +1741,27 @@
     }
   }
   @media (width >= 64rem) {
-    .lg\:col-span-2 {
-      grid-column: span 2 / span 2;
-    }
     .lg\:col-span-3 {
       grid-column: span 3 / span 3;
+    }
+    .lg\:col-span-4 {
+      grid-column: span 4 / span 4;
+    }
+    .lg\:col-span-6 {
+      grid-column: span 6 / span 6;
+    }
+    .lg\:col-span-8 {
+      grid-column: span 8 / span 8;
     }
     .lg\:grid-cols-4 {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
     .lg\:p-10 {
       padding: calc(var(--spacing) * 10);
+    }
+    .lg\:text-6xl {
+      font-size: var(--text-6xl);
+      line-height: var(--tw-leading, var(--text-6xl--line-height));
     }
   }
 }
