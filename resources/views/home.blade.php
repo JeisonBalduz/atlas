@@ -16,7 +16,6 @@
 
 {{-- BENTO GRID 12 COLUMNAS (ATLAS PATTERN) --}}
 <div class="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 mx-auto max-w-400">
-
     {{-- CABECERA --}}
     <header class="col-span-full flex flex-col sm:flex-row sm:items-start justify-between gap-4 sm:gap-6 mb-2 sm:mb-4">
         <div>
@@ -38,7 +37,7 @@
         </div>
     </header>
 
-    {{-- FILA 1: SUB-GRID DE MÉTRICAS SIMPLES (6 COLUMNAS) --}}
+    {{-- SUB-GRID DE MÉTRICAS SIMPLES (6 COLUMNAS) --}}
     <div class="col-span-full lg:col-span-6 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         {{-- Tarjeta vacaciones --}}
         <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_15px_30px_rgba(0,0,0,0.05)] border border-zinc-100 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300 cascade-enter">
@@ -107,8 +106,8 @@
         </div>
     </div>
 
-    {{-- FILA 1: GRÁFICO DE ARCHIVOS CARGADOS (6 COLUMNAS) --}}
-    <div class="col-span-full lg:col-span-6 bg-white rounded-3xl p-5 sm:p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] border border-zinc-100 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300 cascade-enter relative overflow-hidden min-h-[300px]">
+    {{-- GRÁFICO DE ARCHIVOS CARGADOS (6 COLUMNAS) --}}
+    <div class="col-span-full lg:col-span-6 bg-white rounded-3xl p-5 sm:p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] border border-zinc-100 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300 cascade-enter relative overflow-hidden min-h-75">
         <div class="flex items-center justify-between w-full mb-4">
             <h3 class="text-base sm:text-lg font-bold tracking-tight text-zinc-900">Archivos Cargados</h3>
             <span class="text-xs font-medium text-zinc-500">Histórico mensual</span>
@@ -116,7 +115,7 @@
         <div id="chart" class="w-full z-10 overflow-hidden"></div>
     </div>
 
-    {{-- FILA 2: BIENVENIDA (8 COLUMNAS) --}}
+    {{-- BIENVENIDA (8 COLUMNAS) --}}
     <div id="welcome-card" style="animation-delay: 0.5s;" class="col-span-full lg:col-span-8 bg-zinc-950 rounded-3xl border border-zinc-900 shadow-[0_15px_30px_rgba(0,0,0,0.05)] relative overflow-hidden flex flex-col justify-center p-6 sm:p-8 lg:p-10 hover:-translate-y-1 transition-all duration-300 cascade-enter min-h-55">
 
         {{-- Gradiente negro --}}
@@ -144,7 +143,7 @@
         </div>
     </div>
 
-    {{-- FILA 2: NÓMINA ACTIVA TOTAL (4 COLUMNAS) --}}
+    {{-- NÓMINA ACTIVA TOTAL (4 COLUMNAS) --}}
     <div class="col-span-full sm:col-span-6 lg:col-span-4 rounded-3xl bg-marca text-white p-6 sm:p-8 border border-marca shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 cascade-enter relative overflow-hidden"
         style="animation-delay: 0.6s;">
         <div class="absolute top-0 right-0 w-32 h-32 -translate-y-1/2 translate-x-1/4 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
@@ -158,7 +157,7 @@
         </div>
     </div>
 
-    {{-- FILA 3: USUARIOS ACTIVOS (3 COLUMNAS) --}}
+    {{-- USUARIOS ACTIVOS (3 COLUMNAS) --}}
     <div class="col-span-full sm:col-span-6 lg:col-span-3 rounded-3xl bg-white border border-zinc-100 shadow-[0_15px_30px_rgba(0,0,0,0.05)] p-6 flex flex-col items-center justify-center text-center hover:-translate-y-1 transition-transform duration-300 cascade-enter">
         <p class="mb-2 text-xs font-semibold tracking-wider uppercase text-zinc-500">En línea</p>
         <h3 class="mb-4 text-4xl sm:text-5xl font-bold tracking-tight text-zinc-900">24</h3>
@@ -172,7 +171,7 @@
         </div>
     </div>
 
-    {{-- FILA 3: ASISTENCIA (3 COLUMNAS) --}}
+    {{-- ASISTENCIA (3 COLUMNAS) --}}
     <div class="col-span-full sm:col-span-6 lg:col-span-3 rounded-3xl bg-marca text-white p-6 sm:p-8 border border-marca shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 cascade-enter relative overflow-hidden"
         style="animation-delay: 0.8s;">
         <div class="relative z-10">
@@ -188,7 +187,7 @@
         </div>
     </div>
 
-    {{-- FILA 3: ACTIVIDADES RECIENTES (6 COLUMNAS) --}}
+    {{-- ACTIVIDADES RECIENTES (6 COLUMNAS) --}}
     <div class="col-span-full lg:col-span-6 rounded-3xl bg-white border border-zinc-100 shadow-[0_15px_30px_rgba(0,0,0,0.05)] p-6 sm:p-8 hover:-translate-y-1 transition-transform duration-300 cascade-enter"
         style="animation-delay: 0.9s;">
         <div class="flex items-center justify-between mb-6">
@@ -225,7 +224,7 @@
         </div>
     </div>
 
-    {{-- FILA 4: TABLA GUÍA DE USUARIOS ACTIVOS (12 COLUMNAS) --}}
+    {{-- TABLA GUÍA DE USUARIOS ACTIVOS (12 COLUMNAS) --}}
     <div class="col-span-full bg-white rounded-3xl border border-zinc-100 shadow-[0_15px_30px_rgba(0,0,0,0.05)] overflow-hidden">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 sm:px-6 py-4 sm:py-5 border-b border-zinc-100">
             <div>
