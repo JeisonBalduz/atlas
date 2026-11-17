@@ -13,7 +13,7 @@ use flight\Engine;
 use InvalidArgumentException;
 
 
-class AuthController
+final class AuthController
 {
 
     private CleanInputs $input;

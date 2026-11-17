@@ -9,7 +9,7 @@ use InvalidArgumentException;
 use App\config\SessionKeys;
 use App\Services\AuthContext;
 
-class AuthSession
+final class AuthSession
 {
 
     /**

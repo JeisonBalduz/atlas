@@ -9,6 +9,7 @@ use Flight;
 
 class AuthMiddleware
 {
+    
     public function before(): void
     {
         // Validamos directamente con el helper estático de la sesión

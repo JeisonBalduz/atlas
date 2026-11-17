@@ -3,9 +3,8 @@
 namespace App\Model;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
-class UserModel extends Model
+final class UserModel extends Model
 {
     protected $table = 'usuarios';
 

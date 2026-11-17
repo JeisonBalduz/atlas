@@ -8,13 +8,14 @@ use App\Services\AuthContext;
 use App\Model\VwWorkerModel;
 use Flight;
 
-class PermissionMidleware
+final class PermissionMidleware
 {
 
     public function __construct(
         private string $permissionRequire,
     ) {}
 
+    
     // CREAS EL MÉTODO ESTÁTICO FABRICANTE
     public static function permission(string $permission): self
     {

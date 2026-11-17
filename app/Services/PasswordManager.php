@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-class PasswordManager
+final class PasswordManager
 {
     /**
      * Genera un hash ultra seguro y moderno utilizando Argon2id.

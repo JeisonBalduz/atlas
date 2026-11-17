@@ -13,7 +13,7 @@ use App\Services\AuthContext;
  *
  * No Flight:: facade. No $_ENV. Inject what you need.
  */
-class HomeController
+final class HomeController
 {   
      public function __construct(
         private Engine $app,

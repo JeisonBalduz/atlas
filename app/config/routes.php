@@ -11,7 +11,7 @@ use App\Middleware\SecurityHeadersMiddleware;
 use flight\net\Router;
 
 // Grupo global que envuelve todas tus rutas con el middleware de seguridad del esqueleto
-$router->group('', function (Router $router) use ($config) {
+$router->group('', function (Router $router) use ($config, $app) {
 
     // 1. Rutas Web generales (vistas BladeOne)
     require_once __DIR__ . '/../router/web.php';

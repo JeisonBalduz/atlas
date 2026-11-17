@@ -12,8 +12,8 @@ use App\Controller\HomeController;
 use App\Controller\AuthController;
 use flight\net\Router;
 
-$router->post('/descargar-foto-cedula', function(){
-    $cedula = Flight::request()->data['cedula'] ?? $_POST['cedula'] ?? null;
+$router->post('/descargar-foto-cedula', function() use ($app) {
+    $cedula = $app->request()->data['cedula'] ?? null;
     var_dump($cedula);
 });
 

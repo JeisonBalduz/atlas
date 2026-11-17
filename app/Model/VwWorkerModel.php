@@ -4,7 +4,7 @@ namespace App\Model;
 
 use Illuminate\Database\Eloquent\Model;
 
-class VwWorkerModel extends Model
+final class VwWorkerModel extends Model
 {
     protected $table = 'vw_empleados';
 

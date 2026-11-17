@@ -6,7 +6,7 @@ namespace App\Model;
 
 use Flight;
 
-class ViwsEmpleadoModel
+final class ViwsEmpleadoModel
 {
     /**
      * Obtiene todos los registros desde la vista de PostgreSQL vw_empleados
