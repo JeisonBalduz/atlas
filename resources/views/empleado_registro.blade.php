@@ -96,16 +96,37 @@
                     ])
                     @endcomponent
 
-                    @component('components.input', [
-                        'label' => 'Cédula',
-                        'id' => 'cedula',
-                        'name' => 'cedula',
-                        'placeholder' => 'Ej: 12345678',
-                        'maxlength' => 8,
-                        'leftIcon' => 'id-card',
-                        'required' => true,
-                    ])
-                    @endcomponent
+                    <div class="grid grid-cols-[7.5rem_1fr] gap-3">
+                        @component('components.select', [
+                            'label' => 'Nacionalidad',
+                            'id' => 'nacionalidad',
+                            'name' => 'nacionalidad',
+                            'placeholder' => 'N',
+                            'required' => true,
+                            'options' => [
+                                'V' => 'V',
+                                'E' => 'E',
+                                'J' => 'J',
+                                'P' => 'P',
+                                'G' => 'G',
+                                'C' => 'C',
+                            ],
+                        ])
+                        @endcomponent
+
+                        @component('components.input', [
+                            'label' => 'Cédula',
+                            'id' => 'cedula',
+                            'name' => 'cedula',
+                            'placeholder' => 'Ej: 12345678',
+                            'maxlength' => 8,
+                            'leftIcon' => 'id-card',
+                            'required' => true,
+                        ])
+                        @endcomponent
+                    </div>
+
+                    
 
                     @component('components.input', [
                         'label' => 'Edad',
