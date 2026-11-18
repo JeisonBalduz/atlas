@@ -430,6 +430,15 @@
                         ],
                     ])
                     @endcomponent
+
+                    @component('components.select', [
+                        'label' => 'Carrera',
+                        'id' => 'carrera',
+                        'name' => 'carrera',
+                        'required' => true,
+                        'options' => [],
+                    ])
+                    @endcomponent
                 </div>
             </section>
         </div>
