@@ -40,6 +40,11 @@ $router->get('/login-test', function() {
     echo '</pre>';
 });
 
+// Ruta para la vista de prueba de componentes y validaciones
+$router->get('/prueba', function() use ($app) {
+    $app->render('empleado_registro');
+});
+
 
 // $router->get('/home', [HomeController::class, 'render'])
 //     ->addMiddleware([
