@@ -3,7 +3,7 @@ const menusData = {
   nomina: [
     {
       label: "Registrar empleado",
-      url: "#",
+      url: "/empleado/registro",
     },
     {
       label: "Registrar familiar",

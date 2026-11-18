@@ -59,7 +59,7 @@
     <!-- Logo Header -->
     <div class="flex items-center h-10 px-5 mb-8 shrink-0">
         <div class="flex items-center justify-center w-10 h-10 overflow-hidden text-white rounded-xl">
-            <img src="./assets/icons/logo_atlas.png" class="object-cover w-full h-full" alt="Atlas Logo">
+            <img src="/assets/icons/logo_atlas.png" class="object-cover w-full h-full" alt="Atlas Logo">
         </div>
         <span
             class="hidden ml-4 text-xl font-bold tracking-tight text-white transition-opacity duration-300 opacity-0 whitespace-nowrap sidebar-text">ATLAS</span>
@@ -85,7 +85,7 @@
                 <div class="overflow-hidden">
                     <div class="relative flex flex-col gap-1 py-2 ml-6">
                         <div class="absolute left-0 border-l-2 top-2 bottom-2 border-zinc-700"></div>
-                        <a href="#" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Registrar
+                        <a href="empleado/registro" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Registrar
                             empleado</a>
                         <a href="#" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Registrar
                             familiar</a>
@@ -281,7 +281,7 @@
         <button class="flex items-center w-full h-12 text-left rounded-full cursor-pointer group">
             <div
                 class="w-12 h-12 overflow-hidden transition-colors border-2 rounded-full shrink-0 border-zinc-800 group-hover:border-zinc-500">
-                <img src="./assets/icons/usuarioPrueba.webp"
+                <img src="/assets/icons/usuarioPrueba.webp"
                     class="object-cover w-full h-full shrink-0" alt="User">
             </div>
             <div
@@ -306,5 +306,5 @@
 
 
 @push('scripts')
-    <script type="module" src="./js/siderbar.js"></script>
+    <script type="module" src="/js/siderbar.js"></script>
 @endpush

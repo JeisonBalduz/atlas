@@ -6,7 +6,7 @@
         <button id="hamburger-btn"
             type="button"
             aria-label="Alternar menú lateral"
-            class="p-2 transition-all text-zinc-500 hover:text-zinc-900 rounded-xl hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2">
+            class=" cursor-pointer p-2 transition-all text-zinc-500 hover:text-zinc-900 rounded-xl hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2">
             <i data-lucide="menu" class="w-6 h-6 shrink-0"></i>
         </button>
         <img src="/assets/icons/inces.png" title="INCES" alt="Logo INCES" class="hidden object-contain w-auto h-7 sm:block">
@@ -27,7 +27,7 @@
         {{-- Modo Oscuro  --}}
         <button type="button"
             aria-label="Alternar modo oscuro"
-            class="p-2.5 text-zinc-500 hover:text-zinc-900 transition-all rounded-full hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2">
+            class="cursor-pointer p-2.5 text-zinc-500 hover:text-zinc-900 transition-all rounded-full hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2">
             <i data-lucide="moon" class="w-5 h-5 shrink-0"></i>
         </button>
 
@@ -38,7 +38,7 @@
                 aria-label="Ver notificaciones"
                 aria-haspopup="true"
                 aria-expanded="false"
-                class="p-2.5 text-zinc-500 hover:text-zinc-900 transition-all rounded-full hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 relative">
+                class="cursor-pointer p-2.5 text-zinc-500 hover:text-zinc-900 transition-all rounded-full hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 relative">
                 <i data-lucide="bell" class="w-5 h-5 shrink-0"></i>
                 <span
                     class="box-content absolute w-2 h-2 border-2 border-white rounded-full top-2 right-2 bg-red-500"></span>

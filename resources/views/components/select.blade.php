@@ -59,13 +59,16 @@
         <div
             class="custom-select-dropdown hidden absolute left-0 right-0 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden z-50 p-1.5 space-y-1">
             {{-- Input Buscador --}}
-            <div class="px-2 pt-1 pb-1.5 border-b border-zinc-100">
+            @if ($search ?? false)
+                <div class="px-2 pt-1 pb-1.5 border-b border-zinc-100">
                 <div class="flex items-center gap-2 bg-zinc-100 px-2.5 py-1.5 rounded-lg">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-zinc-400 shrink-0"></i>
                     <input type="text" placeholder="Buscar registro..."
                         class="custom-select-search w-full bg-transparent text-xs text-zinc-900 focus:outline-none placeholder-zinc-400" />
                 </div>
             </div>
+            @endif
+            
 
             {{-- Lista de Opciones --}}
             <div class="custom-select-options max-h-52 overflow-y-auto space-y-0.5">

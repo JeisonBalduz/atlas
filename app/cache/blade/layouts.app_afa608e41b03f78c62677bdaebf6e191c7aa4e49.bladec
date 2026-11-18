@@ -6,12 +6,12 @@
  <title>ATLAS | <?php echo $this->yieldContent('title', 'Sistema Atlas - INCES'); ?></title>
  <?php /* Vite Client & Styles para tu entorno local FlightPHP */ ?>
  <script type="module" src="http://localhost:5173/@vite/client"></script>
- <script src="./lib/js/lucideIcons/lucide.min.js"></script>
+ <script src="/lib/js/lucideIcons/lucide.min.js"></script>
  <?php /* Estilos globales de la aplicacion */ ?>
- <link rel="stylesheet" href="./css/app.css">
- <link rel="stylesheet" href="./css/output.css">
+ <link rel="stylesheet" href="/css/app.css">
+ <link rel="stylesheet" href="/css/output.css">
  <?php /* FAVAICON */ ?>
- <link rel="shortcut icon" href="./assets/icons/favicon.webp" type="image/x-icon">
+ <link rel="shortcut icon" href="/assets/icons/favicon.webp" type="image/x-icon">
  <?php /* ApexCharts */ ?>
  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
  <?php echo  $this->CompileStackFinal('styles'); ?>

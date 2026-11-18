@@ -13,6 +13,7 @@ use flight\net\Router;
 //Controllers
 use App\Controller\HomeController;
 use App\Controller\AuthController;
+use App\Controller\EmployeeRegisterController;
 
 //Middleware
 use App\Middleware\AuthMiddleware;
@@ -40,11 +41,9 @@ $router->get('/login-test', function() {
     echo '</pre>';
 });
 
-// Ruta para la vista de prueba de componentes y validaciones
-$router->get('/prueba', function() use ($app) {
-    $app->render('empleado_registro');
-});
-
+// Ruta para el módulo de registro de empleado
+$router->get('/empleado/registro', [EmployeeRegisterController::class, 'render'])
+ ->addMiddleware(AuthMiddleware::class);
 
 // $router->get('/home', [HomeController::class, 'render'])
 //     ->addMiddleware([

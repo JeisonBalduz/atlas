@@ -6,12 +6,12 @@
     <title>ATLAS | @yield('title', 'Sistema Atlas - INCES')</title>
      {{-- Vite Client & Styles para tu entorno local FlightPHP --}}
     <script type="module" src="http://localhost:5173/@vite/client"></script>
-    <script src="./lib/js/lucideIcons/lucide.min.js"></script>
+    <script src="/lib/js/lucideIcons/lucide.min.js"></script>
      {{-- Estilos globales de la aplicacion --}}
-    <link rel="stylesheet" href="./css/app.css">
-    <link rel="stylesheet" href="./css/output.css">
+    <link rel="stylesheet" href="/css/app.css">
+    <link rel="stylesheet" href="/css/output.css">
      {{-- FAVAICON --}}
-    <link rel="shortcut icon" href="./assets/icons/favicon.webp" type="image/x-icon">
+    <link rel="shortcut icon" href="/assets/icons/favicon.webp" type="image/x-icon">
      {{-- ApexCharts --}}
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     @stack('styles')
