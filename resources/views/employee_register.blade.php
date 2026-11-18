@@ -139,13 +139,7 @@
                         'id' => 'civil',
                         'name' => 'civil',
                         'required' => true,
-                        'options' => [
-                            'soltero' => 'Soltero(a)',
-                            'casado' => 'Casado(a)',
-                            'divorciado' => 'Divorciado(a)',
-                            'viudo' => 'Viudo(a)',
-                            'concubinato' => 'Concubinato',
-                        ],
+                        'options' => $estado_civil,
                     ])
                     @endcomponent
 

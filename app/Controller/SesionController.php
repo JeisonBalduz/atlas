@@ -5,19 +5,19 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Utils\Config;
-use App\Model\UserModel;
-use App\Http\CleanInputs;
-use App\Services\PasswordManager;
-use App\Services\AuthSession;
+use App\Model\UsuarioModel;
+use App\Http\LimpiarInputs;
+use App\Services\ManejadorClave;
+use App\Services\AutentecionSesion;
 use flight\Engine;
 use InvalidArgumentException;
 
 
-final class AuthController
+final class SesionController
 {
 
-    private CleanInputs $input;
-    private UserModel $userModel;
+    private LimpiarInputs $input;
+    private UsuarioModel $usuarioModel;
 
     // Las propiedades $app y $config se declaran y asignan directamente en los argumentos
     public function __construct(
@@ -25,8 +25,8 @@ final class AuthController
         private Config $config
     ) {
         // Solo inicializas la clase interna que no viene por inyección de dependencias
-        $this->input = new CleanInputs();
-        $this->userModel = new UserModel();
+        $this->input = new LimpiarInputs();
+        $this->usuarioModel = new UsuarioModel();
     }
 
     public function render(): void
@@ -39,10 +39,10 @@ final class AuthController
         ]);
     }
 
-    public function login(): void
+    public function autentecacion(): void
     {
         // 1. Validamos que los campos obligatorios no estén vacíos
-        $errorValidacion = $this->input->validate(['user', 'password']);
+        $errorValidacion = $this->input->validar(['user', 'password']);
         if ($errorValidacion !== null) {
             $this->app->json([
                 'ok' => false,
@@ -56,10 +56,10 @@ final class AuthController
         $clave = $this->input->get('password');
 
         // Verificamos que el usuario exista
-        $user = $this->userModel->userExists($usuario);
+        $vetificacionUsuario = $this->usuarioModel->existeUsuario($usuario);
 
         // Si no devuelve nada, el usuario no existe
-        if (!$user) {
+        if (!$vetificacionUsuario) {
             $this->app->json([
                 'ok' => false,
                 'message' => 'El usuario ingresado no existe'
@@ -67,9 +67,9 @@ final class AuthController
             return;
         }
 
-        $possword = $this->userModel->getPasswordByUsername($usuario);
+        $claveUsuario = $this->usuarioModel->obtenerClaveUsuario($usuario);
         // 3. Validamos la contraseña usando el array plano obtenido
-        if (!PasswordManager::verify($clave, $possword)) {
+        if (!ManejadorClave::verificar($clave, $claveUsuario)) {
             $this->app->json([
                 'ok' => false,
                 'message' => 'La contraseña es incorrecta'
@@ -78,9 +78,9 @@ final class AuthController
         }
 
         // Obtenemos el id del usuario 
-        $userId = $this->userModel->getIdByUsername($usuario);
+        $usuario_id = $this->usuarioModel->obtenerUsuarioId($usuario);
     
-        if (!$userId) {
+        if (!$usuario_id) {
             $this->app->json([
                 'ok' => false,
                 'message' => 'Error interno al procesar la identidad del usuario'
@@ -89,9 +89,9 @@ final class AuthController
         }
 
         // Con el id del usuario obtener todos los datos del usuario para iniciar sesión
-        $userAllData = $this->userModel->getUserAllId($userId);
+        $usuarioDatos = $this->usuarioModel->obtenerTodoDatosUsuarioId($usuario_id);
         
-        if (empty($userAllData)) {
+        if (empty($usuarioDatos)) {
             $this->app->json([
                 'ok' => false,
                 'message' => 'No se pudieron recuperar los datos de perfil del usuario'
@@ -100,7 +100,7 @@ final class AuthController
         }
         // Gestión del inicio de sesión y manejo seguro del estado de la aplicación
         try {
-            AuthSession::login($userAllData);
+            AutentecionSesion::autenticacion($usuarioDatos);
 
             $this->app->json([
                 'ok' => true,
@@ -118,8 +118,8 @@ final class AuthController
         }
     }
 
-    public function logout(){
-        AuthSession::logout();
+    public function cerrarSesion(){
+        AutentecionSesion::cerrarSesion();
     }
 
 }

@@ -124,7 +124,7 @@
                     </li>
                     <li role="separator" class="h-px mx-2 my-1 bg-zinc-100 list-none"></li>
                     <li role="none">
-                        <a href="/logout" role="menuitem"
+                        <a href="/cerrar_sesion" role="menuitem"
                             class="px-3 py-2.5 hover:bg-red-50 text-red-700 hover:text-red-800 rounded-xl transition-colors flex items-center gap-3">
                             <i data-lucide="log-out" class="w-4 h-4 text-red-600 shrink-0"></i> Cerrar Sesión
                         </a>

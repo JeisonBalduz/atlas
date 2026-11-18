@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Flight;
-use App\config\SessionKeys;
+use App\config\ClavesSesion;
 
-final class AuthContext
+final class ContextoSesion
 {
     /**
      * Obtiene la instancia compartida del gestor de sesiones de FlightPHP.
      *
      * @return object Instancia de la sesión activa (\flight\Session).
      */
-    public static function session(): object
+    public static function sesion(): object
     {
         return Flight::session();
     }
@@ -24,9 +24,9 @@ final class AuthContext
      *
      * @return bool True si el usuario está autenticado, false en caso contrario.
      */
-    public static function check(): bool
+    public static function comprobar(): bool
     {
-        return self::session()->get(SessionKeys::IS_LOGGED_IN) === true;
+        return self::sesion()->get(ClavesSesion::ESTA_AUTENTICADO) === true;
     }
 
     /**
@@ -36,7 +36,7 @@ final class AuthContext
      */
     public static function id(): mixed
     {
-        return self::session()->get(SessionKeys::ID);
+        return self::sesion()->get(ClavesSesion::ID);
     }
 
     /**
@@ -44,9 +44,9 @@ final class AuthContext
      *
      * @return string|null El nombre de usuario o null si no está definido.
      */
-    public static function name(): ?string
+    public static function nombre(): ?string
     {
-        return self::session()->get(SessionKeys::NAME);
+        return self::sesion()->get(ClavesSesion::NOMBRE);
     }
 
     /**
@@ -54,9 +54,9 @@ final class AuthContext
      *
      * @return string|null El estatus del usuario o null si no existe.
      */
-    public static function status(): mixed
+    public static function estatus(): mixed
     {
-        return self::session()->get(SessionKeys::STATUS);
+        return self::sesion()->get(ClavesSesion::ESTADO);
     }
 
     /**
@@ -64,9 +64,9 @@ final class AuthContext
      *
      * @return int|string|null El ID del empleado o null si no está vinculado.
      */
-    public static function employeeId(): mixed
+    public static function empleadoId(): mixed
     {
-        return self::session()->get(SessionKeys::EMPLOYEE_ID);
+        return self::sesion()->get(ClavesSesion::EMPLEADO_ID);
     }
 
     /**
@@ -74,9 +74,9 @@ final class AuthContext
      *
      * @return string|null El nombre completo del empleado o null si no existe.
      */
-    public static function employeeName(): ?string
+    public static function nombreEmpleado(): ?string
     {
-        return self::session()->get(SessionKeys::EMPLOYEE_NAME);
+        return self::sesion()->get(ClavesSesion::NOMBRE_EMPLEADO);
     }
 
     /**
@@ -84,9 +84,9 @@ final class AuthContext
      *
      * @return string|null El correo electrónico o null si no está registrado.
      */
-    public static function employeeEmail(): ?string
+    public static function emailEmpleado(): ?string
     {
-        return self::session()->get(SessionKeys::EMPLOYEE_EMAIL);
+        return self::sesion()->get(ClavesSesion::CORREO_EMPLEADO);
     }
 
     /**
@@ -96,7 +96,7 @@ final class AuthContext
      */
     public static function role(): ?string
     {
-        return self::session()->get(SessionKeys::ROLE);
+        return self::sesion()->get(ClavesSesion::ROL);
     }
 
     /**
@@ -104,20 +104,20 @@ final class AuthContext
      *
      * @return array<int, string> Arreglo con los permisos del usuario (vacío si no tiene).
      */
-    public static function permissions(): array
+    public static function permisos(): array
     {
-        return self::session()->get(SessionKeys::PERMISSION, []);
+        return self::sesion()->get(ClavesSesion::PERMISOS, []);
     }
 
     /**
      * Comprueba si el usuario cuenta con un permiso específico.
      *
-     * @param string $permission Nombre del permiso a verificar.
+     * @param string $permiso Nombre del permiso a verificar.
      * @return bool True si el usuario posee el permiso, false en caso contrario.
      */
-    public static function hasPermission(string $permission): bool
+    public static function tienePermiso(string $permiso): bool
     {
-        return in_array($permission, self::permissions(), true);
+        return in_array($permiso, self::permisos(), true);
     }
 
     /**
@@ -132,22 +132,22 @@ final class AuthContext
     }
 
     /**
-     * Devuelve todos los datos de autenticación del usuario usando las llaves oficiales de SessionKeys.
+     * Devuelve todos los datos de autenticación del usuario usando las llaves oficiales de ClavesSesion.
      *
-     * @return array<string, mixed> Arreglo asociativo indexado con las constantes de SessionKeys.
+     * @return array<string, mixed> Arreglo asociativo indexado con las constantes de ClavesSesion.
      */
-    public static function all(): array
+    public static function todo(): array
     {
         return [
-            SessionKeys::ID             => self::id(),
-            SessionKeys::NAME           => self::name(),
-            SessionKeys::STATUS         => self::status(),
-            SessionKeys::EMPLOYEE_ID    => self::employeeId(),
-            SessionKeys::EMPLOYEE_NAME  => self::employeeName(),
-            SessionKeys::EMPLOYEE_EMAIL => self::employeeEmail(),
-            SessionKeys::ROLE           => self::role(),
-            SessionKeys::PERMISSION     => self::permissions(),
-            SessionKeys::IS_LOGGED_IN   => self::check(),
+            ClavesSesion::ID                => self::id(),
+            ClavesSesion::NOMBRE            => self::nombre(),
+            ClavesSesion::ESTADO            => self::estatus(),
+            ClavesSesion::EMPLEADO_ID       => self::empleadoId(),
+            ClavesSesion::NOMBRE_EMPLEADO   => self::nombreEmpleado(),
+            ClavesSesion::CORREO_EMPLEADO   => self::emailEmpleado(),
+            ClavesSesion::ROL               => self::role(),
+            ClavesSesion::PERMISOS          => self::permisos(),
+            ClavesSesion::ESTA_AUTENTICADO  => self::comprobar(),
         ];
     }
 }

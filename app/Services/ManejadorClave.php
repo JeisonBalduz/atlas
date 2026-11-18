@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-final class PasswordManager
+final class ManejadorClave
 {
     /**
      * Genera un hash ultra seguro y moderno utilizando Argon2id.
@@ -19,11 +19,11 @@ final class PasswordManager
      * Verifica de forma segura si la contraseña ingresada coincide con el hash almacenado.
      * Funciona automáticamente sin importar si fue cifrada con Bcrypt o Argon2id.
      */
-    public static function verify(string $password, string $hash): bool
+    public static function verificar(string $password, string $hash): bool
     {
         return password_verify($password, $hash);
     }
 }
 
-//$passwordManager = new PasswordManager();
-//print_r($passwordManager->verify('123456jb', '$2y$12$Nkf5ieN.BTkmt9y4oFxsUuUtUvy9w07NJDmAKg57lPSvJxkkuV8xm'));
+//$ManejadorClave = new ManejadorClave();
+//print_r($ManejadorClave->verify('123456jb', '$2y$12$Nkf5ieN.BTkmt9y4oFxsUuUtUvy9w07NJDmAKg57lPSvJxkkuV8xm'));

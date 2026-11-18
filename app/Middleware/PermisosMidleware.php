@@ -4,46 +4,46 @@ declare(strict_types=1);
 
 namespace App\Middleware;
 
-use App\Services\AuthContext;
+use App\Services\ContextoSesion;
 use App\Model\VwWorkerModel;
 use Flight;
 
-final class PermissionMidleware
+final class PermisosMidleware
 {
 
     public function __construct(
-        private string $permissionRequire,
+        private string $permisoRequerido,
     ) {}
 
     
     // CREAS EL MÉTODO ESTÁTICO FABRICANTE
-    public static function permission(string $permission): self
+    public static function permiso(string $permiso): self
     {
-        return new self($permission);
+        return new self($permiso);
     }
 
     public function before(): void
     {
 
         // Excepción de seguridad: El Administrador tiene acceso total
-        if (AuthContext::role() === 'Administrador') {
+        if (ContextoSesion::role() === 'Administrador') {
             return; // Permite continuar la ejecución
         }
 
-        $namePermision = array_column(AuthContext::permissions(), 'nombre_permiso');
+        $nombrePermiso = array_column(ContextoSesion::permisos(), 'nombre_permiso');
 
-        if (!in_array($this->permissionRequire, $namePermision, true)) {
-            $this->restrictAccess();
+        if (!in_array($this->permisoRequerido, $nombrePermiso, true)) {
+            $this->restriccionAcceso();
         }
     }
 
-    private function restrictAccess(): void
+    private function restriccionAcceso(): void
     {
 
         if (Flight::request()->ajax) {
             Flight::json([
                 'error'   => 'Acceso denegado',
-                'mensaje' => 'No tienes permisos para realizar esta acción (' . $this->permissionRequire . ')'
+                'mensaje' => 'No tienes permisos para realizar esta acción (' . $this->permisoRequerido . ')'
             ], 403);
             exit;
         }
@@ -52,8 +52,8 @@ final class PermissionMidleware
 
         // Aquí BladeOne guarda el HTML listo dentro de Flight::response()
         Flight::render('layouts.permission_access', [
-            'permissionRequire' => $this->permissionRequire,
-            'user' => (object) AuthContext::all(),
+            'permisoRequerido' => $this->permisoRequerido,
+            'user' => (object) ContextoSesion::todo(),
             'cedula' => preg_replace('/^v-/i', '', VwWorkerModel::getIdentityId(1))
         ]);
 

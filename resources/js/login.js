@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Realizar petición a la API
-    const resultado = await Request.post("/api/login", dataUser);
+    const resultado = await Request.post("/api/autenticacion", dataUser);
     
     buttonLoading(btnEntrar, false);
 
@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Login exitoso: Redirigir al dashboard o panel principal
       showToast("success", resultado.message || "Inicio de sesión exitoso");
       setTimeout(() => {
-        window.location.href = resultado.redirect || "/home";
+        window.location.href = resultado.redirect || "/Inicio";
       }, 1500);
       
     } else {

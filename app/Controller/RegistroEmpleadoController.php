@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Utils\Config;
-use App\Model\EmployeeregisterModel;
 use flight\Engine;
-use App\Services\AuthContext;
+use App\Services\ContextoSesion;
+//Modelos
+use App\Model\VwEmpleadoModel;
+use App\Model\EstatusModel;
+use App\Model\EstadoCivilModel;
 
-class EmployeeRegisterController
+class RegistroEmpleadoController
 {
     private Engine $app;
 
@@ -28,7 +31,9 @@ class EmployeeRegisterController
             'message' => 'Bienvenido a Atlas',
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
-            'usuario' =>(object) AuthContext::all()
+            'usuario' =>(object) ContextoSesion::todo(),
+            'estatus' => (object)  EstatusModel::todoDatosEstatus(),
+            'estado_civil' => (object) EstadoCivilModel::todoDatosEstadoCivil()
         ]);
     }
 }

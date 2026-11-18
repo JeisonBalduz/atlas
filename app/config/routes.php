@@ -7,7 +7,7 @@
  * @var \flight\Engine<object> $app
  * @var \App\Utils\Config $config
  */
-use App\Middleware\SecurityHeadersMiddleware;
+use App\Middleware\SeguridadEncabezadosMiddleware;
 use flight\net\Router;
 
 // Grupo global que envuelve todas tus rutas con el middleware de seguridad del esqueleto
@@ -23,4 +23,4 @@ $router->group('', function (Router $router) use ($config, $app) {
     require_once __DIR__ . '/../router/admin.php';
 
 
-}, [SecurityHeadersMiddleware::class]);
+}, [SeguridadEncabezadosMiddleware::class]);

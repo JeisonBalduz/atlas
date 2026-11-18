@@ -11,42 +11,42 @@
 use flight\net\Router;
 
 //Controllers
-use App\Controller\HomeController;
-use App\Controller\AuthController;
-use App\Controller\EmployeeRegisterController;
+use App\Controller\InicioController;
+use App\Controller\SesionController;
+use App\Controller\RegistroEmpleadoController;
 
 //Middleware
-use App\Middleware\AuthMiddleware;
-use App\Middleware\PermissionMidleware;
+use App\Middleware\SesionMiddleware;
+use App\Middleware\PermisosMidleware;
 
-use App\Services\AuthContext;
+use App\Services\ContextoSesion;
 // Ruta de bienvenida
-$router->get('/', [AuthController::class, 'render']);
+$router->get('/', [SesionController::class, 'render']);
 
 // Ruta para el módulo Login
-$router->get('/login', [AuthController::class, 'render']);
+$router->get('/autenticacion', [SesionController::class, 'render']);
 
 // Ruta para el módulo Dashboard
-$router->get('/home', [HomeController::class, 'render'])
-    ->addMiddleware(AuthMiddleware::class);
+$router->get('/inicio', [InicioController::class, 'render'])
+    ->addMiddleware(SesionMiddleware::class);
 
 //Cerramos la session
-$router->get('/logout', [AuthController::class, 'logout'])
-    ->addMiddleware(AuthMiddleware::class);
+$router->get('/cerrar_sesion', [SesionController::class, 'cerrarSesion'])
+    ->addMiddleware(SesionMiddleware::class);
 
 //ruta de pruebas
 $router->get('/login-test', function() {
     echo '<pre>';
-    print_r(AuthContext::permissions());
+    print_r(ContextoSesion::permisos());
     echo '</pre>';
 });
 
 // Ruta para el módulo de registro de empleado
-$router->get('/empleado/registro', [EmployeeRegisterController::class, 'render'])
- ->addMiddleware(AuthMiddleware::class);
+$router->get('/empleado/registro', [RegistroEmpleadoController::class, 'render'])
+ ->addMiddleware(SesionMiddleware::class);
 
 // $router->get('/home', [HomeController::class, 'render'])
 //     ->addMiddleware([
-//         AuthMiddleware::class,
-//         PermissionMidleware::permission('beneficios.ver')
+//         SesionMiddleware::class,
+//         PermisosMidleware::permission('beneficios.ver')
 //     ]);

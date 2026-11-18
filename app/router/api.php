@@ -8,8 +8,8 @@
  * @var \App\Utils\Config $config
  */
 
-use App\Controller\HomeController;
-use App\Controller\AuthController;
+use App\Controller\InicioController;
+use App\Controller\SesionController;
 use flight\net\Router;
 
 $router->post('/descargar-foto-cedula', function() use ($app) {
@@ -17,6 +17,6 @@ $router->post('/descargar-foto-cedula', function() use ($app) {
     var_dump($cedula);
 });
 
-$router->post('/api/login', [AuthController::class, 'login']);
+$router->post('/api/autenticacion', [SesionController::class, 'autentecacion']);
 
 

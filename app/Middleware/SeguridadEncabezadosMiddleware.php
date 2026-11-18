@@ -10,7 +10,7 @@ use Tracy\Debugger;
 /**
  * Canonical middleware example — constructor injection + before().
  */
-class SecurityHeadersMiddleware
+class SeguridadEncabezadosMiddleware
 {
     /** @var Engine<object> */
     private $app;

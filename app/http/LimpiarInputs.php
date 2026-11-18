@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http;
 
-final class CleanInputs
+final class LimpiarInputs
 {
     private array $data = [];
 
@@ -43,7 +43,7 @@ final class CleanInputs
     /**
      * Retorna todos los datos limpios
      */
-    public function all(): array
+    public function todo(): array
     {
         return $this->data;
     }
@@ -51,7 +51,7 @@ final class CleanInputs
     /**
      * Valida que los campos requeridos tengan contenido
      */
-    public function validate(array $fields): ?string
+    public function validar(array $fields): ?string
     {
         foreach ($fields as $field) {
             $value = $this->get($field);
@@ -65,7 +65,7 @@ final class CleanInputs
     /**
      * Valida que un campo contenga estrictamente solo números (ej. Cédula, Teléfono)
      */
-    public function validateNumeric(string $field): bool
+    public function validarNumericos(string $field): bool
     {
         $value = $this->get($field);
         return ctype_digit((string) $value);
@@ -74,7 +74,7 @@ final class CleanInputs
     /**
      * Valida que un campo contenga estrictamente solo letras
      */
-    public function validateAlpha(string $field): bool
+    public function validarTexto(string $field): bool
     {
         $value = $this->get($field);
         return ctype_alpha((string) $value);

@@ -6,14 +6,14 @@ namespace App\Controller;
 
 use App\Utils\Config;
 use flight\Engine;
-use App\Services\AuthContext;
+use App\Services\ContextoSesion;
 
 /**
  * Welcome page controller — canonical controller example for the skeleton.
  *
  * No Flight:: facade. No $_ENV. Inject what you need.
  */
-final class HomeController
+final class InicioController
 {   
      public function __construct(
         private Engine $app,
@@ -29,7 +29,7 @@ final class HomeController
             'message' => 'Bienvenido a Atlas',
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
-            'usuario' =>(object) AuthContext::all()
+            'usuario' =>(object) contextoSesion::todo()
         ]);
     }
 
