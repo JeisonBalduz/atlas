@@ -28,7 +28,7 @@ final class InicioController
         $this->app->render('inicio', [
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
-            'usuario' =>(object) contextoSesion::todo()
+            'usuario' =>(object) (ContextoSesion::todo() ?? [])
         ]);
     }
 

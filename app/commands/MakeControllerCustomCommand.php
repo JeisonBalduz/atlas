@@ -53,7 +53,7 @@ class MakeControllerCustomCommand extends AbstractBaseCommand
         namespace App\Controller;
 
         use App\Utils\Config;
-        use App\Utils\ContextoSesion;
+        use App\Services\ContextoSesion;
         use App\Model\\{$modelName};
         use flight\Engine;
 

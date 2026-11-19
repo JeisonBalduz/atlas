@@ -30,7 +30,7 @@ class RegistroEmpleadoController
         $this->app->render('registrar_empleado', [
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
-            'usuario' =>(object) ContextoSesion::todo(),
+            'usuario' =>(object) (ContextoSesion::todo() ?? []),
             'estatus' => EstatusModel::todoDatosEstatus(),
             'estado_civil' => EstadoCivilModel::todoDatosEstadoCivil()
         ]);
