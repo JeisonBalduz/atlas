@@ -6,7 +6,7 @@ namespace App\Controller;
 
 use App\Utils\Config;
 use App\Services\ContextoSesion;
-use App\Model\EstatusModel;
+use App\Model\Catalogos\EstatusModel;
 use flight\Engine;
 
 class EstatusController

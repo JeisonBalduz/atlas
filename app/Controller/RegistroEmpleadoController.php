@@ -9,8 +9,8 @@ use flight\Engine;
 use App\Services\ContextoSesion;
 //Modelos
 use App\Model\VwEmpleadoModel;
-use App\Model\EstatusModel;
-use App\Model\EstadoCivilModel;
+use App\Model\Catalogos\EstatusModel;
+use App\Model\Catalogos\EstadoCivilModel;
 
 class RegistroEmpleadoController
 {
