@@ -31,8 +31,8 @@ class RegistroEmpleadoController
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
             'usuario' =>(object) ContextoSesion::todo(),
-            'estatus' => (object)  EstatusModel::todoDatosEstatus(),
-            'estado_civil' => (object) EstadoCivilModel::todoDatosEstadoCivil()
+            'estatus' => EstatusModel::todoDatosEstatus(),
+            'estado_civil' => EstadoCivilModel::todoDatosEstadoCivil()
         ]);
     }
 }

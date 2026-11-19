@@ -10,14 +10,21 @@ class EstadoCivilModel extends Model
 
     protected $primaryKey = 'estado_civil_id';
 
-    public $incrementing = false;
+    public $incrementing = true;
+
+    protected $keyType = 'int';
+
     public $timestamps = false;
+
+    protected $fillable = [
+        'estado_civil',
+    ];
 
     public static function todoDatosEstadoCivil(): array
     {
         return static::query()
             ->whereNotNull('estado_civil_id')
-            ->pluck('estado_civil', 'estado_civil_id') // <-- Esto genera [ 1 => 'Soltero/a', 2 => 'Casado/a' ]
+            ->pluck('estado_civil', 'estado_civil_id')
             ->toArray();
     }
 }

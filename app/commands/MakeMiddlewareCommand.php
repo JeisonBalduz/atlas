@@ -16,7 +16,7 @@ class MakeMiddlewareCommand extends AbstractBaseCommand
             []
         );
 
-        $this->argument('middleware', 'Nombre del middleware a crear (ej. Auth, Role)');
+        $this->argument('middleware', 'Nombre del middleware a crear (ej. Auth, authRol)');
     }
 
     public function execute($middleware = null)
@@ -27,9 +27,11 @@ class MakeMiddlewareCommand extends AbstractBaseCommand
             return;
         }
 
-        // Normalizar nombres respetando mayúsculas iniciales y sufijo Middleware
-        $baseName = ucfirst(trim((string) $middleware));
-        $middlewareName = str_ends_with($baseName, 'Middleware') ? $baseName : $baseName . 'Middleware';
+        $rawName = trim((string) $middleware);
+        // Quita "Middleware" solo si va al final, conservando mayúsculas internas
+        $rawWithoutSuffix = preg_replace('/Middleware$/', '', $rawName) ?? $rawName;
+        $baseName = ucfirst($rawWithoutSuffix);
+        $middlewareName = $baseName . 'Middleware';
 
         $middlewareDir = __DIR__ . "/../Middleware";
         if (!is_dir($middlewareDir)) {
@@ -38,21 +40,28 @@ class MakeMiddlewareCommand extends AbstractBaseCommand
 
         $middlewareFile = "{$middlewareDir}/{$middlewareName}.php";
         if (!file_exists($middlewareFile)) {
-            $middlewareContent = "<?php\n\n" .
-                "declare(strict_types=1);\n\n" .
-                "namespace App\Middleware;\n\n" .
-                "use flight\Engine;\n\n" .
-                "class {$middlewareName}\n" .
-                "{\n" .
-                "    public function before(array \$params): void\n" .
-                "    {\n" .
-                "        // Lógica que se ejecuta antes de la ruta\n" .
-                "    }\n\n" .
-                "    public function after(array \$params): void\n" .
-                "    {\n" .
-                "        // Lógica que se ejecuta después de la ruta\n" .
-                "    }\n" .
-                "}\n";
+            $middlewareContent = <<<PHP
+            <?php
+
+            declare(strict_types=1);
+
+            namespace App\Middleware;
+
+            use flight\Engine;
+
+            class {$middlewareName}
+            {
+                public function before(array \$params): void
+                {
+                    // Lógica que se ejecuta antes de la ruta
+                }
+
+                public function after(array \$params): void
+                {
+                    // Lógica que se ejecuta después de la ruta
+                }
+            }
+            PHP;
 
             file_put_contents($middlewareFile, $middlewareContent);
             echo "✔ Middleware creado exitosamente: app/Middleware/{$middlewareName}.php\n";
