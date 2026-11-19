@@ -1,5 +1,5 @@
 // Cambiar de icono al darle clic
-export const togglePassword = (inputId, btnId, eyeIcon = "eye", eyeOffIcon = "eye-off") => {
+export const alternarClave = (inputId, btnId, eyeIcon = "eye", eyeOffIcon = "eye-off") => {
   const input = document.getElementById(inputId);
   const btn = document.getElementById(btnId);
 

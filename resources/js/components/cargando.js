@@ -1,4 +1,4 @@
-export const buttonLoading = (button, loading) => {
+export const botonCargando = (button, loading) => {
     if (loading) {
       button.disabled = true;
       button.classList.add("opacity-70", "cursor-not-allowed");

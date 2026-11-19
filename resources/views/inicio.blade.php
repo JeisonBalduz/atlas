@@ -1,18 +1,18 @@
 @extends('layouts.app') {{-- CARGAR PAGINA PRINCIPAL --}}
 
-@section('title', 'Home')
+@section('titulo', 'Home')
 
 @section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-4 sm:px-6 md:px-10 pb-12 pt-6 bg-slate-50')
 
-@section('siderbar')
-    @include('layouts.siderbar')
+@section('menu_lateral')
+    @include('layouts.menu_lateral')
 @endsection
 
 @section('header')
     @include('layouts.header')
 @endsection
 
-@section('content')
+@section('contenido')
 
 {{-- BENTO GRID 12 COLUMNAS (ATLAS PATTERN) --}}
 <div class="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 mx-auto max-w-400">
@@ -321,5 +321,5 @@
 @endsection
 
 @push('scripts')
-    <script type="module" src="/js/home.js"></script>
+    <script type="module" src="/js/inicio.js"></script>
 @endpush

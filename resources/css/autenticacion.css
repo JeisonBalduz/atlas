@@ -2,7 +2,7 @@
   --brand-deep: oklch(0.28 0.095 260);
 }
 
-.login-overlay {
+.autenticacion-overlay {
   background: color-mix(in oklch, var(--brand-deep) 78%, transparent);
 } 
 

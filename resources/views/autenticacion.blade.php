@@ -1,26 +1,26 @@
 @extends('layouts.app')
 
-@section('title', 'login')
+@section('titulo', 'autenticacion')
 
 @push('styles')
-    <link rel="stylesheet" href="./css/login.css">
+    <link rel="stylesheet" href="./css/autenticacion.css">
 @endpush
 
-@section('content')
+@section('contenido')
 
-    <section id="vista-login" class="flex min-h-svh w-full flex-col md:flex-row bg-white">
+    <section id="vista-autenticacion" class="flex min-h-svh w-full flex-col md:flex-row bg-white">
         <!-- Columna visual institucional (Visible solo en desktop) -->
         <div class="relative hidden md:flex md:w-1/2 flex-col justify-end p-8 md:p-14 overflow-hidden">
             <!-- El fallback de min-h-screen se maneja en el padre con min-h-svh, aquí usamos h-full absoluto -->
             <img src="./assets/img/fondo.webp" loading="lazy" alt="Taller de formación técnica"
                 class="absolute inset-0 h-full w-full object-cover" />
 
-            <div class="absolute inset-0 login-overlay bg-black/40"></div>
+            <div class="absolute inset-0 autenticacion-overlay bg-black/40"></div>
         </div>
 
         <!-- Formulario (Flexible y adaptado a móviles) -->
         <div class="flex flex-1 w-full md:w-1/2 items-center justify-center p-6 sm:p-8 md:p-12">
-            <form id="form-login" class="w-full max-w-sm" novalidate>
+            <form id="form-autenticacion" class="w-full max-w-sm" novalidate>
                 <!-- Cabecera del Formulario -->
                 <div class="mb-6 flex flex-col items-center justify-center text-center">
                     <img src="./assets/icons/logo_atlas.png" alt="Logo Atlas" class="mb-4 h-16 w-16 object-contain" />
@@ -35,8 +35,8 @@
                 <!-- Input: Usuario -->
                 @component('components.input', [
                     'label' => 'Usuario',
-                    'id' => 'user',
-                    'name' => 'user',
+                    'id' => 'usuario',
+                    'name' => 'usuario',
                     'leftIcon' => 'user',
                     'placeholder' => 'Usuario',
                     'maxlength' => 40,
@@ -57,8 +57,8 @@
                 </div>
 
                 @component('components.input', [
-                    'id' => 'password',
-                    'name' => 'password',
+                    'id' => 'clave',
+                    'name' => 'clave',
                     'type' => 'password',
                     'leftIcon' => 'lock',
                     'rightIcon' => 'eye',
@@ -96,5 +96,5 @@
 @endsection
 
 @push('scripts')
-    <script type="module" src="./js/login.js"></script>
+    <script type="module" src="./js/autenticacion.js"></script>
 @endpush

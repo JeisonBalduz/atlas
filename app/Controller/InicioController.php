@@ -25,8 +25,7 @@ final class InicioController
     public function render(): void
     {
     
-        $this->app->render('home', [
-            'message' => 'Bienvenido a Atlas',
+        $this->app->render('inicio', [
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
             'usuario' =>(object) contextoSesion::todo()

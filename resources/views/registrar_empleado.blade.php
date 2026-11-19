@@ -1,13 +1,13 @@
 @extends('layouts.app') {{-- CARGAR PAGINA PRINCIPAL --}}
 
-@section('title', 'Registro Empleado') {{-- TÍTULO DE LA PÁGINA --}}
+@section('titulo', 'Registro Empleado') {{-- TÍTULO DE LA PÁGINA --}}
 
 @section('main_class',
     'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 pb-12 pt-6
     bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
 
-@section('siderbar'){{-- CARGAR HTML EN ESTE APARTADO --}}
-    @include('layouts.siderbar'){{-- CARGAR SIDERBAR --}}
+@section('menu_lateral'){{-- CARGAR HTML EN ESTE APARTADO --}}
+    @include('layouts.menu_lateral'){{-- CARGAR SIDERBAR --}}
 @endsection
 
 @section('header'){{-- CARGAR HTML EN ESTE APARTADO --}}
@@ -35,7 +35,7 @@
     $dias = array_combine(range(1, 31), range(1, 31));
 @endphp
 
-@section('content') {{-- CARGAR CONTENIDO PRINCIPAL --}}
+@section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
     <form id="form-registro" class="mx-auto max-w-4xl scroll-mt-6 space-y-6" novalidate>
 
         {{-- Card 1: Indicador de progreso (se genera desde los data-step) --}}
@@ -463,5 +463,5 @@
 
 @push('scripts')
     {{-- CARGAR SCRIPTS DE JS --}}
-    <script type="module" src="/js/employeeRegister.js"></script>
+    <script type="module" src="/js/registroEmpleado.js"></script>
 @endpush

@@ -1,4 +1,4 @@
-export class Request {
+export class Solicitud {
     
     // Peticion principal (Petición individual)
     static async request(url, options = {}) {

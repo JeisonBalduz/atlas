@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Middleware;
 
 use App\Services\ContextoSesion;
-use App\Model\VwWorkerModel;
+use App\Model\VwEmpleadoModel;
 use Flight;
 
 final class PermisosMidleware
@@ -51,10 +51,10 @@ final class PermisosMidleware
         Flight::response()->status(403);
 
         // Aquí BladeOne guarda el HTML listo dentro de Flight::response()
-        Flight::render('layouts.permission_access', [
+        Flight::render('layouts.permiso_acceso', [
             'permisoRequerido' => $this->permisoRequerido,
             'user' => (object) ContextoSesion::todo(),
-            'cedula' => preg_replace('/^v-/i', '', VwWorkerModel::getIdentityId(1))
+            'cedula' => preg_replace('/^v-/i', '', VwEmpleadoModel::obtenerCedulaId(1))
         ]);
 
         // Forzamos el envío INMEDIATO del HTML al navegador

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ATLAS | @yield('title', 'Sistema Atlas - INCES')</title>
+    <title>ATLAS | @yield('titulo', 'Sistema Atlas - INCES')</title>
      {{-- Vite Client & Styles para tu entorno local FlightPHP --}}
     <script type="module" src="http://localhost:5173/@vite/client"></script>
     <script src="/lib/js/lucideIcons/lucide.min.js"></script>
@@ -13,15 +13,15 @@
      {{-- FAVAICON --}}
     <link rel="shortcut icon" href="/assets/icons/favicon.webp" type="image/x-icon">
      {{-- ApexCharts --}}
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     @stack('styles')
     {{-- Inyección de css de las vistas --}}
 </head>
 <body class="">
-    @yield('siderbar')
+    @yield('menu_lateral')
     <main id="main-content" class="@yield('main_class')">
         @yield('header')
-        @yield('content')
+        @yield('contenido')
     </main>
     {{-- Inyección de scripts --}}
     @stack('scripts')

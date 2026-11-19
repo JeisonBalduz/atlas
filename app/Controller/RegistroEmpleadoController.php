@@ -27,8 +27,7 @@ class RegistroEmpleadoController
     public function render(): void
     {
         // Lógica del controlador Employeeregister
-        $this->app->render('employee_register', [
-            'message' => 'Bienvenido a Atlas',
+        $this->app->render('registrar_empleado', [
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
             'usuario' =>(object) ContextoSesion::todo(),

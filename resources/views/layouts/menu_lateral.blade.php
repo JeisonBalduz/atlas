@@ -306,5 +306,5 @@
 
 
 @push('scripts')
-    <script type="module" src="/js/siderbar.js"></script>
+    <script type="module" src="/js/menuLateral.js"></script>
 @endpush

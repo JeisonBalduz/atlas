@@ -3,7 +3,7 @@ import { createContainer } from "./toast/toastContainer.js";
 import { injectToastStyles } from "./toast/toastStyle.js";
 
 // Función para mostrar un toast
-export const showToast = (
+export const mostrarToast = (
   type,
   message,
   position = "top-center",

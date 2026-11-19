@@ -4,19 +4,24 @@
  * utilizando clases utilitarias de Tailwind CSS.
  */
 export class InputUI {
-    // Clases nativas de Tailwind para cada estado
-    static classes = {
+    // Clases de Tailwind para cada estado
+    static clases = {
         neutral: ['border-slate-300', 'focus:border-black', 'focus:ring-black'],
+        valido: ['border-emerald-500', 'focus:border-emerald-500', 'focus:ring-emerald-500'],
+        invalido: ['border-red-500', 'focus:border-red-500', 'focus:ring-red-500'],
+        // Retrocompatibilidad
         valid: ['border-emerald-500', 'focus:border-emerald-500', 'focus:ring-emerald-500'],
         invalid: ['border-red-500', 'focus:border-red-500', 'focus:ring-red-500']
     };
+
+    static classes = this.clases;
 
     /**
      * Resuelve los elementos a partir de un selector (#id o .clase) o elemento directo
      * @param {string|HTMLElement} selector 
      * @returns {HTMLElement[]}
      */
-    static getElements(selector) {
+    static obtenerElementos(selector) {
         if (!selector) return [];
         if (typeof selector === 'string') {
             return Array.from(document.querySelectorAll(selector));
@@ -32,42 +37,42 @@ export class InputUI {
      * @param {HTMLInputElement} input 
      * @returns {HTMLElement|null}
      */
-    static getErrorElement(input) {
-        const container = input.closest('.space-y-1\\.5') || input.parentElement?.parentElement;
-        if (container) {
-            const msgEl = container.querySelector('.input-error-msg');
-            if (msgEl) return msgEl;
+    static obtenerElementoError(input) {
+        const contenedor = input.closest('.space-y-1\\.5') || input.parentElement?.parentElement;
+        if (contenedor) {
+            const elementoMensaje = contenedor.querySelector('.input-error-msg');
+            if (elementoMensaje) return elementoMensaje;
         }
         return input.id ? document.getElementById(`${input.id}-error`) : null;
     }
 
     /**
-     * Obtiene el botón trigger si el input es un select personalizado
+     * Obtiene el botón disparador (trigger) si el input es un select personalizado
      * @param {HTMLInputElement|HTMLSelectElement} input
      * @returns {HTMLElement|null}
      */
-    static getTrigger(input) {
-        const container = input.closest('.space-y-1\\.5') || input.parentElement?.parentElement;
-        return container ? container.querySelector('.custom-select-trigger') : null;
+    static obtenerDisparador(input) {
+        const contenedor = input.closest('.space-y-1\\.5') || input.parentElement?.parentElement;
+        return contenedor ? contenedor.querySelector('.custom-select-trigger') : null;
     }
 
     /**
-     * Limpia todas las clases de estado aplicadas al input y a su trigger si existe
+     * Limpia todas las clases de estado aplicadas al input y a su disparador si existe
      * @param {HTMLInputElement} input 
      */
-    static clearStateClasses(input) {
+    static limpiarClasesEstado(input) {
         input.classList.remove(
-            ...this.classes.neutral,
-            ...this.classes.valid,
-            ...this.classes.invalid
+            ...this.clases.neutral,
+            ...this.clases.valido,
+            ...this.clases.invalido
         );
 
-        const trigger = this.getTrigger(input);
-        if (trigger) {
-            trigger.classList.remove(
-                ...this.classes.neutral,
-                ...this.classes.valid,
-                ...this.classes.invalid
+        const disparador = this.obtenerDisparador(input);
+        if (disparador) {
+            disparador.classList.remove(
+                ...this.clases.neutral,
+                ...this.clases.valido,
+                ...this.clases.invalido
             );
         }
     }
@@ -76,40 +81,40 @@ export class InputUI {
      * Aplica el estado VÁLIDO (borde y focus verde de Tailwind)
      * @param {HTMLInputElement} input 
      */
-    static setValid(input) {
-        this.clearStateClasses(input);
-        input.classList.add(...this.classes.valid);
+    static establecerValido(input) {
+        this.limpiarClasesEstado(input);
+        input.classList.add(...this.clases.valido);
 
-        const trigger = this.getTrigger(input);
-        if (trigger) {
-            trigger.classList.add(...this.classes.valid);
+        const disparador = this.obtenerDisparador(input);
+        if (disparador) {
+            disparador.classList.add(...this.clases.valido);
         }
 
-        const errorEl = this.getErrorElement(input);
-        if (errorEl) {
-            errorEl.textContent = '';
-            errorEl.classList.add('hidden');
+        const elementoError = this.obtenerElementoError(input);
+        if (elementoError) {
+            elementoError.textContent = '';
+            elementoError.classList.add('hidden');
         }
     }
 
     /**
      * Aplica el estado INVÁLIDO (borde y focus rojo de Tailwind) con mensaje
      * @param {HTMLInputElement} input 
-     * @param {string} message 
+     * @param {string} mensaje 
      */
-    static setInvalid(input, message) {
-        this.clearStateClasses(input);
-        input.classList.add(...this.classes.invalid);
+    static establecerInvalido(input, mensaje) {
+        this.limpiarClasesEstado(input);
+        input.classList.add(...this.clases.invalido);
 
-        const trigger = this.getTrigger(input);
-        if (trigger) {
-            trigger.classList.add(...this.classes.invalid);
+        const disparador = this.obtenerDisparador(input);
+        if (disparador) {
+            disparador.classList.add(...this.clases.invalido);
         }
 
-        const errorEl = this.getErrorElement(input);
-        if (errorEl) {
-            errorEl.textContent = message;
-            errorEl.classList.remove('hidden');
+        const elementoError = this.obtenerElementoError(input);
+        if (elementoError) {
+            elementoError.textContent = mensaje;
+            elementoError.classList.remove('hidden');
         }
     }
 
@@ -117,19 +122,28 @@ export class InputUI {
      * Restablece al estado NEUTRAL (borde slate-300 y focus negro de Tailwind)
      * @param {HTMLInputElement} input 
      */
-    static setNeutral(input) {
-        this.clearStateClasses(input);
-        input.classList.add(...this.classes.neutral);
+    static establecerNeutral(input) {
+        this.limpiarClasesEstado(input);
+        input.classList.add(...this.clases.neutral);
 
-        const trigger = this.getTrigger(input);
-        if (trigger) {
-            trigger.classList.add(...this.classes.neutral);
+        const disparador = this.obtenerDisparador(input);
+        if (disparador) {
+            disparador.classList.add(...this.clases.neutral);
         }
 
-        const errorEl = this.getErrorElement(input);
-        if (errorEl) {
-            errorEl.textContent = '';
-            errorEl.classList.add('hidden');
+        const elementoError = this.obtenerElementoError(input);
+        if (elementoError) {
+            elementoError.textContent = '';
+            elementoError.classList.add('hidden');
         }
     }
+
+    // Alias para compatibilidad hacia atrás
+    static getElements(selector) { return this.obtenerElementos(selector); }
+    static getErrorElement(input) { return this.obtenerElementoError(input); }
+    static getTrigger(input) { return this.obtenerDisparador(input); }
+    static clearStateClasses(input) { return this.limpiarClasesEstado(input); }
+    static setValid(input) { return this.establecerValido(input); }
+    static setInvalid(input, mensaje) { return this.establecerInvalido(input, mensaje); }
+    static setNeutral(input) { return this.establecerNeutral(input); }
 }

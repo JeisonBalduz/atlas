@@ -32,7 +32,7 @@ final class SesionController
     public function render(): void
     {
         // Lógica del controlador Login
-        $this->app->render('login', [
+        $this->app->render('autenticacion', [
             'message' => 'Bienvenido a Atlas',
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
@@ -42,7 +42,7 @@ final class SesionController
     public function autentecacion(): void
     {
         // 1. Validamos que los campos obligatorios no estén vacíos
-        $errorValidacion = $this->input->validar(['user', 'password']);
+        $errorValidacion = $this->input->validar(['usuario', 'clave']);
         if ($errorValidacion !== null) {
             $this->app->json([
                 'ok' => false,
@@ -52,8 +52,8 @@ final class SesionController
         }
 
         // Obtenemos los valores limpios
-        $usuario = $this->input->get('user');
-        $clave = $this->input->get('password');
+        $usuario = $this->input->get('usuario');
+        $clave = $this->input->get('clave');
 
         // Verificamos que el usuario exista
         $vetificacionUsuario = $this->usuarioModel->existeUsuario($usuario);
@@ -106,7 +106,7 @@ final class SesionController
                 'ok' => true,
                 'success' => true,
                 'message' => '¡Inicio de sesión exitoso!',
-                'redirect' => '/Home'
+                'redirect' => '/Inicio'
             ], 200);
 
         } catch (InvalidArgumentException $e) {
