@@ -21,31 +21,31 @@ const menusData = {
   beneficios: [
     {
       label: "Asignar beneficio",
-      url: "#",
+      url: "/beneficios",
     },
-    {
-      label: "Hcm",
-      url: "#",
-    },
+    // {
+    //   label: "Hcm",
+    //   url: "#",
+    // },
   ],
   vacaciones: [
     {
       label: "Asignar vacaciones",
-      url: "#",
+      url: "/vacaciones",
     },
     {
       label: "Suspender vacaciones",
       url: "#",
     },
-    {
-      label: "Vacaciones",
-      url: "#",
-    },
+    // {
+    //   label: "Vacaciones",
+    //   url: "#",
+    // },
   ],
   ausencias: [
     {
       label: "Asignar ausencia",
-      url: "#",
+      url: "/ausencia",
     },
     {
       label: "Permisos",
