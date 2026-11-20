@@ -139,7 +139,7 @@
                         'id' => 'civil',
                         'name' => 'civil',
                         'required' => true,
-                        'options' => $estado_civil,
+                        'options' => [],
                     ])
                     @endcomponent
 

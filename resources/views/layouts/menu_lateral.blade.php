@@ -85,14 +85,22 @@
                 <div class="overflow-hidden">
                     <div class="relative flex flex-col gap-1 py-2 ml-6">
                         <div class="absolute left-0 border-l-2 top-2 bottom-2 border-zinc-700"></div>
-                        <a href="empleado/registro" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Registrar
-                            empleado</a>
-                        <a href="#" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Registrar
-                            familiar</a>
-                        <a href="#"
-                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Empleados</a>
-                        <a href="#"
-                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Familiares</a>
+                        <a href="/empleado/registrar" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">
+                            Registrar
+                            empleado
+                        </a>
+                        <a href="/empleado/registrar/familiar" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">
+                            Registrar
+                            familiar
+                        </a>
+                        <a href="/empleado/registros"
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">
+                            Ver Empleados
+                        </a>
+                        <a href="/empleado/registros/familiar"
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">
+                            Ver Familiares
+                        </a>
                     </div>
                 </div>
             </div>

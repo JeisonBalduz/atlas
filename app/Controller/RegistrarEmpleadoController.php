@@ -12,7 +12,7 @@ use App\Model\VwEmpleadoModel;
 use App\Model\Catalogos\EstatusModel;
 use App\Model\Catalogos\EstadoCivilModel;
 
-class RegistroEmpleadoController
+class RegistrarEmpleadoController
 {
     private Engine $app;
 
@@ -31,8 +31,8 @@ class RegistroEmpleadoController
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
             'usuario' =>(object) (ContextoSesion::todo() ?? []),
-            'estatus' => EstatusModel::todoDatosEstatus(),
-            'estado_civil' => EstadoCivilModel::todoDatosEstadoCivil()
+            // 'estatus' => EstatusModel::todoDatosEstatus(),
+            // 'estado_civil' => EstadoCivilModel::todoDatosEstadoCivil()
         ]);
     }
 }

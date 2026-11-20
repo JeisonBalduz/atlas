@@ -18,7 +18,7 @@ use App\Controller\InicioController;
 use App\Controller\RegistrarFamiliarController;
 use App\Controller\RegistroAusenciaController;
 use App\Controller\RegistroBeneficiosController;
-use App\Controller\RegistroEmpleadoController;
+use App\Controller\RegistrarEmpleadoController;
 use App\Controller\RegistroVacacionesController;
 use App\Controller\RegistrosEmpleadosController;
 use App\Controller\RegistrosFamiliaresController;
@@ -43,36 +43,43 @@ $router->get('/autenticacion', [SesionController::class, 'render']);
 $router->get('/inicio', [InicioController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
-// Ruta para el módulo de registro de empleado
-$router->get('/empleado/registro', [RegistroEmpleadoController::class, 'render'])
+// Ruta para registrar un empleado
+$router->get('/empleado/registrar', [RegistrarEmpleadoController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
-// Rutas de los módulos de gestión con datos de prueba
+// Rutas de tabla de empleados registrados
 $router->get('/empleado/registros', [RegistrosEmpleadosController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
-$router->get('/registros_familiares', [RegistrosFamiliaresController::class, 'render'])
+// Ruta para editar un empleado
+$router->get('/empleado/editar', [EditarEmpleadoController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
-$router->get('/registrar_familiar', [RegistrarFamiliarController::class, 'render'])
+// Ruta de tabla de familaires registrados
+$router->get('/empleado/registros/familiar', [RegistrosFamiliaresController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
+// Ruta para asignar un familiar a un empleado
+$router->get('/empleado/registrar/familiar', [RegistrarFamiliarController::class, 'render'])
+    ->addMiddleware(SesionMiddleware::class);
+
+// Ruta para editar un familiar
+$router->get('/empleado/familiar/editar', [EditarFamiliarController::class, 'render'])
+    ->addMiddleware(SesionMiddleware::class);
+// Ruta para asignar vacaciones
+$router->get('/vacaciones', [RegistroVacacionesController::class, 'render'])
+    ->addMiddleware(SesionMiddleware::class);
+
+// Ruta para asignar ausencias jsutificadas de permisos y reposos
+$router->get('/ausencia', [RegistroAusenciaController::class, 'render'])
+    ->addMiddleware(SesionMiddleware::class);
+
+// Ruta para asignar un beneficio a un trabajadort o familiar
+$router->get('/beneficios', [RegistroBeneficiosController::class, 'render'])
+    ->addMiddleware(SesionMiddleware::class);
+
+// Ruta de catalogos de dependencia, departamento, cargo, estatus, nivel academico y carrera
 $router->get('/catalogo', [CatalogoController::class, 'render'])
-    ->addMiddleware(SesionMiddleware::class);
-
-$router->get('/registro_vacaciones', [RegistroVacacionesController::class, 'render'])
-    ->addMiddleware(SesionMiddleware::class);
-
-$router->get('/registro_ausencia', [RegistroAusenciaController::class, 'render'])
-    ->addMiddleware(SesionMiddleware::class);
-
-$router->get('/editar_empleado', [EditarEmpleadoController::class, 'render'])
-    ->addMiddleware(SesionMiddleware::class);
-
-$router->get('/editar_familiar', [EditarFamiliarController::class, 'render'])
-    ->addMiddleware(SesionMiddleware::class);
-
-$router->get('/registro_beneficios', [RegistroBeneficiosController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
 //Cerramos la session

@@ -3,19 +3,19 @@ const menusData = {
   nomina: [
     {
       label: "Registrar empleado",
-      url: "/empleado/registro",
+      url: "/empleado/registrar",
     },
     {
       label: "Registrar familiar",
-      url: "#",
+      url: "/empleado/registrar/familiar",
     },
     {
-      label: "Empleados",
-      url: "#",
+      label: "Ver Empleados",
+      url: "/empleado/registros",
     },
     {
-      label: "Familiares",
-      url: "#",
+      label: "Ver Familiares",
+      url: "/empleado/registros/familiar",
     },
   ],
   beneficios: [
