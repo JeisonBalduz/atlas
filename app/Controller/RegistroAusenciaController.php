@@ -6,13 +6,14 @@ namespace App\Controller;
 
 use App\Services\CatalogosService;
 use App\Services\ContextoSesion;
+use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use flight\Engine;
 
 /**
  * Controlador para la vista de registro de ausencias justificadas (permisos y reposos).
  */
-class RegistroAusenciaController
+class RegistroAusenciaController implements RenderInterfaces
 {
     /**
      * @param Engine<object> $app

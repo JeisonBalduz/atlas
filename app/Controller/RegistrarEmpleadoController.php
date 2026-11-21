@@ -12,6 +12,7 @@ use App\Model\Personas\TelefonoPersonasModel;
 use App\Services\CatalogosService;
 use App\Services\ContextoSesion;
 use App\Services\GestorDocumentos;
+use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use flight\Engine;
 use Throwable;
@@ -19,7 +20,7 @@ use Throwable;
 /**
  * Controlador general para el registro de empleados y consulta de ubicación geográfica.
  */
-class RegistrarEmpleadoController
+class RegistrarEmpleadoController implements RenderInterfaces
 {
     /**
      * @param Engine<object> $app

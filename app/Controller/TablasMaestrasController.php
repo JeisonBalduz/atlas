@@ -16,6 +16,7 @@ use App\Model\Catalogos\TipoDocumentosModel;
 use App\Model\Catalogos\TipoParentescoModel;
 use App\Services\CatalogosService;
 use App\Services\ContextoSesion;
+use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use flight\Engine;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +25,7 @@ use Throwable;
 /**
  * Controlador general para la vista y operaciones CRUD de los catálogos del sistema.
  */
-class TablasMaestrasController
+class TablasMaestrasController implements RenderInterfaces
 {
     /** @var array<string, array{modelo: class-string<Model>, campo: string, limite: int, tiene_activo: bool}> */
     private const CATALOGOS = [

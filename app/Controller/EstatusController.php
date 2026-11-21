@@ -7,9 +7,10 @@ namespace App\Controller;
 use App\Utils\Config;
 use App\Services\ContextoSesion;
 use App\Model\Catalogos\EstatusModel;
+use App\Interfaces\RenderInterfaces;
 use flight\Engine;
 
-class EstatusController
+class EstatusController implements RenderInterfaces
 {
     private Engine $app;
 

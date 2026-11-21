@@ -11,6 +11,7 @@ use App\Model\Personas\PersonasModel;
 use App\Services\CatalogosService;
 use App\Services\ContextoSesion;
 use App\Services\GestorDocumentos;
+use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use flight\Engine;
 use Throwable;
@@ -18,7 +19,7 @@ use Throwable;
 /**
  * Controlador general para la vista y actualización de carga familiar.
  */
-class EditarFamiliarController
+class EditarFamiliarController implements RenderInterfaces
 {
     /**
      * @param Engine<object> $app

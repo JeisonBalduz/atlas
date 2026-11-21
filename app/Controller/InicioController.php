@@ -7,13 +7,14 @@ namespace App\Controller;
 use App\Utils\Config;
 use flight\Engine;
 use App\Services\ContextoSesion;
+use App\Interfaces\RenderInterfaces;
 
 /**
  * Welcome page controller — canonical controller example for the skeleton.
  *
  * No Flight:: facade. No $_ENV. Inject what you need.
  */
-final class InicioController
+final class InicioController implements RenderInterfaces
 {   
      public function __construct(
         private Engine $app,

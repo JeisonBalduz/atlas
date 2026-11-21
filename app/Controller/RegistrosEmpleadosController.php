@@ -17,6 +17,7 @@ use App\Services\CatalogosService;
 use App\Services\ContextoSesion;
 use App\Services\DataTableEloquent;
 use App\Services\GestorDocumentos;
+use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use DateTimeImmutable;
 use finfo;
@@ -27,7 +28,7 @@ use Throwable;
 /**
  * Controlador general para el listado, consultas, DataTables, baja lógica y documentos de empleados.
  */
-class RegistrosEmpleadosController
+class RegistrosEmpleadosController implements RenderInterfaces
 {
     /**
      * @param Engine<object> $app

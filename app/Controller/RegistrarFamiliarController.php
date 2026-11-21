@@ -10,6 +10,7 @@ use App\Model\Personas\PersonasModel;
 use App\Services\CatalogosService;
 use App\Services\ContextoSesion;
 use App\Services\GestorDocumentos;
+use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use flight\Engine;
 use InvalidArgumentException;
@@ -18,7 +19,7 @@ use Throwable;
 /**
  * Controlador general para la vista y registro de carga familiar.
  */
-class RegistrarFamiliarController
+class RegistrarFamiliarController implements RenderInterfaces
 {
     /**
      * @param Engine<object> $app

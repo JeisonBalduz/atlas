@@ -11,6 +11,7 @@ use App\Model\Personas\PersonasModel;
 use App\Services\CatalogosService;
 use App\Services\ContextoSesion;
 use App\Services\DataTableEloquent;
+use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use DateTimeImmutable;
 use flight\Engine;
@@ -20,7 +21,7 @@ use Throwable;
 /**
  * Controlador general para la vista, DataTables, consulta y eliminación de vínculos familiares.
  */
-class RegistrosFamiliaresController
+class RegistrosFamiliaresController implements RenderInterfaces
 {
     /**
      * @param Engine<object> $app

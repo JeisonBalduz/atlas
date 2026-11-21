@@ -9,11 +9,12 @@ use App\Model\UsuarioModel;
 use App\Http\LimpiarInputs;
 use App\Services\ManejadorClave;
 use App\Services\AutentecionSesion;
+use App\Interfaces\RenderInterfaces;
 use flight\Engine;
 use InvalidArgumentException;
 
 
-final class SesionController
+final class SesionController implements RenderInterfaces
 {
 
     private LimpiarInputs $input;

@@ -6,13 +6,14 @@ namespace App\Controller;
 
 use App\Services\CatalogosService;
 use App\Services\ContextoSesion;
+use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use flight\Engine;
 
 /**
  * Controlador para la vista de registro y control de vacaciones.
  */
-class RegistroVacacionesController
+class RegistroVacacionesController implements RenderInterfaces
 {
     /**
      * @param Engine<object> $app
