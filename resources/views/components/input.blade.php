@@ -9,6 +9,7 @@
     - name (string, requerido): Nombre del campo para el formulario.
     - type (string, opcional): Tipo de input ('text', 'password', 'email', 'date', etc. Default: 'text').
     - placeholder (string, opcional): Texto de sugerencia dentro del campo.
+    - value (string|int|float, opcional): Valor inicial precargado en el campo.
     - maxlength (int, opcional): Límite máximo de caracteres permitidos.
     - leftIcon (string, opcional): Nombre del icono Lucide a la izquierda (ej: 'user', 'mail').
     - rightIcon (string, opcional): Nombre del icono Lucide a la derecha (ej: 'eye', 'search').
@@ -48,6 +49,7 @@
             id="{{ $id }}" 
             name="{{ $name }}" 
             type="{{ $type ?? 'text' }}"
+            @if(isset($value) && $value !== '') value="{{ $value }}" @endif
             @if(!empty($placeholder)) placeholder="{{ $placeholder }}" @endif
             @if(!empty($maxlength)) maxlength="{{ $maxlength }}" @endif
             autocomplete="{{ $autocomplete ?? 'off' }}"

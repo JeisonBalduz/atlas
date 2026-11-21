@@ -37,6 +37,10 @@ return [
         // null = system temp /flight_sessions (see flightphp/session docs)
         'save_path' => null,
     ],
+    'storage' => [
+        'documentos_path' => 'app/storage/DocumentosInces',
+        'max_file_size_bytes' => 5242880,
+    ],
     'runway' => [
         'index_root' => 'public/index.php',
         'app_root' => 'app/',

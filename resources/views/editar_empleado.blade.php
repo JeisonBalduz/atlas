@@ -13,7 +13,7 @@
 @endsection
 
 @section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
-<form id="formulario-editar-empleado" class="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-6" novalidate>
+<form id="formulario-editar-empleado" data-empleado-id="{{ $empleado->empleado_id ?? '' }}" class="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-6" novalidate>
 
     {{-- Cabecera con retorno al listado de empleados --}}
     <header class="col-span-full flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -23,7 +23,7 @@
         </div>
 
         <a
-            href="/registros_empleados"
+            href="/empleado/registros"
             class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2"
         >
             <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
@@ -39,17 +39,17 @@
         </header>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            @component('components.input', ['label' => 'Primer nombre', 'id' => 'primer_nombre', 'name' => 'primer_nombre', 'maxlength' => 100, 'required' => true]) @endcomponent
-            @component('components.input', ['label' => 'Segundo nombre', 'id' => 'segundo_nombre', 'name' => 'segundo_nombre', 'maxlength' => 100, 'required' => true]) @endcomponent
-            @component('components.input', ['label' => 'Primer apellido', 'id' => 'primer_apellido', 'name' => 'primer_apellido', 'maxlength' => 100, 'required' => true]) @endcomponent
-            @component('components.input', ['label' => 'Segundo apellido', 'id' => 'segundo_apellido', 'name' => 'segundo_apellido', 'maxlength' => 100, 'required' => true]) @endcomponent
+            @component('components.input', ['label' => 'Primer nombre', 'id' => 'primer_nombre', 'name' => 'primer_nombre', 'value' => $persona->primer_nombre ?? '', 'maxlength' => 100, 'required' => true]) @endcomponent
+            @component('components.input', ['label' => 'Segundo nombre', 'id' => 'segundo_nombre', 'name' => 'segundo_nombre', 'value' => $persona->segundo_nombre ?? '', 'maxlength' => 100, 'required' => true]) @endcomponent
+            @component('components.input', ['label' => 'Primer apellido', 'id' => 'primer_apellido', 'name' => 'primer_apellido', 'value' => $persona->primer_apellido ?? '', 'maxlength' => 100, 'required' => true]) @endcomponent
+            @component('components.input', ['label' => 'Segundo apellido', 'id' => 'segundo_apellido', 'name' => 'segundo_apellido', 'value' => $persona->segundo_apellido ?? '', 'maxlength' => 100, 'required' => true]) @endcomponent
 
-            @component('components.select', ['label' => 'Nacionalidad', 'id' => 'nacionalidad', 'name' => 'nacionalidad', 'required' => true, 'options' => ['V' => 'V', 'E' => 'E']]) @endcomponent
-            @component('components.input', ['label' => 'Cédula', 'id' => 'cedula', 'name' => 'cedula', 'maxlength' => 9, 'leftIcon' => 'id-card', 'required' => true]) @endcomponent
+            @component('components.select', ['label' => 'Nacionalidad', 'id' => 'nacionalidad', 'name' => 'nacionalidad', 'required' => true, 'options' => ['V' => 'V', 'E' => 'E'], 'selected' => $persona->nacionalidad ?? '']) @endcomponent
+            @component('components.input', ['label' => 'Cédula', 'id' => 'cedula', 'name' => 'cedula', 'value' => $persona->cedula ?? '', 'maxlength' => 9, 'leftIcon' => 'id-card', 'required' => true]) @endcomponent
 
-            @component('components.input', ['label' => 'Fecha de nacimiento', 'id' => 'fecha_nacimiento', 'name' => 'fecha_nacimiento', 'type' => 'date', 'required' => true]) @endcomponent
-            @component('components.select', ['label' => 'Género', 'id' => 'genero', 'name' => 'genero', 'required' => true, 'options' => ['Masculino' => 'Masculino', 'Femenino' => 'Femenino']]) @endcomponent
-            @component('components.select', ['label' => 'Estado civil', 'id' => 'estado_civil_id', 'name' => 'estado_civil_id', 'required' => true, 'options' => []]) @endcomponent
+            @component('components.input', ['label' => 'Fecha de nacimiento', 'id' => 'fecha_nacimiento', 'name' => 'fecha_nacimiento', 'value' => isset($persona->fecha_nacimiento) ? $persona->fecha_nacimiento->format('Y-m-d') : '', 'type' => 'date', 'required' => true]) @endcomponent
+            @component('components.select', ['label' => 'Género', 'id' => 'genero', 'name' => 'genero', 'required' => true, 'options' => $generos ?? ['Masculino' => 'Masculino', 'Femenino' => 'Femenino'], 'selected' => $persona->genero ?? '']) @endcomponent
+            @component('components.select', ['label' => 'Estado civil', 'id' => 'estado_civil_id', 'name' => 'estado_civil_id', 'required' => true, 'options' => $estados_civiles ?? [], 'selected' => $persona->estado_civil_id ?? '']) @endcomponent
         </div>
     </section>
 
@@ -61,15 +61,15 @@
         </header>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            @component('components.input', ['label' => 'Código de empleado', 'id' => 'codigo_empleado', 'name' => 'codigo_empleado', 'maxlength' => 10, 'readonly' => true]) @endcomponent
-            @component('components.input', ['label' => 'Correo institucional', 'id' => 'correo', 'name' => 'correo', 'type' => 'email', 'leftIcon' => 'mail', 'maxlength' => 255]) @endcomponent
+            @component('components.input', ['label' => 'Código de empleado', 'id' => 'codigo_empleado', 'name' => 'codigo_empleado', 'value' => $empleado->codigo_empleado ?? '', 'maxlength' => 10, 'readonly' => true]) @endcomponent
+            @component('components.input', ['label' => 'Correo institucional', 'id' => 'correo', 'name' => 'correo', 'value' => $empleado->correo ?? '', 'type' => 'email', 'leftIcon' => 'mail', 'maxlength' => 255]) @endcomponent
 
-            @component('components.select', ['label' => 'Dependencia', 'id' => 'dependencia_id', 'name' => 'dependencia_id', 'required' => true, 'search' => true, 'options' => []]) @endcomponent
-            @component('components.select', ['label' => 'Departamento', 'id' => 'departamento_id', 'name' => 'departamento_id', 'required' => true, 'search' => true, 'options' => []]) @endcomponent
-            @component('components.select', ['label' => 'Cargo', 'id' => 'cargo_id', 'name' => 'cargo_id', 'required' => true, 'search' => true, 'options' => []]) @endcomponent
-            @component('components.select', ['label' => 'Estatus laboral', 'id' => 'estatus_id', 'name' => 'estatus_id', 'required' => true, 'options' => []]) @endcomponent
-            @component('components.select', ['label' => 'Nivel académico', 'id' => 'nivel_academico_id', 'name' => 'nivel_academico_id', 'required' => true, 'options' => []]) @endcomponent
-            @component('components.select', ['label' => 'Carrera', 'id' => 'carrera_id', 'name' => 'carrera_id', 'search' => true, 'options' => []]) @endcomponent
+            @component('components.select', ['label' => 'Dependencia', 'id' => 'dependencia_id', 'name' => 'dependencia_id', 'required' => true, 'search' => true, 'options' => $dependencias ?? [], 'selected' => $empleado->dependencia_id ?? '']) @endcomponent
+            @component('components.select', ['label' => 'Departamento', 'id' => 'departamento_id', 'name' => 'departamento_id', 'required' => true, 'search' => true, 'options' => $departamentos ?? [], 'selected' => $empleado->departamento_id ?? '']) @endcomponent
+            @component('components.select', ['label' => 'Cargo', 'id' => 'cargo_id', 'name' => 'cargo_id', 'required' => true, 'search' => true, 'options' => $cargos ?? [], 'selected' => $empleado->cargo_id ?? '']) @endcomponent
+            @component('components.select', ['label' => 'Estatus laboral', 'id' => 'estatus_id', 'name' => 'estatus_id', 'required' => true, 'options' => $estatus ?? [], 'selected' => $empleado->estatus_id ?? '']) @endcomponent
+            @component('components.select', ['label' => 'Nivel académico', 'id' => 'nivel_academico_id', 'name' => 'nivel_academico_id', 'required' => true, 'options' => $niveles_academicos ?? [], 'selected' => $empleado->nivel_academico_id ?? '']) @endcomponent
+            @component('components.select', ['label' => 'Carrera', 'id' => 'carrera_id', 'name' => 'carrera_id', 'search' => true, 'options' => $carreras ?? [], 'selected' => $empleado->carrera_id ?? '']) @endcomponent
 
             <div class="sm:col-span-2">
                 @component('components.select', [
@@ -78,6 +78,7 @@
                     'name' => 'estatus_actual',
                     'required' => true,
                     'options' => ['1' => 'Activo (1)', '0' => 'Inactivo (0)'],
+                    'selected' => (string) ($empleado->estatus_actual ?? '1'),
                 ])
                 @endcomponent
             </div>
@@ -92,14 +93,14 @@
         </header>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            @component('components.select', ['label' => 'Parroquia', 'id' => 'parroquia_id', 'name' => 'parroquia_id', 'required' => true, 'search' => true, 'options' => []]) @endcomponent
-            @component('components.input', ['label' => 'Tipo de vivienda', 'id' => 'vivienda', 'name' => 'vivienda', 'maxlength' => 30, 'required' => true]) @endcomponent
-            @component('components.input', ['label' => 'Calle / Avenida', 'id' => 'calle', 'name' => 'calle', 'maxlength' => 30, 'required' => true]) @endcomponent
-            @component('components.input', ['label' => 'Urbanización / Sector', 'id' => 'nombre_urb', 'name' => 'nombre_urb', 'maxlength' => 100, 'required' => true]) @endcomponent
-            @component('components.input', ['label' => 'Piso / Edificio', 'id' => 'piso_edificio', 'name' => 'piso_edificio', 'maxlength' => 10, 'required' => true]) @endcomponent
-            @component('components.input', ['label' => 'Número de vivienda', 'id' => 'numero_vivienda', 'name' => 'numero_vivienda', 'maxlength' => 10, 'required' => true]) @endcomponent
+            @component('components.select', ['label' => 'Parroquia', 'id' => 'parroquia_id', 'name' => 'parroquia_id', 'required' => true, 'search' => true, 'options' => $parroquias ?? [], 'selected' => $direccion->parroquia_id ?? '']) @endcomponent
+            @component('components.input', ['label' => 'Tipo de vivienda', 'id' => 'vivienda', 'name' => 'vivienda', 'value' => $direccion->vivienda ?? '', 'maxlength' => 30, 'required' => true]) @endcomponent
+            @component('components.input', ['label' => 'Calle / Avenida', 'id' => 'calle', 'name' => 'calle', 'value' => $direccion->calle ?? '', 'maxlength' => 30, 'required' => true]) @endcomponent
+            @component('components.input', ['label' => 'Urbanización / Sector', 'id' => 'nombre_urb', 'name' => 'nombre_urb', 'value' => $direccion->nombre_urb ?? '', 'maxlength' => 100, 'required' => true]) @endcomponent
+            @component('components.input', ['label' => 'Piso / Edificio', 'id' => 'piso_edificio', 'name' => 'piso_edificio', 'value' => $direccion->piso_edificio ?? '', 'maxlength' => 10, 'required' => true]) @endcomponent
+            @component('components.input', ['label' => 'Número de vivienda', 'id' => 'numero_vivienda', 'name' => 'numero_vivienda', 'value' => $direccion->numero_vivienda ?? '', 'maxlength' => 10, 'required' => true]) @endcomponent
             <div class="sm:col-span-2">
-                @component('components.input', ['label' => 'Punto de referencia / Descripción', 'id' => 'descripcion', 'name' => 'descripcion', 'maxlength' => 255]) @endcomponent
+                @component('components.input', ['label' => 'Punto de referencia / Descripción', 'id' => 'descripcion', 'name' => 'descripcion', 'value' => $direccion->descripcion ?? '', 'maxlength' => 255]) @endcomponent
             </div>
         </div>
     </section>
@@ -112,13 +113,13 @@
         </header>
 
         <div class="space-y-4">
-            @component('components.input', ['label' => 'Teléfono principal', 'id' => 'telefono_principal', 'name' => 'telefono_principal', 'maxlength' => 20, 'leftIcon' => 'phone', 'required' => true]) @endcomponent
-            @component('components.input', ['label' => 'Teléfono de emergencia', 'id' => 'telefono_emergencia', 'name' => 'telefono_emergencia', 'maxlength' => 20, 'leftIcon' => 'phone-call']) @endcomponent
+            @component('components.input', ['label' => 'Teléfono principal', 'id' => 'telefono_principal', 'name' => 'telefono_principal', 'value' => $telefono_principal ?? '', 'maxlength' => 20, 'leftIcon' => 'phone', 'required' => true]) @endcomponent
+            @component('components.input', ['label' => 'Teléfono de emergencia', 'id' => 'telefono_emergencia', 'name' => 'telefono_emergencia', 'value' => $telefono_emergencia ?? '', 'maxlength' => 20, 'leftIcon' => 'phone-call']) @endcomponent
         </div>
 
         <footer class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
             <a
-                href="/registros_empleados"
+                href="/empleado/registros"
                 class="inline-flex w-full sm:w-auto items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-900 transition-all hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2"
             >
                 Cancelar

@@ -2,6 +2,11 @@
 
 @section('titulo', 'Registro de Ausencias') {{-- TÍTULO DE LA PÁGINA --}}
 
+@push('styles')
+    <link rel="stylesheet" href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css">
+    <script src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"></script>
+@endpush
+
 @section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
 
 @section('menu_lateral'){{-- CARGAR HTML EN ESTE APARTADO --}}
@@ -51,7 +56,7 @@
                 'placeholder' => 'Seleccionar empleado...',
                 'required' => true,
                 'search' => true,
-                'options' => [],
+                'options' => $empleados ?? [],
             ])
             @endcomponent
 
@@ -95,7 +100,7 @@
                     'id' => 'tppermiso_id',
                     'name' => 'tppermiso_id',
                     'placeholder' => 'Seleccionar tipo de permiso...',
-                    'options' => [],
+                    'options' => $tipos_permiso ?? [],
                 ])
                 @endcomponent
 
@@ -123,7 +128,7 @@
                     'id' => 'tpreposo_id',
                     'name' => 'tpreposo_id',
                     'placeholder' => 'Seleccionar tipo de reposo...',
-                    'options' => [],
+                    'options' => $tipos_reposo ?? [],
                 ])
                 @endcomponent
 
@@ -132,7 +137,7 @@
                     'id' => 'tipo_institucion_emisora_id',
                     'name' => 'tipo_institucion_emisora_id',
                     'placeholder' => 'Seleccionar institución...',
-                    'options' => [],
+                    'options' => $tipos_institucion ?? [],
                 ])
                 @endcomponent
 
@@ -165,32 +170,40 @@
         </form>
     </section>
 
-    {{-- Bloque 2: Tabla unificada de ausencias justificadas --}}
-    <div class="col-span-full lg:col-span-7">
-        @component('components.tabla', [
-            'id' => 'tabla-ausencias',
-            'titulo' => 'Ausencias Justificadas',
-            'subtitulo' => 'Filtra rápidamente entre permisos y reposos médicos.',
-            'placeholderBuscador' => 'Buscar por cédula, empleado o motivo...',
-            'columnas' => [
-                ['clave' => 'cedula', 'etiqueta' => 'Cédula', 'ordenable' => true],
-                ['clave' => 'empleado', 'etiqueta' => 'Empleado', 'ordenable' => true],
-                ['clave' => 'tipo_texto', 'etiqueta' => 'Tipo', 'ordenable' => true, 'alineacion' => 'center'],
-                ['clave' => 'detalle', 'etiqueta' => 'Detalle / Motivo', 'ordenable' => false],
-                ['clave' => 'fecha_inicio', 'etiqueta' => 'Inicio', 'ordenable' => true],
-                ['clave' => 'fecha_fin', 'etiqueta' => 'Fin', 'ordenable' => true],
-                ['clave' => 'dias_ausencia', 'etiqueta' => 'Días', 'ordenable' => true, 'alineacion' => 'center'],
-                ['clave' => 'acciones', 'etiqueta' => 'Acciones', 'ordenable' => false, 'alineacion' => 'right'],
-            ],
-        ])
+    {{-- Bloque 2: Tabla unificada de ausencias justificadas (DataTables 3.1.5) --}}
+    <section aria-labelledby="titulo-tabla-ausencias" class="col-span-full lg:col-span-7 rounded-2xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] overflow-hidden">
+        <header class="flex flex-col gap-3 border-b border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 id="titulo-tabla-ausencias" class="text-base font-semibold text-zinc-900">Ausencias Justificadas</h2>
+                <p class="text-xs text-zinc-500">Filtra rápidamente entre permisos y reposos médicos.</p>
+            </div>
+
             {{-- Filtro rápido por tipo de ausencia --}}
             <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="group" aria-label="Filtrar por tipo">
                 <button type="button" data-filtro-tipo="todos" class="btn-filtro-ausencia rounded-md bg-marca px-3 py-1 text-xs font-medium text-white transition-all cursor-pointer">Todos</button>
                 <button type="button" data-filtro-tipo="Permiso" class="btn-filtro-ausencia rounded-md px-3 py-1 text-xs font-medium text-zinc-500 transition-all hover:text-zinc-900 cursor-pointer">Permiso</button>
                 <button type="button" data-filtro-tipo="Reposo" class="btn-filtro-ausencia rounded-md px-3 py-1 text-xs font-medium text-zinc-500 transition-all hover:text-zinc-900 cursor-pointer">Reposo</button>
             </div>
-        @endcomponent
-    </div>
+        </header>
+
+        <div class="overflow-x-auto px-5 py-4">
+            <table id="tabla-ausencias" class="w-full text-sm text-left">
+                <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50">
+                    <tr>
+                        <th>Cédula</th>
+                        <th>Empleado</th>
+                        <th class="text-center">Tipo</th>
+                        <th>Detalle / Motivo</th>
+                        <th>Inicio</th>
+                        <th>Fin</th>
+                        <th class="text-center">Días</th>
+                        <th class="text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
 {{-- Modal de detalle de ausencia --}}

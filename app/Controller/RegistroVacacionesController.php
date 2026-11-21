@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Services\CatalogosService;
 use App\Services\ContextoSesion;
 use App\Utils\Config;
 use flight\Engine;
@@ -13,9 +14,13 @@ use flight\Engine;
  */
 class RegistroVacacionesController
 {
+    /**
+     * @param Engine<object> $app
+     */
     public function __construct(
         private Engine $app,
-        private Config $config
+        private Config $config,
+        private CatalogosService $catalogos,
     ) {
     }
 
@@ -28,6 +33,7 @@ class RegistroVacacionesController
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
             'usuario' => (object) ContextoSesion::todo(),
+            'empleados' => $this->catalogos->empleadosActivosParaSelect(),
         ]);
     }
 }

@@ -9,113 +9,112 @@ declare(strict_types=1);
  * @var \flight\Engine<object> $app
  */
 
-// Ruta dinámica para servir cualquier archivo o subcarpeta dentro de resources/css/
-$router->get('/css/*', function () use ($app): void {
+/**
+ * Resuelve y sirve un archivo estático garantizando contención dentro de su directorio base.
+ *
+ * @param array<string, string> $mimeTypes
+ */
+$servirArchivoSeguro = static function (
+    string $directorioBase,
+    string $prefijo,
+    array $mimeTypes,
+    bool $inline = false
+) use ($app): void {
     $request = $app->request();
-    // Obtiene todo lo que venga después de /css/ (ej. 'app.css' o 'components/botones.css')
-    $path = str_replace('/css/', '', $request->url);
-    $filePath = __DIR__ . '/../../resources/css/' . $path;
+    $rutaUrl = (string) (parse_url($request->url, PHP_URL_PATH) ?? '');
+    $relativo = str_starts_with($rutaUrl, $prefijo)
+        ? substr($rutaUrl, strlen($prefijo))
+        : '';
+    $relativo = ltrim(rawurldecode($relativo), '/\\');
 
-    if (file_exists($filePath) && !is_dir($filePath)) {
-        $ext = pathinfo($filePath, PATHINFO_EXTENSION);
-        $mimeTypes = [
-            'css'   => 'text/css',
-            'map'   => 'application/json',
-            'woff'  => 'font/woff',
-            'woff2' => 'font/woff2',
-            'ttf'   => 'font/ttf',
-        ];
-
-        header('Content-Type: ' . ($mimeTypes[$ext] ?? 'text/plain'));
-        readfile($filePath);
-        exit;
+    if (
+        $relativo === ''
+        || str_contains($relativo, "\0")
+        || str_contains($relativo, '..')
+    ) {
+        $app->halt(404, 'Archivo no encontrado');
+        return;
     }
 
-    $app->halt(404, 'Archivo CSS no encontrado');
+    $baseReal = realpath($directorioBase);
+    if ($baseReal === false || !is_dir($baseReal)) {
+        $app->halt(404, 'Archivo no encontrado');
+        return;
+    }
+
+    $rutaNormalizada = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativo);
+    $archivoReal = realpath($baseReal . DIRECTORY_SEPARATOR . $rutaNormalizada);
+
+    if (
+        $archivoReal === false
+        || !is_file($archivoReal)
+        || !str_starts_with($archivoReal, $baseReal . DIRECTORY_SEPARATOR)
+    ) {
+        $app->halt(404, 'Archivo no encontrado');
+        return;
+    }
+
+    $ext = strtolower(pathinfo($archivoReal, PATHINFO_EXTENSION));
+    $contentType = $mimeTypes[$ext] ?? (mime_content_type($archivoReal) ?: 'application/octet-stream');
+
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Type: ' . $contentType);
+    if ($inline) {
+        $nombreArchivo = str_replace(["\r", "\n", '"'], '', basename($archivoReal));
+        header('Content-Disposition: inline; filename="' . $nombreArchivo . '"');
+        $tamano = filesize($archivoReal);
+        if ($tamano !== false) {
+            header('Content-Length: ' . (string) $tamano);
+        }
+    }
+
+    readfile($archivoReal);
+    exit;
+};
+
+// Ruta dinámica para servir cualquier archivo o subcarpeta dentro de resources/css/
+$router->get('/css/*', function () use ($servirArchivoSeguro): void {
+    $servirArchivoSeguro(dirname(__DIR__, 2) . '/resources/css', '/css/', [
+        'css'   => 'text/css; charset=utf-8',
+        'map'   => 'application/json',
+        'woff'  => 'font/woff',
+        'woff2' => 'font/woff2',
+        'ttf'   => 'font/ttf',
+    ]);
 });
 
 // Ruta dinámica para servir cualquier archivo o subcarpeta dentro de resources/js/
-$router->get('/js/*', function () use ($app): void {
-    $request = $app->request();
-    $path = str_replace('/js/', '', $request->url);
-    $filePath = __DIR__ . '/../../resources/js/' . $path;
-
-    if (file_exists($filePath) && !is_dir($filePath)) {
-        $ext = pathinfo($filePath, PATHINFO_EXTENSION);
-        $mimeTypes = [
-            'js'   => 'application/javascript',
-            'mjs'  => 'application/javascript',
-            'json' => 'application/json',
-        ];
-
-        header('Content-Type: ' . ($mimeTypes[$ext] ?? 'text/plain'));
-        readfile($filePath);
-        exit;
-    }
-
-    $app->halt(404, 'Archivo JS no encontrado');
+$router->get('/js/*', function () use ($servirArchivoSeguro): void {
+    $servirArchivoSeguro(dirname(__DIR__, 2) . '/resources/js', '/js/', [
+        'js'   => 'application/javascript; charset=utf-8',
+        'mjs'  => 'application/javascript; charset=utf-8',
+        'json' => 'application/json; charset=utf-8',
+    ]);
 });
 
 // Ruta dinámica para servir librerías de app/lib/
-$router->get('/lib/*', function () use ($app): void {
-    $request = $app->request();
-    $path = str_replace('/lib/', '', $request->url);
-    $filePath = __DIR__ . '/../../app/lib/' . $path;
-
-    if (file_exists($filePath) && !is_dir($filePath)) {
-        $ext = pathinfo($filePath, PATHINFO_EXTENSION);
-        $mimeTypes = [
-            'css'   => 'text/css',
-            'js'    => 'application/javascript',
-            'mjs'   => 'application/javascript',
-            'json'  => 'application/json',
-            'png'   => 'image/png',
-            'jpg'   => 'image/jpeg',
-            'svg'   => 'image/svg+xml',
-            'woff2' => 'font/woff2',
-        ];
-
-        $contentType = $mimeTypes[$ext] ?? mime_content_type($filePath) ?: 'application/octet-stream';
-
-        header('Content-Type: ' . $contentType);
-        readfile($filePath);
-        exit;
-    }
-
-    $app->halt(404, 'Archivo no encontrado');
+$router->get('/lib/*', function () use ($servirArchivoSeguro): void {
+    $servirArchivoSeguro(dirname(__DIR__, 2) . '/app/lib', '/lib/', [
+        'css'   => 'text/css; charset=utf-8',
+        'js'    => 'application/javascript; charset=utf-8',
+        'mjs'   => 'application/javascript; charset=utf-8',
+        'json'  => 'application/json; charset=utf-8',
+        'png'   => 'image/png',
+        'jpg'   => 'image/jpeg',
+        'jpeg'  => 'image/jpeg',
+        'svg'   => 'image/svg+xml',
+        'woff2' => 'font/woff2',
+    ]);
 });
 
 // Ruta dinámica para servir las fotos de los empleados
-$router->get('/photo/*', function () use ($app): void {
-    $request = $app->request();
-    $path = str_replace('/photo/', '', $request->url);
-    $path = ltrim($path, '/');
-
-    // Subimos desde la ubicación actual hasta la raíz de tu proyecto 'atlas', 
-    // y de ahí entramos a app/storage/photos/
-    $filePath = dirname(__DIR__, 2) . '/app/storage/photos/' . $path;
-
-    if (file_exists($filePath) && !is_dir($filePath)) {
-        $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-
-        $mimeTypes = [
-            'jpg'  => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'png'  => 'image/png',
-            'webp' => 'image/webp',
-            'gif'  => 'image/gif',
-        ];
-
-        $contentType = $mimeTypes[$ext] ?? 'application/octet-stream';
-        $fileName = basename($filePath);
-
-        header('Content-Type: ' . $contentType);
-        header('Content-Disposition: inline; filename="' . $fileName . '"');
-        header('Content-Length: ' . (string) filesize($filePath));
-
-        readfile($filePath);
-        exit;
-    }
-
-    $app->halt(404, 'Archivo no encontrado en la ruta: ' . $filePath);
+$router->get('/photo/*', function () use ($servirArchivoSeguro): void {
+    $servirArchivoSeguro(dirname(__DIR__, 2) . '/app/storage/photos', '/photo/', [
+        'jpg'  => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'png'  => 'image/png',
+        'webp' => 'image/webp',
+        'gif'  => 'image/gif',
+    ], true);
 });
+

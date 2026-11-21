@@ -2,6 +2,11 @@
 
 @section('titulo', 'Catálogos del Sistema') {{-- TÍTULO DE LA PÁGINA --}}
 
+@push('styles')
+    <link rel="stylesheet" href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css">
+    <script src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"></script>
+@endpush
+
 @section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
 
 @section('menu_lateral'){{-- CARGAR HTML EN ESTE APARTADO --}}
@@ -62,17 +67,25 @@
         </div>
     </nav>
 
-    {{-- Tabla dinámica del catálogo activo --}}
-    <div class="col-span-full">
-        @component('components.tabla', [
-            'id' => 'tabla-catalogo',
-            'titulo' => 'Listado de Estatus',
-            'subtitulo' => 'Los encabezados y el formulario se adaptan automáticamente al catálogo seleccionado.',
-            'placeholderBuscador' => 'Buscar en el catálogo activo...',
-            'columnas' => [],
-        ])
-        @endcomponent
-    </div>
+    {{-- Tabla dinámica del catálogo activo (DataTables 3.1.5) --}}
+    <section
+        id="contenedor-tabla-catalogo"
+        data-estados="{{ json_encode($estados ?? [], JSON_UNESCAPED_UNICODE) }}"
+        aria-labelledby="titulo-tabla-catalogo"
+        class="col-span-full rounded-2xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] overflow-hidden"
+    >
+        <header class="border-b border-slate-200 px-6 py-4">
+            <h2 id="titulo-tabla-catalogo" class="text-base font-semibold text-zinc-900">Catálogo de Estatus</h2>
+            <p class="text-xs text-zinc-500">Los encabezados y el formulario se adaptan automáticamente al catálogo seleccionado.</p>
+        </header>
+
+        <div id="envoltura-tabla-catalogo" class="overflow-x-auto px-5 py-4">
+            <table id="tabla-catalogo" class="w-full text-sm text-left">
+                <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50"></thead>
+                <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
 {{-- Modal dinámico para crear o editar registro del catálogo activo --}}
@@ -91,7 +104,7 @@
 @component('components.modal', [
     'id' => 'modal-eliminar-catalogo',
     'titulo' => 'Eliminar registro de catálogo',
-    'subtitulo' => 'Confirma la operación sobre los datos en memoria.',
+    'subtitulo' => 'Confirma la operación sobre el registro del catálogo.',
     'tamano' => 'sm',
     'textoCancelar' => 'Cancelar',
     'textoConfirmar' => 'Eliminar',

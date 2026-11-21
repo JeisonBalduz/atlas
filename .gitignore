@@ -13,3 +13,5 @@
 /phpunit.xml
 /coverage/
 /clover.xml
+/app/storage/DocumentosInces/*
+!/app/storage/DocumentosInces/.gitkeep

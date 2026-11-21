@@ -36,7 +36,7 @@
 @endphp
 
 @section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
-    <form id="form-registro" class="mx-auto max-w-4xl scroll-mt-6 space-y-6" novalidate>
+    <form id="form-registro" data-tipos-documentos="{{ json_encode($tipos_documentos ?? [], JSON_UNESCAPED_UNICODE) }}" class="mx-auto max-w-4xl scroll-mt-6 space-y-6" novalidate>
 
         {{-- Card 1: Indicador de progreso (se genera desde los data-step) --}}
         <nav aria-label="Progreso del registro"
@@ -139,7 +139,7 @@
                         'id' => 'civil',
                         'name' => 'civil',
                         'required' => true,
-                        'options' => [],
+                        'options' => $estados_civiles ?? [],
                     ])
                     @endcomponent
 
@@ -148,7 +148,7 @@
                         'id' => 'genero',
                         'name' => 'genero',
                         'required' => true,
-                        'options' => ['M' => 'Masculino', 'F' => 'Femenino'],
+                        'options' => $generos ?? ['Masculino' => 'Masculino', 'Femenino' => 'Femenino'],
                     ])
                     @endcomponent
 
@@ -158,14 +158,7 @@
                         'name' => 'tpDiscapacidad',
                         'required' => true,
                         'search'=> true,
-                        'options' => [
-                            'ninguna' => 'Ninguna',
-                            'visual' => 'Visual',
-                            'auditiva' => 'Auditiva',
-                            'motora' => 'Motora',
-                            'intelectual' => 'Intelectual',
-                            'psicosocial' => 'Psicosocial',
-                        ],
+                        'options' => $tipos_discapacidad ?? ['0' => 'Ninguna'],
                     ])
                     @endcomponent
 
@@ -229,14 +222,7 @@
                         'name' => 'estado',
                         'required' => true,
                         'search' => true,
-                        'options' => [
-                            'dtto-capital' => 'Distrito Capital',
-                            'miranda' => 'Miranda',
-                            'aragua' => 'Aragua',
-                            'carabobo' => 'Carabobo',
-                            'lara' => 'Lara',
-                            'zulia' => 'Zulia',
-                        ],
+                        'options' => $estados ?? [],
                     ])
                     @endcomponent
 
@@ -246,7 +232,7 @@
                         'name' => 'municipio',
                         'required' => true,
                         'search' => true,
-                        'options' => ['libertador' => 'Libertador', 'sucre' => 'Sucre', 'chacao' => 'Chacao', 'baruta' => 'Baruta'],
+                        'options' => $municipios ?? [],
                     ])
                     @endcomponent
 
@@ -256,12 +242,7 @@
                         'name' => 'parroquia',
                         'required' => true,
                         'search' => true,
-                        'options' => [
-                            'catedral' => 'Catedral',
-                            'altagracia' => 'Altagracia',
-                            'san-juan' => 'San Juan',
-                            'el-recreo' => 'El Recreo',
-                        ],
+                        'options' => $parroquias ?? [],
                     ])
                     @endcomponent
 
@@ -366,7 +347,7 @@
                         'id' => 'estatus',
                         'name' => 'estatus',
                         'required' => true,
-                        'options' => ['activo' => 'Activo', 'reposo' => 'Reposo', 'vacaciones' => 'Vacaciones', 'jubilado' => 'Jubilado'],
+                        'options' => $estatus ?? [],
                     ])
                     @endcomponent
 
@@ -375,13 +356,8 @@
                         'id' => 'cargo',
                         'name' => 'cargo',
                         'required' => true,
-                        'options' => [
-                            'analista' => 'Analista',
-                            'asistente' => 'Asistente',
-                            'coordinador' => 'Coordinador',
-                            'facilitador' => 'Facilitador',
-                            'jefe-division' => 'Jefe de División',
-                        ],
+                        'search' => true,
+                        'options' => $cargos ?? [],
                     ])
                     @endcomponent
 
@@ -391,12 +367,7 @@
                         'name' => 'departamento',
                         'required' => true,
                         'search' => true,
-                        'options' => [
-                            'talento-humano' => 'Talento Humano',
-                            'tecnologia' => 'Tecnología',
-                            'administracion' => 'Administración',
-                            'formacion' => 'Formación',
-                        ],
+                        'options' => $departamentos ?? [],
                     ])
                     @endcomponent
 
@@ -406,11 +377,7 @@
                         'name' => 'dependencia',
                         'required' => true,
                         'search' => true,
-                        'options' => [
-                            'sede-central' => 'Sede Central',
-                            'la-romana' => 'Dependencias La Romana',
-                            'la-victoria' => 'La Victoria',
-                        ],
+                        'options' => $dependencias ?? [],
                     ])
                     @endcomponent
 
@@ -419,14 +386,7 @@
                         'id' => 'academico',
                         'name' => 'nivelAcademico',
                         'required' => true,
-                        'options' => [
-                            'bachiller' => 'Bachiller',
-                            'tsu' => 'TSU',
-                            'universitario' => 'Universitario',
-                            'especializacion' => 'Especialización',
-                            'maestria' => 'Maestría',
-                            'doctorado' => 'Doctorado',
-                        ],
+                        'options' => $niveles_academicos ?? [],
                     ])
                     @endcomponent
 
@@ -434,8 +394,8 @@
                         'label' => 'Carrera',
                         'id' => 'carrera',
                         'name' => 'carrera',
-                        'required' => true,
-                        'options' => [],
+                        'search' => true,
+                        'options' => $carreras ?? [],
                     ])
                     @endcomponent
                 </div>

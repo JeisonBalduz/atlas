@@ -23,7 +23,7 @@
         </div>
 
         <a
-            href="/registros_familiares"
+            href="/empleado/registros/familiar"
             class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2"
         >
             <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
@@ -45,7 +45,8 @@
             'placeholder' => 'Buscar empleado por nombre o cédula...',
             'required' => true,
             'search' => true,
-            'options' => [],
+            'options' => $empleados ?? [],
+            'selected' => $empleado_seleccionado ?? '',
         ])
         @endcomponent
 
@@ -157,7 +158,7 @@
                 'id' => 'genero',
                 'name' => 'genero',
                 'required' => true,
-                'options' => ['Masculino' => 'Masculino', 'Femenino' => 'Femenino'],
+                'options' => $generos ?? ['Masculino' => 'Masculino', 'Femenino' => 'Femenino'],
             ])
             @endcomponent
 
@@ -166,7 +167,7 @@
                 'id' => 'estado_civil_id',
                 'name' => 'estado_civil_id',
                 'required' => true,
-                'options' => [],
+                'options' => $estados_civiles ?? [],
             ])
             @endcomponent
 
@@ -176,7 +177,7 @@
                 'name' => 'parentesco_id',
                 'required' => true,
                 'search' => true,
-                'options' => [],
+                'options' => $parentescos ?? [],
             ])
             @endcomponent
 

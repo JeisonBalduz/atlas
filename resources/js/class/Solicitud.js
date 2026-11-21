@@ -1,44 +1,69 @@
 export class Solicitud {
-    
-    // Peticion principal (Petición individual)
+    /**
+     * Ejecuta una petición HTTP con Fetch API soportando JSON, FormData y AbortController.
+     * @param {string} url
+     * @param {RequestInit} [options={}]
+     */
     static async request(url, options = {}) {
+        let body = options.body;
+        const esFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+
         const defaultHeaders = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            Accept: 'application/json',
         };
 
-        let body = options.body;
-        if (body && typeof body === 'object' && !(body instanceof FormData)) {
-            body = JSON.stringify(body);
+        if (!esFormData) {
+            defaultHeaders['Content-Type'] = 'application/json';
+            if (body && typeof body === 'object') {
+                body = JSON.stringify(body);
+            }
+        }
+
+        const headersCombinados = { ...defaultHeaders, ...(options.headers || {}) };
+        if (esFormData) {
+            delete headersCombinados['Content-Type'];
         }
 
         const config = {
             ...options,
-            headers: { ...defaultHeaders, ...(options.headers || {}) },
-            body
+            headers: headersCombinados,
+            body,
         };
 
         try {
             const response = await fetch(url, config);
             let data = null;
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
+            const contentType = response.headers.get('content-type') || '';
+
+            if (contentType.includes('application/json')) {
                 data = await response.json();
+            }
+
+            let mensajeError = data?.message || '';
+            if (!mensajeError && data?.errors && typeof data.errors === 'object') {
+                const primerError = Object.values(data.errors)[0];
+                if (typeof primerError === 'string') {
+                    mensajeError = primerError;
+                }
             }
 
             return {
                 ok: response.ok,
                 status: response.status,
-                data: data,
-                message: data?.message || (response.ok ? 'Éxito' : 'Error en la solicitud')
+                aborted: false,
+                data,
+                message: mensajeError || (response.ok ? 'Éxito' : 'Error en la solicitud'),
             };
         } catch (error) {
+            if (error?.name === 'AbortError') {
+                return { ok: false, status: 0, aborted: true, data: null, message: 'Solicitud cancelada' };
+            }
+
             console.error('Error de red en Request:', error);
-            return { ok: false, status: 500, data: null, message: 'Error de red' };
+            return { ok: false, status: 500, aborted: false, data: null, message: 'Error de red' };
         }
     }
 
-    // Metodos individulaes
     static get(url, options = {}) {
         return this.request(url, { ...options, method: 'GET' });
     }
@@ -55,21 +80,15 @@ export class Solicitud {
         return this.request(url, { ...options, method: 'DELETE' });
     }
 
-    // Metodos para lotes (Múltiples peticiones)
     static async all(urls = []) {
-        // Convertimos el array de URLs en un array de promesas de tipo GET
-        const promesas = urls.map(url => this.get(url));
-
-        // Ejecutamos todas al mismo tiempo con Promise.allSettled
+        const promesas = urls.map((url) => this.get(url));
         const resultados = await Promise.allSettled(promesas);
 
-        // Limpiamos la respuesta para que sea fácil de leer en tu vista
-        return resultados.map(resultado => {
+        return resultados.map((resultado) => {
             if (resultado.status === 'fulfilled') {
-                return resultado.value; // Retorna el objeto {ok, data, message} de tu petición
-            } else {
-                return { ok: false, status: 500, data: null, message: 'Falló la promesa' };
+                return resultado.value;
             }
+            return { ok: false, status: 500, aborted: false, data: null, message: 'Falló la promesa' };
         });
     }
 }

@@ -1,74 +1,71 @@
 /**
  * editar_familiar.js
- * Precarga de datos de prueba del familiar y su empleado titular con guardado simulado.
- * Guía estructural: FamiliaresModel, PersonasModel, TipoParentescoModel.
+ * Formulario de edición de carga familiar conectado a POST /api/familiares/{id} con FormData,
+ * manteniendo íntegramente los datos del familiar y su titular hidratados desde PHP.
  */
 
-import { InputValidador } from "/js/class/validator/InputValidador.js";
-import {
-  inicializarSelectsPersonalizados,
-  actualizarOpcionesSelect,
-} from "/js/components/selectPersonalizado.js";
-import { mostrarToast } from "/js/components/toast.js";
+import { InputValidador } from '/js/class/validator/InputValidador.js';
+import { Solicitud } from '/js/class/Solicitud.js';
+import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
+import { mostrarToast } from '/js/components/toast.js';
 
-// TODO: Reemplazar datos de prueba con consulta real a la base de datos / API
-const parentescosPrueba = {
-  1: "Hijo(a)",
-  2: "Cónyuge",
-  3: "Madre",
-  4: "Padre",
-  5: "Hermano(a)",
-};
-
-const familiarSeleccionadoPrueba = {
-  familia_id: 1,
-  titular_nombre: "Carlos Eduardo Mendoza Ríos",
-  titular_cedula: "V-21456789 · EMP-001",
-  titular_cargo: "Analista de Talento Humano · Talento Humano",
-  nacionalidad: "V",
-  cedula: "31245678",
-  primer_nombre: "Sofía",
-  segundo_nombre: "Valentina",
-  primer_apellido: "Mendoza",
-  segundo_apellido: "Herrera",
-  fecha_nacimiento: "2014-06-18",
-  genero: "Femenino",
-  parentesco_id: "1",
-  tomo: "4",
-  folio: "128",
-};
-
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
 
-  // Cargar resumen del empleado titular
-  document.getElementById("editar-titular-nombre").textContent = familiarSeleccionadoPrueba.titular_nombre;
-  document.getElementById("editar-titular-cedula").textContent = familiarSeleccionadoPrueba.titular_cedula;
-  document.getElementById("editar-titular-cargo").textContent = familiarSeleccionadoPrueba.titular_cargo;
-
-  // Precargar campos del familiar
-  ["cedula", "primer_nombre", "segundo_nombre", "primer_apellido", "segundo_apellido", "fecha_nacimiento", "tomo", "folio"].forEach(
-    (campo) => {
-      const nodo = document.getElementById(campo);
-      if (nodo) nodo.value = familiarSeleccionadoPrueba[campo];
-    }
-  );
-
-  actualizarOpcionesSelect("#nacionalidad", { V: "V", E: "E" }, familiarSeleccionadoPrueba.nacionalidad);
-  actualizarOpcionesSelect("#genero", { Masculino: "Masculino", Femenino: "Femenino" }, familiarSeleccionadoPrueba.genero);
-  actualizarOpcionesSelect("#parentesco_id", parentescosPrueba, familiarSeleccionadoPrueba.parentesco_id);
+  const formulario = document.getElementById('formulario-editar-familiar');
+  const familiaId = formulario?.dataset?.familiaId;
 
   // Validaciones
-  InputValidador.soloLetras("#primer_nombre, #segundo_nombre, #primer_apellido, #segundo_apellido", { minimo: 2, limite: 100, requerido: true });
-  InputValidador.soloNumeros("#cedula", { minimo: 6, limite: 9, requerido: true });
-  InputValidador.soloNumeros("#tomo, #folio", { minimo: 1, limite: 6, requerido: true });
+  InputValidador.soloLetras('#primer_nombre, #segundo_nombre, #primer_apellido, #segundo_apellido', {
+    minimo: 2,
+    limite: 100,
+    requerido: true,
+  });
+  InputValidador.soloNumeros('#cedula', { minimo: 6, limite: 9, requerido: true });
+  InputValidador.soloNumeros('#tomo, #folio', { minimo: 1, limite: 6, requerido: true });
+  InputValidador.requerido('#formulario-editar-familiar select, #fecha_nacimiento');
 
-  const formulario = document.getElementById("formulario-editar-familiar");
-  formulario?.addEventListener("submit", (evento) => {
+  let enviando = false;
+
+  formulario?.addEventListener('submit', async (evento) => {
     evento.preventDefault();
-    // TODO: Reemplazar datos de prueba con consulta real a la base de datos / API
-    const datos = Object.fromEntries(new FormData(formulario).entries());
-    console.info("Actualización de familiar simulada:", datos);
-    mostrarToast("success", `Datos de ${datos.primer_nombre} ${datos.primer_apellido} actualizados correctamente.`);
+    if (enviando) return;
+
+    if (!familiaId) {
+      mostrarToast('error', 'No se encontró el identificador del familiar a actualizar.');
+      return;
+    }
+
+    const btnSubmit = formulario.querySelector('button[type="submit"]');
+    const textoSpan = btnSubmit?.querySelector('span');
+    const textoOriginal = textoSpan?.textContent || 'Actualizar Familiar';
+
+    enviando = true;
+    if (btnSubmit) btnSubmit.disabled = true;
+    if (textoSpan) textoSpan.textContent = 'Guardando...';
+
+    try {
+      const formData = new FormData(formulario);
+      const res = await Solicitud.post(`/api/familiares/${familiaId}`, formData);
+
+      if (res.status === 401) {
+        window.location.href = '/autenticacion';
+        return;
+      }
+
+      if (!res.ok || !res.data?.ok) {
+        mostrarToast('error', res.message || 'No se pudo actualizar el familiar.');
+        return;
+      }
+
+      mostrarToast('success', res.data.message || 'Familiar actualizado correctamente.');
+      setTimeout(() => {
+        window.location.href = '/empleado/registros/familiar';
+      }, 650);
+    } finally {
+      enviando = false;
+      if (btnSubmit) btnSubmit.disabled = false;
+      if (textoSpan) textoSpan.textContent = textoOriginal;
+    }
   });
 });

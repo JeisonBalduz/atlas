@@ -2,6 +2,11 @@
 
 @section('titulo', 'Registro de Vacaciones') {{-- TÍTULO DE LA PÁGINA --}}
 
+@push('styles')
+    <link rel="stylesheet" href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css">
+    <script src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"></script>
+@endpush
+
 @section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
 
 @section('menu_lateral'){{-- CARGAR HTML EN ESTE APARTADO --}}
@@ -36,7 +41,7 @@
                 'placeholder' => 'Seleccionar empleado...',
                 'required' => true,
                 'search' => true,
-                'options' => [],
+                'options' => $empleados ?? [],
             ])
             @endcomponent
 
@@ -108,23 +113,14 @@
         </form>
     </section>
 
-    {{-- Bloque 2: Tabla de solicitudes de vacaciones --}}
-    <div class="col-span-full lg:col-span-7">
-        @component('components.tabla', [
-            'id' => 'tabla-vacaciones',
-            'titulo' => 'Solicitudes de Vacaciones',
-            'subtitulo' => 'Consulta el estatus de aprobación y el desglose de períodos descontados.',
-            'placeholderBuscador' => 'Buscar por empleado o cédula...',
-            'columnas' => [
-                ['clave' => 'empleado', 'etiqueta' => 'Empleado', 'ordenable' => true],
-                ['clave' => 'cedula', 'etiqueta' => 'Cédula', 'ordenable' => true],
-                ['clave' => 'dias_solicitado', 'etiqueta' => 'Días', 'ordenable' => true, 'alineacion' => 'center'],
-                ['clave' => 'fecha_inicio', 'etiqueta' => 'Inicio', 'ordenable' => true],
-                ['clave' => 'fecha_final', 'etiqueta' => 'Fin', 'ordenable' => true],
-                ['clave' => 'estatus_texto', 'etiqueta' => 'Estatus', 'ordenable' => true, 'alineacion' => 'center'],
-                ['clave' => 'acciones', 'etiqueta' => 'Acciones', 'ordenable' => false, 'alineacion' => 'right'],
-            ],
-        ])
+    {{-- Bloque 2: Tabla de solicitudes de vacaciones (DataTables 3.1.5) --}}
+    <section aria-labelledby="titulo-tabla-vacaciones" class="col-span-full lg:col-span-7 rounded-2xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] overflow-hidden">
+        <header class="flex flex-col gap-3 border-b border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 id="titulo-tabla-vacaciones" class="text-base font-semibold text-zinc-900">Solicitudes de Vacaciones</h2>
+                <p class="text-xs text-zinc-500">Consulta el estatus de aprobación y el desglose de períodos descontados.</p>
+            </div>
+
             <select
                 id="filtro-estatus-vacaciones"
                 aria-label="Filtrar por estatus de solicitud"
@@ -138,8 +134,25 @@
                 <option value="Reposo">Reposo</option>
                 <option value="Terminada">Terminada</option>
             </select>
-        @endcomponent
-    </div>
+        </header>
+
+        <div class="overflow-x-auto px-5 py-4">
+            <table id="tabla-vacaciones" class="w-full text-sm text-left">
+                <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50">
+                    <tr>
+                        <th>Empleado</th>
+                        <th>Cédula</th>
+                        <th class="text-center">Días</th>
+                        <th>Inicio</th>
+                        <th>Fin</th>
+                        <th class="text-center">Estatus</th>
+                        <th class="text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
 {{-- Modal de desglose de períodos descontados e historial --}}

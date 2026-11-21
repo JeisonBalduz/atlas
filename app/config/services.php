@@ -14,6 +14,8 @@
  * the raw array and no $app. Skip full wiring in that CLI context.
  */
 
+use App\Services\CatalogosService;
+use App\Services\GestorDocumentos;
 use App\Utils\Config;
 use App\Utils\DatabaseFactory;
 use Dice\Dice;
@@ -22,8 +24,9 @@ use flight\database\SimplePdo;
 use flight\debug\tracy\TracyExtensionLoader;
 use flight\Engine;
 use flight\Session;
-use Tracy\Debugger;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\ConnectionInterface;
+use Tracy\Debugger;
 
 // Runway loads config.php then services.php for config:get/set. No Engine yet.
 if (!isset($app) || !($app instanceof Engine) || !($config instanceof Config)) {
@@ -102,9 +105,43 @@ if (PHP_SAPI === 'cli') {
 }
 $session = new Session($sessionOptions);
 
-Flight::map('session', function() use ($session) {
+$app->map('session', function() use ($session) {
     return $session;
 });
+
+// ---------------------------------------------------------------------------
+// Eloquent ORM Standalone (Capsule Manager)
+// ---------------------------------------------------------------------------
+$capsule = new Capsule();
+$capsule->addConnection([
+    'driver'    => 'pgsql', // Forzamos explícitamente pgsql aquí por seguridad
+    'host'      => $config->get('database.host', 'localhost'),
+    'port'      => $config->get('database.port', '5432'),
+    'database'  => $config->get('database.dbname', 'talento_humano'),
+    'username'  => $config->get('database.user', 'postgres'),
+    'password'  => $config->get('database.password', ''),
+    'charset'   => 'utf8',
+    'prefix'    => '',
+    'schema'    => 'public',
+]);
+$capsule->setAsGlobal();
+$capsule->bootEloquent();
+
+$eloquentConnection = $capsule->getConnection();
+$catalogosService = new CatalogosService();
+
+$rutaRelativaDocs = (string) $config->get('storage.documentos_path', 'app/storage/DocumentosInces');
+$raizDocumentos = str_starts_with($rutaRelativaDocs, DIRECTORY_SEPARATOR)
+    || preg_match('/^[A-Za-z]:[\\\\\\/]/', $rutaRelativaDocs) === 1
+    ? $rutaRelativaDocs
+    : $projectRoot . $ds . str_replace(['/', '\\'], $ds, $rutaRelativaDocs);
+
+$gestorDocumentos = new GestorDocumentos(
+    $eloquentConnection,
+    $raizDocumentos,
+    (int) $config->get('storage.max_file_size_bytes', 5242880)
+);
+
 // ---------------------------------------------------------------------------
 // Dice + Engine substitutions (required — see Flight DI docs)
 // ---------------------------------------------------------------------------
@@ -116,6 +153,9 @@ $substitutions = [
     Config::class => $config,
     BladeOne::class => $blade,
     Session::class => $session,
+    ConnectionInterface::class => $eloquentConnection,
+    CatalogosService::class => $catalogosService,
+    GestorDocumentos::class => $gestorDocumentos,
 ];
 
 if ($db instanceof SimplePdo) {
@@ -130,6 +170,9 @@ $container = $container->addRule('*', [
 $container = $container->addRule(Config::class, ['shared' => true]);
 $container = $container->addRule(BladeOne::class, ['shared' => true]);
 $container = $container->addRule(Session::class, ['shared' => true]);
+$container = $container->addRule(ConnectionInterface::class, ['shared' => true]);
+$container = $container->addRule(CatalogosService::class, ['shared' => true]);
+$container = $container->addRule(GestorDocumentos::class, ['shared' => true]);
 if ($db instanceof SimplePdo) {
     $container = $container->addRule(SimplePdo::class, ['shared' => true]);
 }
@@ -142,28 +185,3 @@ $app->registerContainerHandler(function ($class, $params) use ($container) {
 $app->map('make', function ($class, $params = []) use ($container) {
     return $container->create($class, $params);
 });
-
-
-// ---------------------------------------------------------------------------
-// ELEMENT Eloquent ORM 
-//
-// 1. Inicializamos el Capsule Manager de Eloquent
-$capsule = new Capsule;
-
-// 2. Registramos la conexión usando los datos de tu arreglo $config
-$capsule->addConnection([
-    'driver'    => 'pgsql', // <-- Forzamos explícitamente pgsql aquí por seguridad
-    'host'      => $config->get('database.host', 'localhost'),
-    'port'      => $config->get('database.port', '5432'),
-    'database'  => $config->get('database.dbname', 'talento_humano'),
-    'username'  => $config->get('database.user', 'postgres'),
-    'password'  => $config->get('database.password', ''),
-    'charset'   => 'utf8',
-    'prefix'    => '',
-    'schema'    => 'public',
-]);
-// 3. Hacemos que la instancia esté disponible globalmente (estática)
-$capsule->setAsGlobal();
-
-// 4. Arrancamos Eloquent ORM
-$capsule->bootEloquent();
