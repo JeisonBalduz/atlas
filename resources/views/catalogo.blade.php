@@ -90,9 +90,9 @@
         id="contenedor-tabla-catalogo"
         data-estados="{{ json_encode($estados ?? [], JSON_UNESCAPED_UNICODE) }}"
         aria-labelledby="titulo-tabla-catalogo"
-        class="col-span-full rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] overflow-hidden"
+        class="col-span-full rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)]"
     >
-        <header class="flex items-center gap-3.5 border-b border-slate-200 bg-slate-50/70 px-6 py-5">
+        <header class="flex items-center gap-3.5 rounded-t-3xl border-b border-slate-200 bg-slate-50/70 px-6 py-5">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-marca-50 border border-marca-200 text-marca-800">
                 <i data-lucide="database" class="h-5 w-5" aria-hidden="true"></i>
             </div>

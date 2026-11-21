@@ -10,7 +10,6 @@ declare(strict_types=1);
  * @var \App\Utils\Config $config
  */
 
-use App\Controller\Api\DocumentosApiController;
 use App\Controller\CatalogoController;
 use App\Controller\EditarEmpleadoController;
 use App\Controller\EditarFamiliarController;
@@ -82,7 +81,7 @@ $router->get('/catalogo', [CatalogoController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
 // Descarga / vista previa segura de documentos en DocumentosInces
-$router->get('/documentos/@id:[0-9]+', [DocumentosApiController::class, 'descargar'])
+$router->get('/documentos/@id:[0-9]+', [RegistrosEmpleadosController::class, 'descargarDocumento'])
     ->addMiddleware(SesionMiddleware::class);
 
 // Cerramos la sesión

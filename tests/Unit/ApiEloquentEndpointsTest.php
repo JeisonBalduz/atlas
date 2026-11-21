@@ -5,18 +5,15 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\config\ClavesSesion;
-use App\Controller\Api\CatalogosApiController;
-use App\Controller\Api\DocumentosApiController;
-use App\Controller\Api\EmpleadosApiController;
-use App\Controller\Api\FamiliaresApiController;
-use App\Controller\Api\UbicacionApiController;
+use App\Controller\CatalogoController;
 use App\Controller\EditarEmpleadoController;
 use App\Controller\EditarFamiliarController;
 use App\Controller\RegistrarEmpleadoController;
 use App\Controller\RegistrarFamiliarController;
+use App\Controller\RegistrosEmpleadosController;
+use App\Controller\RegistrosFamiliaresController;
 use App\Middleware\SesionMiddleware;
 use App\Model\Beneficios\TipoDiscapacidadModel;
-use App\Utils\Config;
 use App\Model\Catalogos\CargoModel;
 use App\Model\Catalogos\CarreraModel;
 use App\Model\Catalogos\DepartamentosModel;
@@ -26,16 +23,15 @@ use App\Model\Catalogos\EstatusModel;
 use App\Model\Catalogos\NivelAcademicosModel;
 use App\Model\Catalogos\TipoDocumentosModel;
 use App\Model\Catalogos\TipoParentescoModel;
-use App\Model\Personas\DireccionModel;
 use App\Model\Personas\EmpleadosModel;
 use App\Model\Personas\FamiliaresModel;
 use App\Model\Personas\PersonasModel;
-use App\Model\Personas\TelefonoPersonasModel;
 use App\Model\Ubicacion\EstadosModel;
 use App\Model\Ubicacion\MunicipiosModel;
 use App\Model\Ubicacion\ParroquiasModel;
 use App\Services\CatalogosService;
 use App\Services\GestorDocumentos;
+use App\Utils\Config;
 use flight\Engine;
 use flight\net\Request;
 use flight\Session;
@@ -51,6 +47,8 @@ final class ApiEloquentEndpointsTest extends TestCase
     private Capsule $capsule;
     private string $tempDir;
     private GestorDocumentos $gestor;
+    private Config $config;
+    private CatalogosService $catalogos;
 
     /** @var array<string, mixed>|null */
     private ?array $ultimoJson = null;
@@ -83,17 +81,19 @@ final class ApiEloquentEndpointsTest extends TestCase
             $this->tempDir . DIRECTORY_SEPARATOR . 'DocumentosInces',
             5242880
         );
+        $this->config = new Config(['app' => ['env' => 'testing', 'debug' => false]]);
+        $this->catalogos = new CatalogosService();
     }
 
     protected function tearDown(): void
     {
+        $_POST = [];
         $this->eliminarDirectorio($this->tempDir);
         parent::tearDown();
     }
 
     public function testEmpleadosDatatableSoportaPaginacionBusquedaInteligenteYListaBlanca(): void
     {
-        // Consulta sin filtro
         $app = $this->crearMockEngine('POST', [
             'draw' => 2,
             'start' => 0,
@@ -102,7 +102,7 @@ final class ApiEloquentEndpointsTest extends TestCase
             'columns' => [2 => ['data' => 'nombre_completo']],
         ]);
 
-        $ctrl = new EmpleadosApiController($app, $this->gestor);
+        $ctrl = new RegistrosEmpleadosController($app, $this->config, $this->catalogos, $this->gestor);
         $ctrl->datatable();
 
         self::assertSame(200, $this->ultimoCodigo);
@@ -111,19 +111,16 @@ final class ApiEloquentEndpointsTest extends TestCase
         self::assertSame(2, $this->ultimoJson['recordsFiltered']);
         self::assertCount(2, $this->ultimoJson['data']);
         self::assertSame(['total' => 2, 'activos' => 2, 'inactivos' => 0], $this->ultimoJson['resumen']);
-        // Ordenado por apellido asc: López antes que Mendoza
         self::assertSame('EMP-002', $this->ultimoJson['data'][0]['codigo_empleado']);
         self::assertSame(2, $this->ultimoJson['data'][1]['total_familiares']);
 
-        // Show con etiquetas legibles para selects/tarjetas
         $appShow = $this->crearMockEngine('GET');
-        (new EmpleadosApiController($appShow, $this->gestor))->show('1');
+        (new RegistrosEmpleadosController($appShow, $this->config, $this->catalogos, $this->gestor))->show('1');
         self::assertSame(200, $this->ultimoCodigo);
         self::assertSame('Carlos Eduardo Mendoza Ríos', $this->ultimoJson['data']['nombre_completo']);
         self::assertSame('Analista', $this->ultimoJson['data']['cargo']);
         self::assertSame('Talento Humano', $this->ultimoJson['data']['departamento']);
 
-        // Búsqueda inteligente combinando nombre + dependencia
         $appBusqueda = $this->crearMockEngine('POST', [
             'draw' => 3,
             'start' => 0,
@@ -131,7 +128,7 @@ final class ApiEloquentEndpointsTest extends TestCase
             'search' => ['value' => 'carlos romana'],
         ]);
 
-        (new EmpleadosApiController($appBusqueda, $this->gestor))->datatable();
+        (new RegistrosEmpleadosController($appBusqueda, $this->config, $this->catalogos, $this->gestor))->datatable();
 
         self::assertSame(200, $this->ultimoCodigo);
         self::assertSame(2, $this->ultimoJson['recordsTotal']);
@@ -142,7 +139,7 @@ final class ApiEloquentEndpointsTest extends TestCase
     public function testEmpleadosFamiliaresEndpointParaModalYNoEncontrado(): void
     {
         $app = $this->crearMockEngine('GET');
-        $ctrl = new EmpleadosApiController($app, $this->gestor);
+        $ctrl = new RegistrosEmpleadosController($app, $this->config, $this->catalogos, $this->gestor);
 
         $ctrl->familiares('1');
 
@@ -183,7 +180,7 @@ final class ApiEloquentEndpointsTest extends TestCase
             'correo' => 'luis.gomez@inces.gob.ve',
         ]);
 
-        (new EmpleadosApiController($appStore, $this->gestor))->store();
+        (new RegistrarEmpleadoController($appStore, $this->config, $this->catalogos, $this->gestor))->store();
 
         self::assertSame(201, $this->ultimoCodigo);
         $nuevoId = (int) $this->ultimoJson['data']['empleado_id'];
@@ -192,23 +189,24 @@ final class ApiEloquentEndpointsTest extends TestCase
         $creado = EmpleadosModel::query()->with(['persona.telefonos', 'direccion'])->find($nuevoId);
         self::assertInstanceOf(EmpleadosModel::class, $creado);
         self::assertSame(1, (int) $creado->estatus_actual);
+        self::assertSame('V', $creado->persona?->nacionalidad);
+        self::assertSame(25999888, (int) $creado->persona?->cedula);
+        self::assertLessThanOrEqual(10, strlen((string) $creado->codigo_empleado));
         self::assertSame('Av. Bolívar', $creado->direccion?->calle);
 
-        // Update
         $appUpdate = $this->crearMockEngine('PUT', [
             'correo' => 'luis.actualizado@inces.gob.ve',
             'telefono_emergencia' => '04241112233',
         ]);
-        (new EmpleadosApiController($appUpdate, $this->gestor))->update((string) $nuevoId);
+        (new EditarEmpleadoController($appUpdate, $this->config, $this->catalogos, $this->gestor))->update((string) $nuevoId);
         self::assertSame(200, $this->ultimoCodigo);
 
         $actualizado = EmpleadosModel::query()->with('persona.telefonos')->find($nuevoId);
         self::assertSame('luis.actualizado@inces.gob.ve', $actualizado?->correo);
         self::assertCount(2, $actualizado?->persona?->telefonos ?? []);
 
-        // Baja lógica
         $appDestroy = $this->crearMockEngine('DELETE');
-        (new EmpleadosApiController($appDestroy, $this->gestor))->destroy((string) $nuevoId);
+        (new RegistrosEmpleadosController($appDestroy, $this->config, $this->catalogos, $this->gestor))->destroy((string) $nuevoId);
         self::assertSame(200, $this->ultimoCodigo);
         self::assertSame(0, (int) EmpleadosModel::query()->find($nuevoId)?->estatus_actual);
     }
@@ -222,14 +220,13 @@ final class ApiEloquentEndpointsTest extends TestCase
             'parentesco_id' => 4,
         ]);
 
-        (new FamiliaresApiController($appDt, $this->gestor))->datatable();
+        (new RegistrosFamiliaresController($appDt, $this->config, $this->catalogos))->datatable();
 
         self::assertSame(200, $this->ultimoCodigo);
         self::assertSame(2, $this->ultimoJson['recordsTotal']);
         self::assertSame(1, $this->ultimoJson['recordsFiltered']);
         self::assertSame('Hija', $this->ultimoJson['data'][0]['parentesco']);
 
-        // Store nuevo familiar
         $appStore = $this->crearMockEngine('POST', [
             'empleado_id' => 2,
             'parentesco_id' => 1,
@@ -246,20 +243,22 @@ final class ApiEloquentEndpointsTest extends TestCase
             'folio' => 88,
         ]);
 
-        (new FamiliaresApiController($appStore, $this->gestor))->store();
+        (new RegistrarFamiliarController($appStore, $this->config, $this->catalogos, $this->gestor))->store();
         self::assertSame(201, $this->ultimoCodigo);
         $famId = (int) $this->ultimoJson['data']['familia_id'];
         $persId = (int) $this->ultimoJson['data']['persona_id'];
 
-        // Update
+        $personaCreada = PersonasModel::query()->find($persId);
+        self::assertSame('V', $personaCreada?->nacionalidad);
+        self::assertSame(8456123, (int) $personaCreada?->cedula);
+
         $appUpd = $this->crearMockEngine('PUT', ['folio' => 99]);
-        (new FamiliaresApiController($appUpd, $this->gestor))->update((string) $famId);
+        (new EditarFamiliarController($appUpd, $this->config, $this->catalogos, $this->gestor))->update((string) $famId);
         self::assertSame(200, $this->ultimoCodigo);
         self::assertSame(99, (int) FamiliaresModel::query()->find($famId)?->folio);
 
-        // Destroy vínculo conservando Persona
         $appDel = $this->crearMockEngine('DELETE');
-        (new FamiliaresApiController($appDel, $this->gestor))->destroy((string) $famId);
+        (new RegistrosFamiliaresController($appDel, $this->config, $this->catalogos))->destroy((string) $famId);
         self::assertSame(200, $this->ultimoCodigo);
         self::assertNull(FamiliaresModel::query()->find($famId));
         self::assertInstanceOf(PersonasModel::class, PersonasModel::query()->find($persId));
@@ -287,8 +286,8 @@ final class ApiEloquentEndpointsTest extends TestCase
         ], 1, 1, null, false);
 
         $app = $this->crearMockEngine('GET');
-        $ctrl = new DocumentosApiController($app, $this->gestor);
-        $ctrl->listarPorEmpleado('1');
+        $ctrl = new RegistrosEmpleadosController($app, $this->config, $this->catalogos, $this->gestor);
+        $ctrl->listarDocumentos('1');
 
         self::assertSame(200, $this->ultimoCodigo);
         self::assertCount(2, $this->ultimoJson['personales']);
@@ -305,12 +304,10 @@ final class ApiEloquentEndpointsTest extends TestCase
     {
         $svc = new CatalogosService();
 
-        // estatus(false) reutiliza EstatusModel::todoDatosEstatus() incluyendo inactivos
         self::assertSame(EstatusModel::todoDatosEstatus(), $svc->estatus(false));
         self::assertArrayNotHasKey(2, $svc->estatus(true));
         self::assertArrayHasKey(1, $svc->estatus(true));
 
-        // Orden por jerarquia
         $niveles = array_values($svc->nivelesAcademicos());
         self::assertSame(['Bachiller', 'Universitario'], $niveles);
 
@@ -338,32 +335,30 @@ final class ApiEloquentEndpointsTest extends TestCase
         self::assertSame('/autenticacion', $this->ultimaRedireccion);
     }
 
-    public function testUbicacionYCatalogosApiControllers(): void
+    public function testUbicacionYCatalogosUnificadosEnControladoresGenerales(): void
     {
-        $catalogos = new CatalogosService();
-
         $appMun = $this->crearMockEngine('GET');
-        (new UbicacionApiController($appMun, $catalogos))->municipios('1');
+        (new RegistrarEmpleadoController($appMun, $this->config, $this->catalogos, $this->gestor))->municipios('1');
         self::assertSame(200, $this->ultimoCodigo);
         self::assertSame([1 => 'Girardot'], $this->ultimoJson['data']);
 
         $appPar = $this->crearMockEngine('GET');
-        (new UbicacionApiController($appPar, $catalogos))->parroquias('1');
+        (new RegistrarEmpleadoController($appPar, $this->config, $this->catalogos, $this->gestor))->parroquias('1');
         self::assertSame(200, $this->ultimoCodigo);
         self::assertSame([1 => 'Madre María'], $this->ultimoJson['data']);
 
         $appCatList = $this->crearMockEngine('GET');
-        (new CatalogosApiController($appCatList))->index('tipo_documentos');
+        (new CatalogoController($appCatList, $this->config, $this->catalogos))->index('tipo_documentos');
         self::assertSame(200, $this->ultimoCodigo);
         self::assertCount(1, $this->ultimoJson['data']);
 
         $appCatStore = $this->crearMockEngine('POST', ['cargo' => 'Coordinador Técnico']);
-        (new CatalogosApiController($appCatStore))->store('cargo');
+        (new CatalogoController($appCatStore, $this->config, $this->catalogos))->store('cargo');
         self::assertSame(201, $this->ultimoCodigo);
         $nuevoCargoId = (string) $this->ultimoJson['data']['cargo_id'];
 
         $appCatDel = $this->crearMockEngine('DELETE');
-        (new CatalogosApiController($appCatDel))->destroy('cargo', $nuevoCargoId);
+        (new CatalogoController($appCatDel, $this->config, $this->catalogos))->destroy('cargo', $nuevoCargoId);
         self::assertSame(200, $this->ultimoCodigo);
         self::assertFalse((bool) CargoModel::query()->find((int) $nuevoCargoId)?->activo);
     }
@@ -376,11 +371,8 @@ final class ApiEloquentEndpointsTest extends TestCase
         );
         \Flight::map('session', static fn () => $session);
 
-        $config = new Config(['app' => ['env' => 'testing', 'debug' => false]]);
-        $catalogos = new CatalogosService();
-
         $appRegEmp = $this->crearMockEngine('GET');
-        (new RegistrarEmpleadoController($appRegEmp, $config, $catalogos))->render();
+        (new RegistrarEmpleadoController($appRegEmp, $this->config, $this->catalogos, $this->gestor))->render();
         self::assertSame('registrar_empleado', $this->ultimaVista);
         self::assertArrayHasKey(1, $this->ultimosDatosVista['estatus']);
         self::assertArrayNotHasKey(2, $this->ultimosDatosVista['estatus']);
@@ -388,19 +380,19 @@ final class ApiEloquentEndpointsTest extends TestCase
         self::assertSame('Visual', $this->ultimosDatosVista['tipos_discapacidad'][1]);
 
         $appEditEmp = $this->crearMockEngine('GET');
-        (new EditarEmpleadoController($appEditEmp, $config, $catalogos))->render('1');
+        (new EditarEmpleadoController($appEditEmp, $this->config, $this->catalogos, $this->gestor))->render('1');
         self::assertSame('editar_empleado', $this->ultimaVista);
         self::assertSame(1, $this->ultimosDatosVista['empleado']->empleado_id);
         self::assertArrayHasKey(2, $this->ultimosDatosVista['estatus']);
 
         $appRegFam = $this->crearMockEngine('GET', [], ['empleado' => '1']);
-        (new RegistrarFamiliarController($appRegFam, $config, $catalogos))->render();
+        (new RegistrarFamiliarController($appRegFam, $this->config, $this->catalogos, $this->gestor))->render();
         self::assertSame('registrar_familiar', $this->ultimaVista);
         self::assertSame('1', $this->ultimosDatosVista['empleado_seleccionado']);
         self::assertCount(2, $this->ultimosDatosVista['empleados']);
 
         $appEditFam = $this->crearMockEngine('GET');
-        (new EditarFamiliarController($appEditFam, $config, $catalogos))->render('1');
+        (new EditarFamiliarController($appEditFam, $this->config, $this->catalogos, $this->gestor))->render('1');
         self::assertSame('editar_familiar', $this->ultimaVista);
         self::assertSame(1, $this->ultimosDatosVista['familiar']->familia_id);
         self::assertSame('V-21456789', $this->ultimosDatosVista['titular']->cedula);
@@ -423,6 +415,9 @@ final class ApiEloquentEndpointsTest extends TestCase
         $this->ultimaRedireccion = null;
         $this->ultimaVista = null;
         $this->ultimosDatosVista = [];
+
+        $_POST = $data;
+        $_SERVER['CONTENT_TYPE'] = '';
 
         $request = $this->getMockBuilder(Request::class)
             ->disableOriginalConstructor()
@@ -620,28 +615,24 @@ final class ApiEloquentEndpointsTest extends TestCase
 
         TipoDocumentosModel::query()->create(['tipo_documentos' => 'Cédula de Identidad']);
 
-        // Empleado 1: Carlos Mendoza en La Romana
         PersonasModel::query()->create([
             'primer_nombre' => 'Carlos', 'segundo_nombre' => 'Eduardo',
             'primer_apellido' => 'Mendoza', 'segundo_apellido' => 'Ríos',
             'genero' => 'Masculino', 'cedula' => 21456789, 'nacionalidad' => 'V',
             'fecha_nacimiento' => '1990-08-14', 'estado_civil_id' => 2,
         ]);
-        // Empleado 2: María López en Sede Central
         PersonasModel::query()->create([
             'primer_nombre' => 'María', 'segundo_nombre' => 'Fernanda',
             'primer_apellido' => 'López', 'segundo_apellido' => 'Silva',
             'genero' => 'Femenino', 'cedula' => 19876543, 'nacionalidad' => 'V',
             'fecha_nacimiento' => '1988-02-10', 'estado_civil_id' => 1,
         ]);
-        // Familiar 1 de Emp 1: Sofía (Hija)
         PersonasModel::query()->create([
             'primer_nombre' => 'Sofía', 'segundo_nombre' => 'Valentina',
             'primer_apellido' => 'Mendoza', 'segundo_apellido' => 'Herrera',
             'genero' => 'Femenino', 'cedula' => 31245678, 'nacionalidad' => 'V',
             'fecha_nacimiento' => '2012-05-01', 'estado_civil_id' => 1,
         ]);
-        // Familiar 2 de Emp 1: Mateo (Hijo)
         PersonasModel::query()->create([
             'primer_nombre' => 'Mateo', 'segundo_nombre' => 'Andrés',
             'primer_apellido' => 'Mendoza', 'segundo_apellido' => 'Herrera',

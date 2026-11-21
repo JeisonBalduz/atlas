@@ -58,11 +58,11 @@ final class ConstructorRutaDocumento
             $personaId = (int) $familiar->persona->persona_id;
             $carpetaFam = sprintf('%s%d-P%d', strtoupper((string) $familiar->persona->nacionalidad ?: 'V'), (int) $familiar->persona->cedula, $personaId);
             $carpeta = "{$carpetaTitular}/familiares/{$carpetaFam}/{$carpetaTipo}";
-            $codigo = sprintf('DOC-F%d-T%d-%s', (int) $familiar->familia_id, (int) $tipo->tpdocumentos_id, $hash);
+            $codigo = substr(sprintf('DF%d-%s', (int) $familiar->familia_id, $hash), 0, 10);
         } else {
             $personaId = (int) $titular->persona_id;
             $carpeta = "{$carpetaTitular}/personales/{$carpetaTipo}";
-            $codigo = sprintf('DOC-E%d-T%d-%s', (int) $empleado->empleado_id, (int) $tipo->tpdocumentos_id, $hash);
+            $codigo = substr(sprintf('DE%d-%s', (int) $empleado->empleado_id, $hash), 0, 10);
         }
 
         $nombreArchivo = sprintf('%s_%s_%s.%s', $this->slug((string) $tipo->tipo_documentos, 32), $fecha->format('Ymd-His'), strtolower($hash), $extension);

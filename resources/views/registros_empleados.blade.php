@@ -93,8 +93,8 @@
     </article>
 
     {{-- Card 5 (Bento 12 Columnas): Tabla principal de empleados (DataTables 3.1.5 Server-Side) --}}
-    <section aria-labelledby="titulo-directorio-personal" class="col-span-full rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] overflow-hidden">
-        <header class="flex flex-col gap-4 border-b border-slate-200 bg-slate-50/70 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+    <section aria-labelledby="titulo-directorio-personal" class="col-span-full rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
+        <header class="flex flex-col gap-4 rounded-t-3xl border-b border-slate-200 bg-slate-50/70 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex items-start gap-3.5">
                 <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-marca-50 border border-marca-200 text-marca-800">
                     <i data-lucide="id-card" class="h-5 w-5" aria-hidden="true"></i>
@@ -106,26 +106,32 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-2.5">
-                <select
-                    id="filtro-estatus-empleado"
-                    aria-label="Filtrar por estatus laboral"
-                    class="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-zinc-900 transition-all focus:border-marca-500 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2"
-                >
-                    <option value="todos">Todos los estatus</option>
-                    @foreach(($estatus_catalogo ?? []) as $idEstatus => $nombreEstatus)
-                        <option value="{{ $idEstatus }}">{{ $nombreEstatus }}</option>
-                    @endforeach
-                </select>
+                <div class="w-full sm:w-56">
+                    @component('components.select', [
+                        'id' => 'filtro-estatus-empleado',
+                        'name' => 'filtro_estatus_empleado',
+                        'placeholder' => 'Todos los estatus',
+                        'selected' => 'todos',
+                        'search' => true,
+                        'options' => ['todos' => 'Todos los estatus'] + ($estatus_catalogo ?? []),
+                    ])
+                    @endcomponent
+                </div>
 
-                <select
-                    id="filtro-activo-empleado"
-                    aria-label="Filtrar por estado en nómina"
-                    class="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-zinc-900 transition-all focus:border-marca-500 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2"
-                >
-                    <option value="todos">Activos e inactivos</option>
-                    <option value="1">Solo activos</option>
-                    <option value="0">Solo inactivos</option>
-                </select>
+                <div class="w-full sm:w-52">
+                    @component('components.select', [
+                        'id' => 'filtro-activo-empleado',
+                        'name' => 'filtro_activo_empleado',
+                        'placeholder' => 'Activos e inactivos',
+                        'selected' => 'todos',
+                        'options' => [
+                            'todos' => 'Activos e inactivos',
+                            '1' => 'Solo activos',
+                            '0' => 'Solo inactivos',
+                        ],
+                    ])
+                    @endcomponent
+                </div>
             </div>
         </header>
 

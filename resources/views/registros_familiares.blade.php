@@ -79,8 +79,8 @@
     </article>
 
     {{-- Card 4 (Bento 12 Columnas): Tabla de familiares registrados (DataTables 3.1.5 Server-Side) --}}
-    <section aria-labelledby="titulo-carga-familiar" class="col-span-full rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] overflow-hidden">
-        <header class="flex flex-col gap-4 border-b border-slate-200 bg-slate-50/70 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+    <section aria-labelledby="titulo-carga-familiar" class="col-span-full rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
+        <header class="flex flex-col gap-4 rounded-t-3xl border-b border-slate-200 bg-slate-50/70 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-start gap-3.5">
                 <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-marca-50 border border-marca-200 text-marca-800">
                     <i data-lucide="users" class="h-5 w-5" aria-hidden="true"></i>
@@ -91,17 +91,16 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2.5">
-                <select
-                    id="filtro-parentesco"
-                    aria-label="Filtrar por parentesco"
-                    class="rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-zinc-900 transition-all focus:border-marca-500 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2"
-                >
-                    <option value="todos">Todos los parentescos</option>
-                    @foreach(($parentescos ?? []) as $idParentesco => $nombreParentesco)
-                        <option value="{{ $idParentesco }}">{{ $nombreParentesco }}</option>
-                    @endforeach
-                </select>
+            <div class="w-full sm:w-56">
+                @component('components.select', [
+                    'id' => 'filtro-parentesco',
+                    'name' => 'filtro_parentesco',
+                    'placeholder' => 'Todos los parentescos',
+                    'selected' => 'todos',
+                    'search' => true,
+                    'options' => ['todos' => 'Todos los parentescos'] + ($parentescos ?? []),
+                ])
+                @endcomponent
             </div>
         </header>
 

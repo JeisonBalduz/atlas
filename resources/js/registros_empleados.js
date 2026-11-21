@@ -6,6 +6,7 @@
 
 import { ControladorModal } from '/js/class/ControladorModal.js';
 import { Solicitud } from '/js/class/Solicitud.js';
+import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast.js';
 import {
   crearBadge,
@@ -161,6 +162,7 @@ const renderizarContenidoFamiliares = (payload, empleadoIdFallback) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  inicializarSelectsPersonalizados();
   const modalFamiliares = new ControladorModal('#modal-familiares-empleado');
   const modalEliminar = new ControladorModal('#modal-eliminar-empleado');
   const filtroEstatus = document.getElementById('filtro-estatus-empleado');

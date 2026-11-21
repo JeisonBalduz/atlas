@@ -6,10 +6,12 @@
 
 import { ControladorModal } from '/js/class/ControladorModal.js';
 import { Solicitud } from '/js/class/Solicitud.js';
+import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast.js';
 import {
   crearBadge,
   crearBotonAccion,
+  crearMarkupSelectPersonalizado,
   crearTablaCliente,
   escaparHtml,
 } from '/js/datatables/configDataTable.js';
@@ -149,23 +151,16 @@ const construirFormularioHtml = (config, registro = null) => {
       }
 
       if (campo.tipo === 'select') {
-        const opcionesHtml = Object.entries(campo.opciones || {})
-          .map(
-            ([id, nombre]) =>
-              `<option value="${escaparHtml(id)}" ${String(valorActual) === String(id) ? 'selected' : ''}>${escaparHtml(nombre)}</option>`
-          )
-          .join('');
-
-        return `
-          <div class="space-y-1.5">
-            <label class="block text-sm font-medium text-zinc-900">${escaparHtml(campo.etiqueta)}</label>
-            <select name="${escaparHtml(campo.nombre)}" ${campo.requerido ? 'required' : ''}
-              class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 focus:border-marca-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2">
-              <option value="">Seleccionar...</option>
-              ${opcionesHtml}
-            </select>
-          </div>
-        `;
+        return crearMarkupSelectPersonalizado({
+          id: `modal-catalogo-${campo.nombre}`,
+          nombre: campo.nombre,
+          etiqueta: campo.etiqueta,
+          opciones: campo.opciones || {},
+          valorSeleccionado: valorActual ?? '',
+          placeholder: 'Seleccionar...',
+          requerido: Boolean(campo.requerido),
+          buscador: true,
+        });
       }
 
       return `
@@ -333,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
       },
     });
+    inicializarSelectsPersonalizados();
   };
 
   // Delegación de eventos sobre el contenedor de tabla (sobrevive a destroy/rebuild)

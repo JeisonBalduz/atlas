@@ -205,8 +205,8 @@
     </section>
 
     {{-- Bloque 2: Tabla unificada de ausencias justificadas (DataTables 3.1.5) --}}
-    <section aria-labelledby="titulo-tabla-ausencias" class="col-span-full lg:col-span-7 xl:col-span-8 rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] overflow-hidden">
-        <header class="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/70 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+    <section aria-labelledby="titulo-tabla-ausencias" class="col-span-full lg:col-span-7 xl:col-span-8 rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
+        <header class="flex flex-col gap-3 rounded-t-3xl border-b border-slate-200 bg-slate-50/70 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex items-start gap-3.5">
                 <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-marca-50 border border-marca-200 text-marca-800">
                     <i data-lucide="calendar-clock" class="h-5 w-5" aria-hidden="true"></i>

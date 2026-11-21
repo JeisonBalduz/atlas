@@ -5,6 +5,7 @@
  * botones con estética sólida de autenticacion.blade.php y conectores server-side / client-side.
  */
 
+import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast.js';
 
 export const IDIOMA_ES = {
@@ -130,6 +131,167 @@ export const crearBotonAccion = ({
 };
 
 /**
+ * Construye el HTML de un select con la estructura idéntica a `components/select.blade.php`.
+ * @param {Object} opciones
+ */
+export const crearMarkupSelectPersonalizado = ({
+  id,
+  nombre,
+  etiqueta = '',
+  opciones = {},
+  valorSeleccionado = '',
+  placeholder = 'Seleccionar opción...',
+  requerido = false,
+  buscador = false,
+}) => {
+  const entradas = Array.isArray(opciones)
+    ? opciones.map((v) => [String(v), String(v)])
+    : Object.entries(opciones || {});
+
+  const valorStr = String(valorSeleccionado ?? '');
+  const opcionesNativas = entradas
+    .map(
+      ([val, texto]) =>
+        `<option value="${escaparHtml(val)}" ${valorStr === String(val) ? 'selected' : ''}>${escaparHtml(texto)}</option>`
+    )
+    .join('');
+
+  const itemsMenu = entradas
+    .map(([val, texto]) => {
+      const seleccionado = valorStr === String(val);
+      const meta = `${val} ${texto}`.toLowerCase();
+      return `
+        <div data-select-item
+             data-value="${escaparHtml(val)}"
+             data-label="${escaparHtml(texto)}"
+             data-sublabel=""
+             data-icon=""
+             data-search="${escaparHtml(meta)}"
+             class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-zinc-100 cursor-pointer text-xs transition-colors ${seleccionado ? 'bg-zinc-100' : ''}">
+          <div class="flex items-center gap-2.5 truncate">
+            <span class="font-semibold text-zinc-900 truncate">${escaparHtml(texto)}</span>
+          </div>
+          <i data-lucide="check" class="custom-select-check w-4 h-4 text-zinc-900 shrink-0 ml-2 ${seleccionado ? '' : 'hidden'}"></i>
+        </div>
+      `;
+    })
+    .join('');
+
+  const buscadorHtml = buscador
+    ? `
+      <div class="px-2 pt-1 pb-1.5 border-b border-zinc-100">
+        <div class="flex items-center gap-2 bg-zinc-100 px-2.5 py-1.5 rounded-lg">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-zinc-400 shrink-0"></i>
+          <input type="text" placeholder="Buscar registro..." class="custom-select-search w-full bg-transparent text-xs text-zinc-900 focus:outline-none placeholder-zinc-400" />
+        </div>
+      </div>
+    `
+    : '';
+
+  const labelHtml = etiqueta
+    ? `<label for="${escaparHtml(id)}" class="block text-sm font-medium text-zinc-900">${escaparHtml(etiqueta)}</label>`
+    : '';
+
+  return `
+    <div class="space-y-1.5" data-custom-select id="${escaparHtml(id)}-wrapper">
+      ${labelHtml}
+      <div class="relative">
+        <select id="${escaparHtml(id)}" name="${escaparHtml(nombre)}" data-placeholder="${escaparHtml(placeholder)}" class="custom-select-native sr-only" tabindex="-1" aria-hidden="true" ${requerido ? 'required' : ''}>
+          <option value="">${escaparHtml(placeholder)}</option>
+          ${opcionesNativas}
+        </select>
+        <button type="button" class="custom-select-trigger w-full flex items-center justify-between px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black transition duration-200 cursor-pointer">
+          <div class="custom-select-display flex items-center gap-2.5 truncate">
+            <span class="text-xs text-zinc-400 truncate">${escaparHtml(placeholder)}</span>
+          </div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400 transition-transform duration-200 shrink-0 ml-2"></i>
+        </button>
+        <div class="custom-select-dropdown hidden absolute left-0 right-0 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden z-50 p-1.5 space-y-1">
+          ${buscadorHtml}
+          <div class="custom-select-options max-h-52 overflow-y-auto space-y-0.5">
+            ${itemsMenu}
+            <div class="custom-select-empty hidden px-3 py-4 text-center text-xs text-zinc-400">No se encontraron registros.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Envuelve el `<select class="dt-input">` nativo de DataTables (`.dt-length`)
+ * dentro del componente `data-custom-select` conservando su nodo DOM y listener de DataTables.
+ * @param {HTMLElement} tablaEl
+ */
+const transformarSelectLongitudDataTable = (tablaEl) => {
+  const contenedorDt = tablaEl.closest('.dt-container');
+  const selectLongitud = contenedorDt?.querySelector('.dt-length select');
+  if (!selectLongitud || selectLongitud.closest('[data-custom-select]')) return;
+
+  const valorActual = String(selectLongitud.value || '10');
+  const opciones = [...selectLongitud.options].map((opt) => ({
+    valor: String(opt.value),
+    texto: String(opt.textContent || opt.value).trim(),
+  }));
+
+  const envoltura = document.createElement('div');
+  envoltura.className = 'inline-block w-24 align-middle mx-1';
+  envoltura.setAttribute('data-custom-select', '');
+
+  const relativo = document.createElement('div');
+  relativo.className = 'relative';
+  envoltura.appendChild(relativo);
+
+  selectLongitud.parentNode?.insertBefore(envoltura, selectLongitud);
+  selectLongitud.className = 'custom-select-native sr-only';
+  selectLongitud.setAttribute('data-placeholder', valorActual);
+  selectLongitud.setAttribute('tabindex', '-1');
+  selectLongitud.setAttribute('aria-hidden', 'true');
+  relativo.appendChild(selectLongitud);
+
+  const itemsHtml = opciones
+    .map((opt) => {
+      const esActual = opt.valor === valorActual;
+      return `
+        <div data-select-item
+             data-value="${escaparHtml(opt.valor)}"
+             data-label="${escaparHtml(opt.texto)}"
+             data-sublabel=""
+             data-icon=""
+             data-search="${escaparHtml(opt.texto.toLowerCase())}"
+             class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-zinc-100 cursor-pointer text-xs transition-colors ${esActual ? 'bg-zinc-100' : ''}">
+          <div class="flex items-center gap-2.5 truncate">
+            <span class="font-semibold text-zinc-900 truncate">${escaparHtml(opt.texto)}</span>
+          </div>
+          <i data-lucide="check" class="custom-select-check w-4 h-4 text-zinc-900 shrink-0 ml-2 ${esActual ? '' : 'hidden'}"></i>
+        </div>
+      `;
+    })
+    .join('');
+
+  relativo.insertAdjacentHTML(
+    'beforeend',
+    `
+      <button type="button" class="custom-select-trigger w-full flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black transition duration-200 cursor-pointer">
+        <div class="custom-select-display flex items-center gap-2 truncate">
+          <span class="text-xs font-semibold text-zinc-900 truncate">${escaparHtml(valorActual)}</span>
+        </div>
+        <i data-lucide="chevron-down" class="w-4 h-4 text-zinc-400 transition-transform duration-200 shrink-0 ml-1.5"></i>
+      </button>
+      <div class="custom-select-dropdown hidden absolute left-0 right-0 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden z-50 p-1.5 space-y-1">
+        <div class="custom-select-options max-h-52 overflow-y-auto space-y-0.5">
+          ${itemsHtml}
+          <div class="custom-select-empty hidden px-3 py-2 text-center text-xs text-zinc-400">Sin opciones</div>
+        </div>
+      </div>
+    `
+  );
+
+  inicializarSelectsPersonalizados();
+  window.lucide?.createIcons();
+};
+
+/**
  * Inicializa una instancia DataTable 3.1.5 conectada al backend por JSON POST + Fetch nativo.
  * @param {string} selector
  * @param {Object} opciones
@@ -228,6 +390,8 @@ export const crearTablaServidor = (
     },
   });
 
+  transformarSelectLongitudDataTable(tablaEl);
+
   instancia.on('draw', () => {
     window.lucide?.createIcons();
   });
@@ -268,6 +432,8 @@ export const crearTablaCliente = (
     autoWidth: false,
     language: IDIOMA_ES,
   });
+
+  transformarSelectLongitudDataTable(tablaEl);
 
   instancia.on('draw', () => {
     window.lucide?.createIcons();

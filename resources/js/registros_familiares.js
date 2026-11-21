@@ -6,6 +6,7 @@
 
 import { ControladorModal } from '/js/class/ControladorModal.js';
 import { Solicitud } from '/js/class/Solicitud.js';
+import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast.js';
 import {
   crearBadge,
@@ -16,6 +17,7 @@ import {
 } from '/js/datatables/configDataTable.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+  inicializarSelectsPersonalizados();
   const modalDetalle = new ControladorModal('#modal-detalle-familiar');
   const modalEliminar = new ControladorModal('#modal-eliminar-familiar');
   const filtroParentesco = document.getElementById('filtro-parentesco');
