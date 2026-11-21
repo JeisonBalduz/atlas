@@ -2,7 +2,7 @@
 
 @section('titulo', 'Editar Empleado') {{-- TÍTULO DE LA PÁGINA --}}
 
-@section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
+@section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 xl:px-12 2xl:px-16 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
 
 @section('menu_lateral'){{-- CARGAR HTML EN ESTE APARTADO --}}
     @include('layouts.menu_lateral'){{-- CARGAR menu_lateral  --}} 
@@ -13,26 +13,49 @@
 @endsection
 
 @section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
-<form id="formulario-editar-empleado" data-empleado-id="{{ $empleado->empleado_id ?? '' }}" class="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-6" novalidate>
+<form id="formulario-editar-empleado" data-empleado-id="{{ $empleado->empleado_id ?? '' }}" class="w-full max-w-none mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 atlas-vista-entrada" novalidate>
 
-    {{-- Cabecera con retorno al listado de empleados --}}
-    <header class="col-span-full flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900">Editar Empleado</h1>
-            <p id="subtitulo-editar-empleado" class="mt-1 text-sm text-zinc-500">Actualiza la información personal, ubicación, teléfonos y datos laborales.</p>
+    {{-- Card 1 (Bento Hero Oscura): Cabecera con retorno al listado de empleados --}}
+    <header class="col-span-full lg:col-span-8 rounded-3xl border border-zinc-900 bg-zinc-950 p-6 sm:p-7 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div class="space-y-1.5">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-zinc-300">
+                <i data-lucide="user-cog" class="h-3.5 w-3.5" aria-hidden="true"></i>
+                <span>Actualización de Expediente</span>
+            </span>
+            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">Editar Empleado</h1>
+            <p id="subtitulo-editar-empleado" class="text-sm text-zinc-400">Actualiza la información personal, ubicación, teléfonos y datos laborales.</p>
         </div>
 
         <a
             href="/empleado/registros"
-            class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2"
+            class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-marca-400 focus:ring-offset-2 focus:ring-offset-zinc-950"
         >
             <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
             <span>Volver a Empleados</span>
         </a>
     </header>
 
+    {{-- Card 2 (Bento Marca): Resumen de identificación del trabajador --}}
+    <aside class="col-span-full lg:col-span-4 rounded-3xl border border-marca bg-marca p-6 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-marca-200">Identificación en Nómina</span>
+            <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-marca-100">
+                <i data-lucide="badge-check" class="h-5 w-5" aria-hidden="true"></i>
+            </div>
+        </div>
+        <div class="mt-4 flex flex-wrap items-end justify-between gap-2">
+            <div>
+                <p class="text-2xl sm:text-3xl font-bold tracking-tight text-white">{{ $empleado->codigo_empleado ?? 'SIN-COD' }}</p>
+                <p class="mt-1 text-xs font-medium text-marca-100">Cédula: {{ ($persona->nacionalidad ?? 'V') . '-' . ($persona->cedula ?? '') }}</p>
+            </div>
+            <span class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
+                {{ ((int) ($empleado->estatus_actual ?? 1)) === 1 ? 'Activo en Nómina' : 'Inactivo' }}
+            </span>
+        </div>
+    </aside>
+
     {{-- Sección 1: Datos Personales (PersonasModel) --}}
-    <section class="col-span-full md:col-span-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+    <section class="col-span-full md:col-span-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
         <header>
             <h2 class="text-lg font-semibold text-zinc-900">Datos Personales</h2>
             <p class="text-sm text-zinc-500">Identificación civil del trabajador.</p>
@@ -54,7 +77,7 @@
     </section>
 
     {{-- Sección 2: Datos Laborales (EmpleadosModel) --}}
-    <section class="col-span-full md:col-span-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+    <section class="col-span-full md:col-span-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
         <header>
             <h2 class="text-lg font-semibold text-zinc-900">Datos Laborales</h2>
             <p class="text-sm text-zinc-500">Ubicación administrativa, cargo y formación académica.</p>
@@ -86,7 +109,7 @@
     </section>
 
     {{-- Sección 3: Dirección de Habitación (DireccionModel) --}}
-    <section class="col-span-full md:col-span-7 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+    <section class="col-span-full md:col-span-7 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
         <header>
             <h2 class="text-lg font-semibold text-zinc-900">Dirección de Habitación</h2>
             <p class="text-sm text-zinc-500">Campos correspondientes al modelo Direccion.</p>
@@ -106,15 +129,17 @@
     </section>
 
     {{-- Sección 4: Teléfonos de Contacto (TelefonoPersonasModel) --}}
-    <section class="col-span-full md:col-span-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
-        <header>
-            <h2 class="text-lg font-semibold text-zinc-900">Teléfonos de Contacto</h2>
-            <p class="text-sm text-zinc-500">Número personal principal y contacto de emergencia.</p>
-        </header>
+    <section class="col-span-full md:col-span-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5 flex flex-col justify-between">
+        <div class="space-y-5">
+            <header>
+                <h2 class="text-lg font-semibold text-zinc-900">Teléfonos de Contacto</h2>
+                <p class="text-sm text-zinc-500">Número personal principal y contacto de emergencia.</p>
+            </header>
 
-        <div class="space-y-4">
-            @component('components.input', ['label' => 'Teléfono principal', 'id' => 'telefono_principal', 'name' => 'telefono_principal', 'value' => $telefono_principal ?? '', 'maxlength' => 20, 'leftIcon' => 'phone', 'required' => true]) @endcomponent
-            @component('components.input', ['label' => 'Teléfono de emergencia', 'id' => 'telefono_emergencia', 'name' => 'telefono_emergencia', 'value' => $telefono_emergencia ?? '', 'maxlength' => 20, 'leftIcon' => 'phone-call']) @endcomponent
+            <div class="space-y-4">
+                @component('components.input', ['label' => 'Teléfono principal', 'id' => 'telefono_principal', 'name' => 'telefono_principal', 'value' => $telefono_principal ?? '', 'maxlength' => 20, 'leftIcon' => 'phone', 'required' => true]) @endcomponent
+                @component('components.input', ['label' => 'Teléfono de emergencia', 'id' => 'telefono_emergencia', 'name' => 'telefono_emergencia', 'value' => $telefono_emergencia ?? '', 'maxlength' => 20, 'leftIcon' => 'phone-call']) @endcomponent
+            </div>
         </div>
 
         <footer class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">

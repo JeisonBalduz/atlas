@@ -9,3 +9,373 @@
   font-family: "Inter", sans-serif;
   box-sizing: border-box;
 }
+
+/* ==========================================================================
+   1. Animación Global de Entrada (Bento Grid & Vistas Atlas)
+   ========================================================================== */
+@keyframes atlas-entrada-suave {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.atlas-vista-entrada,
+.cascade-enter,
+#main-content > .grid,
+#main-content > form {
+  animation: atlas-entrada-suave 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.atlas-vista-entrada > * {
+  animation: atlas-entrada-suave 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.atlas-vista-entrada > *:nth-child(1) { animation-delay: 20ms; }
+.atlas-vista-entrada > *:nth-child(2) { animation-delay: 55ms; }
+.atlas-vista-entrada > *:nth-child(3) { animation-delay: 90ms; }
+.atlas-vista-entrada > *:nth-child(4) { animation-delay: 125ms; }
+.atlas-vista-entrada > *:nth-child(5) { animation-delay: 155ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .atlas-vista-entrada,
+  .atlas-vista-entrada > *,
+  .cascade-enter,
+  #main-content > .grid,
+  #main-content > form {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ==========================================================================
+   2. Sobrescritura Total de DataTables 3.1.5 (Diseño Atlas / Paleta Marca)
+   ========================================================================== */
+#main-content .dt-container {
+  width: 100%;
+  color: #18181b;
+  font-size: 0.875rem;
+}
+
+/* Filas de controles superiores (length + search) e inferiores (info + paging) */
+#main-content .dt-container .dt-layout-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.875rem;
+  margin: 0 !important;
+  padding: 0.5rem 0;
+}
+
+#main-content .dt-container .dt-layout-row:first-child {
+  padding-top: 0.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+#main-content .dt-container .dt-layout-row:last-child {
+  padding-top: 1rem;
+  padding-bottom: 0.25rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+#main-content .dt-container .dt-layout-row.dt-layout-table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  padding: 0.25rem 0;
+  border: none;
+}
+
+#main-content .dt-container .dt-layout-cell {
+  padding: 0 !important;
+}
+
+/* Selector de registros por página y buscador */
+#main-content .dt-container .dt-length,
+#main-content .dt-container .dt-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #71717a;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+#main-content .dt-container .dt-length label,
+#main-content .dt-container .dt-search label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #71717a;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+#main-content .dt-container .dt-input {
+  appearance: none;
+  background-color: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.625rem !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.25rem !important;
+  font-weight: 500 !important;
+  color: #18181b !important;
+  outline: none !important;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease !important;
+}
+
+#main-content .dt-container select.dt-input {
+  padding-right: 1.75rem !important;
+  cursor: pointer;
+}
+
+#main-content .dt-container .dt-search input.dt-input {
+  min-width: 16rem;
+  margin-left: 0.25rem !important;
+}
+
+#main-content .dt-container .dt-input::placeholder {
+  color: #a1a1aa;
+  font-weight: 400;
+}
+
+#main-content .dt-container .dt-input:hover {
+  border-color: #94a3b8 !important;
+}
+
+#main-content .dt-container .dt-input:focus {
+  background-color: #ffffff !important;
+  border-color: #0c59d0 !important;
+  box-shadow: 0 0 0 3px rgba(12, 89, 208, 0.15) !important;
+}
+
+/* Estructura de la tabla */
+#main-content .dt-container table.dataTable {
+  width: 100% !important;
+  margin: 0.25rem 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border: none !important;
+}
+
+#main-content .dt-container table.dataTable > thead > tr > th,
+#main-content .dt-container table.dataTable > thead > tr > td {
+  background-color: #f8fafc !important;
+  color: #71717a !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 0.875rem 1rem !important;
+  border-top: 1px solid #e2e8f0 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  white-space: nowrap;
+  vertical-align: middle;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+#main-content .dt-container table.dataTable > thead > tr > th:first-child {
+  border-left: 1px solid #e2e8f0;
+  border-top-left-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem;
+}
+
+#main-content .dt-container table.dataTable > thead > tr > th:last-child {
+  border-right: 1px solid #e2e8f0;
+  border-top-right-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+}
+
+#main-content .dt-container table.dataTable > thead > tr > th.dt-orderable-asc:hover,
+#main-content .dt-container table.dataTable > thead > tr > th.dt-orderable-desc:hover {
+  background-color: #f1f5f9 !important;
+  color: #18181b !important;
+  outline: none !important;
+}
+
+#main-content .dt-container table.dataTable > thead > tr > th.dt-ordering-asc,
+#main-content .dt-container table.dataTable > thead > tr > th.dt-ordering-desc {
+  background-color: #edf3fd !important;
+  color: #052659 !important;
+}
+
+#main-content .dt-container table.dataTable thead .dt-column-order::before,
+#main-content .dt-container table.dataTable thead .dt-column-order::after {
+  opacity: 0.28;
+  font-size: 0.65em;
+}
+
+#main-content .dt-container table.dataTable thead th.dt-ordering-asc .dt-column-order::before,
+#main-content .dt-container table.dataTable thead th.dt-ordering-desc .dt-column-order::after {
+  opacity: 1;
+  color: #052659;
+}
+
+/* Filas y celdas del cuerpo */
+#main-content .dt-container table.dataTable > tbody > tr {
+  background-color: #ffffff !important;
+  transition: background-color 140ms ease;
+}
+
+#main-content .dt-container table.dataTable > tbody > tr:hover > * {
+  background-color: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+#main-content .dt-container table.dataTable > tbody > tr > td {
+  padding: 0.875rem 1rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.35rem !important;
+  color: #3f3f46 !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  border-top: none !important;
+  vertical-align: middle !important;
+  box-shadow: none !important;
+}
+
+#main-content .dt-container table.dataTable > tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+/* Alineación limpia en celdas centrales y de acciones */
+#main-content .dt-container table.dataTable th.text-center,
+#main-content .dt-container table.dataTable td.text-center {
+  text-align: center !important;
+}
+
+#main-content .dt-container table.dataTable th.text-right,
+#main-content .dt-container table.dataTable td.text-right {
+  text-align: right !important;
+}
+
+/* Estado vacío de DataTables */
+#main-content .dt-container table.dataTable td.dt-empty,
+#main-content .dt-container table.dataTable td.dataTables_empty {
+  padding: 2.75rem 1.25rem !important;
+  text-align: center !important;
+  color: #71717a !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  background-color: #f8fafc !important;
+  border: 1px dashed #e2e8f0 !important;
+  border-radius: 0.75rem;
+}
+
+/* Resumen inferior de registros */
+#main-content .dt-container .dt-info {
+  color: #71717a !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  padding: 0 !important;
+}
+
+/* Controles de paginación */
+#main-content .dt-container .dt-paging {
+  margin: 0 !important;
+}
+
+#main-content .dt-container .dt-paging nav {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+#main-content .dt-container .dt-paging .dt-paging-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.125rem;
+  height: 2.125rem;
+  padding: 0 0.65rem !important;
+  margin: 0 !important;
+  border-radius: 0.5rem !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  color: #3f3f46 !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  transition: all 150ms ease !important;
+}
+
+#main-content .dt-container .dt-paging .dt-paging-button:hover:not(.disabled):not(.current) {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #18181b !important;
+}
+
+#main-content .dt-container .dt-paging .dt-paging-button:focus-visible {
+  outline: 2px solid #0c59d0 !important;
+  outline-offset: 2px !important;
+}
+
+#main-content .dt-container .dt-paging .dt-paging-button.current,
+#main-content .dt-container .dt-paging .dt-paging-button.current:hover {
+  background: #052659 !important;
+  border-color: #052659 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(5, 38, 89, 0.18) !important;
+}
+
+#main-content .dt-container .dt-paging .dt-paging-button.disabled,
+#main-content .dt-container .dt-paging .dt-paging-button.disabled:hover {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #a1a1aa !important;
+}
+
+#main-content .dt-container .dt-paging .ellipsis {
+  padding: 0 0.35rem;
+  color: #a1a1aa;
+  font-size: 0.8125rem;
+}
+
+/* Indicador de procesamiento (dt-processing) */
+#main-content .dt-container div.dt-processing {
+  border-radius: 1rem !important;
+  border: 1px solid #e2e8f0 !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08) !important;
+  color: #18181b !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  padding: 0.875rem 1.25rem !important;
+}
+
+#main-content .dt-container div.dt-processing > div:last-child > div {
+  background: #052659 !important;
+}
+
+/* Responsividad móvil para controles superiores e inferiores */
+@media (max-width: 640px) {
+  #main-content .dt-container .dt-layout-row:first-child,
+  #main-content .dt-container .dt-layout-row:last-child {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #main-content .dt-container .dt-search,
+  #main-content .dt-container .dt-search label {
+    width: 100%;
+  }
+
+  #main-content .dt-container .dt-search input.dt-input {
+    width: 100%;
+    min-width: 0;
+  }
+}

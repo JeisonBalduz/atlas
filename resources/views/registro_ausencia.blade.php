@@ -7,7 +7,7 @@
     <script src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"></script>
 @endpush
 
-@section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
+@section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 xl:px-12 2xl:px-16 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
 
 @section('menu_lateral'){{-- CARGAR HTML EN ESTE APARTADO --}}
     @include('layouts.menu_lateral'){{-- CARGAR menu_lateral  --}} 
@@ -18,16 +18,50 @@
 @endsection
 
 @section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
-<div class="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-12 gap-6">
+<div class="w-full max-w-none mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 atlas-vista-entrada">
 
-    {{-- Cabecera del módulo de ausencias justificadas --}}
-    <header class="col-span-full">
-        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900">Registro de Ausencias Justificadas</h1>
-        <p class="mt-1 text-sm text-zinc-500">Gestiona permisos administrativos y reposos médicos desde un flujo unificado.</p>
+    {{-- Card 1 (Bento Hero Oscura): Cabecera del módulo de ausencias justificadas --}}
+    <header class="col-span-full lg:col-span-6 rounded-3xl border border-zinc-900 bg-zinc-950 p-6 sm:p-7 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between gap-3">
+        <div class="space-y-2">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-zinc-300">
+                <i data-lucide="clipboard-check" class="h-3.5 w-3.5" aria-hidden="true"></i>
+                <span>Control de Asistencia</span>
+            </span>
+            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">Registro de Ausencias Justificadas</h1>
+            <p class="text-sm text-zinc-400">Gestiona permisos administrativos y reposos médicos con cálculo automático de días y trazabilidad por institución emisora.</p>
+        </div>
     </header>
 
+    {{-- Card 2 (Bento Marca): Modalidades de permiso --}}
+    <article class="col-span-full sm:col-span-6 lg:col-span-3 rounded-3xl border border-marca bg-marca p-6 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-marca-200">Tipos de Permiso</span>
+            <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-marca-100">
+                <i data-lucide="clock" class="h-5 w-5" aria-hidden="true"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <p class="text-4xl font-bold tracking-tight text-white">{{ count($tipos_permiso ?? []) }}</p>
+            <p class="mt-2 text-xs font-medium text-marca-100">Causales administrativas</p>
+        </div>
+    </article>
+
+    {{-- Card 3 (Bento Blanca con Acento): Reposos e instituciones --}}
+    <article class="col-span-full sm:col-span-6 lg:col-span-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Reposos Médicos</span>
+            <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-yellow-50 border border-yellow-200 text-yellow-900">
+                <i data-lucide="stethoscope" class="h-5 w-5" aria-hidden="true"></i>
+            </div>
+        </div>
+        <div class="mt-4">
+            <p class="text-4xl font-bold tracking-tight text-zinc-900">{{ count($tipos_reposo ?? []) }}</p>
+            <p class="mt-2 text-xs font-medium text-zinc-500">{{ count($tipos_institucion ?? []) }} instituciones emisoras registradas</p>
+        </div>
+    </article>
+
     {{-- Bloque 1: Formulario dinámico Permiso / Reposo --}}
-    <section class="col-span-full lg:col-span-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
+    <section class="col-span-full lg:col-span-5 xl:col-span-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
         <header class="mb-5">
             <h2 class="text-lg font-semibold text-zinc-900">Nueva Ausencia Justificada</h2>
             <p class="text-sm text-zinc-500">Los campos se adaptan según selecciones Permiso o Reposo.</p>
@@ -171,22 +205,27 @@
     </section>
 
     {{-- Bloque 2: Tabla unificada de ausencias justificadas (DataTables 3.1.5) --}}
-    <section aria-labelledby="titulo-tabla-ausencias" class="col-span-full lg:col-span-7 rounded-2xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] overflow-hidden">
-        <header class="flex flex-col gap-3 border-b border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h2 id="titulo-tabla-ausencias" class="text-base font-semibold text-zinc-900">Ausencias Justificadas</h2>
-                <p class="text-xs text-zinc-500">Filtra rápidamente entre permisos y reposos médicos.</p>
+    <section aria-labelledby="titulo-tabla-ausencias" class="col-span-full lg:col-span-7 xl:col-span-8 rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] overflow-hidden">
+        <header class="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/70 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-start gap-3.5">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-marca-50 border border-marca-200 text-marca-800">
+                    <i data-lucide="calendar-clock" class="h-5 w-5" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <h2 id="titulo-tabla-ausencias" class="text-base font-bold text-zinc-900">Ausencias Justificadas</h2>
+                    <p class="text-xs text-zinc-500">Filtra rápidamente entre permisos y reposos médicos.</p>
+                </div>
             </div>
 
             {{-- Filtro rápido por tipo de ausencia --}}
-            <div class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1" role="group" aria-label="Filtrar por tipo">
-                <button type="button" data-filtro-tipo="todos" class="btn-filtro-ausencia rounded-md bg-marca px-3 py-1 text-xs font-medium text-white transition-all cursor-pointer">Todos</button>
-                <button type="button" data-filtro-tipo="Permiso" class="btn-filtro-ausencia rounded-md px-3 py-1 text-xs font-medium text-zinc-500 transition-all hover:text-zinc-900 cursor-pointer">Permiso</button>
-                <button type="button" data-filtro-tipo="Reposo" class="btn-filtro-ausencia rounded-md px-3 py-1 text-xs font-medium text-zinc-500 transition-all hover:text-zinc-900 cursor-pointer">Reposo</button>
+            <div class="inline-flex rounded-xl border border-slate-200 bg-white p-1" role="group" aria-label="Filtrar por tipo">
+                <button type="button" data-filtro-tipo="todos" class="btn-filtro-ausencia rounded-lg bg-marca px-3 py-1.5 text-xs font-medium text-white transition-all cursor-pointer">Todos</button>
+                <button type="button" data-filtro-tipo="Permiso" class="btn-filtro-ausencia rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 transition-all hover:text-zinc-900 cursor-pointer">Permiso</button>
+                <button type="button" data-filtro-tipo="Reposo" class="btn-filtro-ausencia rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 transition-all hover:text-zinc-900 cursor-pointer">Reposo</button>
             </div>
         </header>
 
-        <div class="overflow-x-auto px-5 py-4">
+        <div class="overflow-x-auto px-6 py-5">
             <table id="tabla-ausencias" class="w-full text-sm text-left">
                 <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50">
                     <tr>
