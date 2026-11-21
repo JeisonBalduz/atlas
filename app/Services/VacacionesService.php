@@ -12,7 +12,7 @@ use Illuminate\Database\Capsule\Manager as DB;
  * Nota: el descuento de días por aprobación lo ejecuta automáticamente el trigger
  * `public.tg_procesar_descuento_vacaciones()` en PostgreSQL al actualizar `estatus` en `solicitud_vacaciones`.
  */
-final class VacacionesService
+final class VacacionesService extends BaseVistaService
 {
     /**
      * Consulta la vista de solo lectura `public.vw_balance_vacaciones`.
@@ -22,14 +22,15 @@ final class VacacionesService
     public function listarBalanceVacaciones(?int $empleadoId = null, ?string $estadoVacaciones = null): array
     {
         $query = DB::table('public.vw_balance_vacaciones');
-
-        if ($empleadoId !== null) {
-            $query->where('empleado_id', $empleadoId);
-        }
-
-        if ($estadoVacaciones !== null && $estadoVacaciones !== '') {
-            $query->where('estado_vacaciones', '=', $estadoVacaciones);
-        }
+        $this->aplicarFiltros(
+            $query,
+            [
+                'empleado_id' => $empleadoId,
+                'estado_vacaciones' => $estadoVacaciones,
+            ],
+            camposExactos: ['estado_vacaciones'],
+            camposEnteros: ['empleado_id'],
+        );
 
         return $query->orderBy('empleado_id', 'asc')->orderBy('periodo', 'asc')->get()->all();
     }
@@ -42,7 +43,6 @@ final class VacacionesService
     public function listarResumenVacaciones(?int $empleadoId = null): array
     {
         $query = DB::table('public.vw_resumen_vacaciones');
-
         if ($empleadoId !== null) {
             $query->where('empleado_id', $empleadoId);
         }
@@ -59,38 +59,14 @@ final class VacacionesService
     public function listarSolicitudesVacaciones(array $filtros = []): array
     {
         $query = DB::table('public.vw_solicitudes_vacaciones');
-
-        if (isset($filtros['solicitud_vacaciones_id']) && $filtros['solicitud_vacaciones_id'] !== '') {
-            $query->where('solicitud_vacaciones_id', (int) $filtros['solicitud_vacaciones_id']);
-        }
-
-        if (isset($filtros['empleado_id']) && $filtros['empleado_id'] !== '') {
-            $query->where('empleado_id', (int) $filtros['empleado_id']);
-        }
-
-        if (!empty($filtros['cedula'])) {
-            $query->where('cedula', 'ilike', '%' . (string) $filtros['cedula'] . '%');
-        }
-
-        if (!empty($filtros['nombre_completo'])) {
-            $query->where('nombre_completo', 'ilike', '%' . (string) $filtros['nombre_completo'] . '%');
-        }
-
-        if (!empty($filtros['estatus_descripcion'])) {
-            $query->where('estatus_descripcion', '=', (string) $filtros['estatus_descripcion']);
-        }
-
-        $ordenPor = !empty($filtros['orden_por']) ? (string) $filtros['orden_por'] : 'solicitud_vacaciones_id';
-        $direccion = (!empty($filtros['direccion']) && strtolower((string) $filtros['direccion']) === 'asc') ? 'asc' : 'desc';
-        $query->orderBy($ordenPor, $direccion);
-
-        if (isset($filtros['limite']) && (int) $filtros['limite'] > 0) {
-            $query->limit((int) $filtros['limite']);
-        }
-
-        if (isset($filtros['offset']) && (int) $filtros['offset'] >= 0) {
-            $query->offset((int) $filtros['offset']);
-        }
+        $this->aplicarFiltros(
+            $query,
+            $filtros,
+            camposTexto: ['cedula', 'nombre_completo'],
+            camposExactos: ['estatus_descripcion'],
+            camposEnteros: ['solicitud_vacaciones_id', 'empleado_id'],
+        );
+        $this->aplicarOrdenYLimites($query, $filtros, 'solicitud_vacaciones_id', 'desc');
 
         return $query->get()->all();
     }
@@ -102,12 +78,7 @@ final class VacacionesService
      */
     public function obtenerDetalleVacacion(int $solicitudId): array
     {
-        $row = DB::selectOne(
-            'SELECT public.fn_obtener_detalle_vacacion(?) AS resultado',
-            [$solicitudId]
-        );
-
-        return $this->decodificarJson($row->resultado ?? null);
+        return $this->ejecutarFuncionJson('public.fn_obtener_detalle_vacacion', $solicitudId);
     }
 
     /**
@@ -117,12 +88,7 @@ final class VacacionesService
      */
     public function obtenerHistorialVacacion(int $solicitudId): array
     {
-        $row = DB::selectOne(
-            'SELECT public.fn_obtener_historial_vacacion(?) AS resultado',
-            [$solicitudId]
-        );
-
-        return $this->decodificarJson($row->resultado ?? null);
+        return $this->ejecutarFuncionJson('public.fn_obtener_historial_vacacion', $solicitudId);
     }
 
     /**
@@ -132,12 +98,7 @@ final class VacacionesService
      */
     public function obtenerDetalleSolicitudReposo(int $solicitudId): array
     {
-        $row = DB::selectOne(
-            'SELECT public.fn_obtener_detalle_solicitud_reposo(?) AS resultado',
-            [$solicitudId]
-        );
-
-        return $this->decodificarJson($row->resultado ?? null);
+        return $this->ejecutarFuncionJson('public.fn_obtener_detalle_solicitud_reposo', $solicitudId);
     }
 
     /**
@@ -195,16 +156,5 @@ final class VacacionesService
         );
 
         return (string) ($row->resultado ?? '');
-    }
-
-    /**
-     * @return array<int|string, mixed>
-     */
-    private function decodificarJson(mixed $json): array
-    {
-        $raw = is_string($json) && $json !== '' ? $json : '{}';
-        $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
-
-        return is_array($decoded) ? $decoded : [];
     }
 }
