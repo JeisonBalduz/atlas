@@ -10,7 +10,7 @@ declare(strict_types=1);
  * @var \App\Utils\Config $config
  */
 
-use App\Controller\CatalogoController;
+use App\Controller\TablasMaestrasController;
 use App\Controller\EditarEmpleadoController;
 use App\Controller\EditarFamiliarController;
 use App\Controller\InicioController;
@@ -77,7 +77,7 @@ $router->get('/beneficios', [RegistroBeneficiosController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
 // Ruta de catálogos del sistema
-$router->get('/catalogo', [CatalogoController::class, 'render'])
+$router->get('/tablasmaestras', [TablasMaestrasController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
 // Descarga / vista previa segura de documentos en DocumentosInces

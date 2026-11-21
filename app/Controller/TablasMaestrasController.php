@@ -24,7 +24,7 @@ use Throwable;
 /**
  * Controlador general para la vista y operaciones CRUD de los catálogos del sistema.
  */
-class CatalogoController
+class TablasMaestrasController
 {
     /** @var array<string, array{modelo: class-string<Model>, campo: string, limite: int, tiene_activo: bool}> */
     private const CATALOGOS = [
@@ -54,7 +54,7 @@ class CatalogoController
      */
     public function render(): void
     {
-        $this->app->render('catalogo', [
+        $this->app->render('tabla_maestra', [
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
             'usuario' => (object) ContextoSesion::todo(),

@@ -10,7 +10,7 @@ declare(strict_types=1);
  * @var \App\Utils\Config $config
  */
 
-use App\Controller\CatalogoController;
+use App\Controller\TablasMaestrasController;
 use App\Controller\EditarEmpleadoController;
 use App\Controller\EditarFamiliarController;
 use App\Controller\RegistrarEmpleadoController;
@@ -60,8 +60,8 @@ $router->group('/api', function (Router $router): void {
     $router->get('/select/personas', [RegistroBeneficiosController::class, 'buscarPersonasParaSelect']);
 
     // --- Catálogos ---
-    $router->get('/catalogos/@tipo', [CatalogoController::class, 'index']);
-    $router->post('/catalogos/@tipo', [CatalogoController::class, 'store']);
-    $router->put('/catalogos/@tipo/@id:[0-9]+', [CatalogoController::class, 'update']);
-    $router->delete('/catalogos/@tipo/@id:[0-9]+', [CatalogoController::class, 'destroy']);
+    $router->get('/catalogos/@tipo', [TablasMaestrasController::class, 'index']);
+    $router->post('/catalogos/@tipo', [TablasMaestrasController::class, 'store']);
+    $router->put('/catalogos/@tipo/@id:[0-9]+', [TablasMaestrasController::class, 'update']);
+    $router->delete('/catalogos/@tipo/@id:[0-9]+', [TablasMaestrasController::class, 'destroy']);
 }, [SesionMiddleware::class]);

@@ -14,12 +14,13 @@ use App\Services\ContextoSesion;
 use App\Services\GestorDocumentos;
 use App\Utils\Config;
 use flight\Engine;
+use App\Interfaces\RenderInterfaces;
 use Throwable;
 
 /**
  * Controlador general para la vista y actualización de empleados.
  */
-class EditarEmpleadoController
+class EditarEmpleadoController implements RenderInterfaces
 {
     /**
      * @param Engine<object> $app
@@ -35,7 +36,7 @@ class EditarEmpleadoController
     /**
      * [GET] Renderiza el formulario de edición de empleado con datos y catálogos preseleccionados desde Eloquent.
      */
-    public function render(?string $id = null): void
+    public function render (?string $id = null): void
     {
         $idRaw = $id ?? ($this->app->request()->query['id'] ?? null);
         if (!is_numeric($idRaw) || (int) $idRaw <= 0) {

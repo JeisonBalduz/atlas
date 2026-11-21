@@ -1,6 +1,6 @@
 @extends('layouts.app') {{-- CARGAR PAGINA PRINCIPAL --}}
 
-@section('titulo', 'Catálogos del Sistema') {{-- TÍTULO DE LA PÁGINA --}}
+@section('titulo', 'Tabla Maestras del Sistema') {{-- TÍTULO DE LA PÁGINA --}}
 
 @push('styles')
     <link rel="stylesheet" href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css">
@@ -20,19 +20,19 @@
 @section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
 <div class="w-full max-w-none mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 atlas-vista-entrada">
 
-    {{-- Card 1 (Bento Hero Oscura): Cabecera del gestor de catálogos --}}
+    {{-- Card 1 (Bento Hero Oscura): Cabecera del gestor de Tabla Maestras --}}
     <header class="col-span-full xl:col-span-5 rounded-3xl border border-zinc-900 bg-zinc-950 p-6 sm:p-7 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between gap-5">
         <div class="space-y-2">
             <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-zinc-300">
                 <i data-lucide="layers" class="h-3.5 w-3.5" aria-hidden="true"></i>
                 <span>Configuración Maestra</span>
             </span>
-            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">Gestión de Catálogos</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">Gestión de Tabla Maestras</h1>
             <p class="text-sm text-zinc-400">Administración centralizada de estatus, dependencias, departamentos, cargos, niveles académicos y carreras.</p>
         </div>
 
         <div class="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
-            <span class="text-xs font-medium text-zinc-400">6 catálogos institucionales conectados</span>
+            <span class="text-xs font-medium text-zinc-400">6 Tabla Maestras institucionales conectados</span>
             <button
                 type="button"
                 id="btn-nuevo-catalogo"
@@ -45,10 +45,10 @@
     </header>
 
     {{-- Card 2 (Bento Selector de Pestañas + Resumen de Estados): 7 columnas --}}
-    <nav aria-label="Selector de catálogos" class="col-span-full xl:col-span-7 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between gap-4">
+    <nav aria-label="Selector de Tabla Maestras" class="col-span-full xl:col-span-7 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between gap-4">
         <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Módulos de Catálogo</p>
+                <p class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Módulos de Tabla Maestra</p>
                 <p class="text-sm font-medium text-zinc-900">Selecciona una categoría para consultar o editar sus registros</p>
             </div>
             <span class="inline-flex items-center gap-1.5 rounded-full border border-marca-200 bg-marca-50 px-3 py-1 text-xs font-semibold text-marca-800">
@@ -85,7 +85,7 @@
         </div>
     </nav>
 
-    {{-- Card 3 (Bento 12 Columnas): Tabla dinámica del catálogo activo (DataTables 3.1.5) --}}
+    {{-- Card 3 (Bento 12 Columnas): Tabla dinámica del Tabla Maestra activo (DataTables 3.1.5) --}}
     <section
         id="contenedor-tabla-catalogo"
         data-estados="{{ json_encode($estados ?? [], JSON_UNESCAPED_UNICODE) }}"
@@ -97,8 +97,8 @@
                 <i data-lucide="database" class="h-5 w-5" aria-hidden="true"></i>
             </div>
             <div>
-                <h2 id="titulo-tabla-catalogo" class="text-base font-bold text-zinc-900">Catálogo de Estatus</h2>
-                <p class="text-xs text-zinc-500">Los encabezados y el formulario se adaptan automáticamente al catálogo seleccionado.</p>
+                <h2 id="titulo-tabla-catalogo" class="text-base font-bold text-zinc-900">Tabla Maestra de Estatus</h2>
+                <p class="text-xs text-zinc-500">Los encabezados y el formulario se adaptan automáticamente al Tabla Maestra seleccionado.</p>
             </div>
         </header>
 
@@ -111,11 +111,11 @@
     </section>
 </div>
 
-{{-- Modal dinámico para crear o editar registro del catálogo activo --}}
+{{-- Modal dinámico para crear o editar registro del Tabla Maestra activo --}}
 @component('components.modal', [
     'id' => 'modal-formulario-catalogo',
     'titulo' => 'Nuevo registro',
-    'subtitulo' => 'Completa los campos del catálogo seleccionado.',
+    'subtitulo' => 'Completa los campos del Tabla Maestra seleccionado.',
     'tamano' => 'md',
     'textoCancelar' => 'Cancelar',
     'textoConfirmar' => 'Guardar cambios',
@@ -126,8 +126,8 @@
 {{-- Modal de confirmación para eliminar/cambiar estado --}}
 @component('components.modal', [
     'id' => 'modal-eliminar-catalogo',
-    'titulo' => 'Eliminar registro de catálogo',
-    'subtitulo' => 'Confirma la operación sobre el registro del catálogo.',
+    'titulo' => 'Eliminar registro de Tabla Maestra',
+    'subtitulo' => 'Confirma la operación sobre el registro del Tabla Maestra.',
     'tamano' => 'sm',
     'textoCancelar' => 'Cancelar',
     'textoConfirmar' => 'Eliminar',

@@ -1,5 +1,6 @@
 // Datos RESTAURADOS completos para los submenús del Sidebar (modo colapsado)
 const menusData = {
+  inicio: null,
   nomina: [
     {
       label: "Registrar empleado",
@@ -18,6 +19,7 @@ const menusData = {
       url: "/empleado/registros/familiar",
     },
   ],
+  tablasmaestras: null,
   beneficios: [
     {
       label: "Asignar beneficio",

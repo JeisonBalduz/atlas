@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\config\ClavesSesion;
-use App\Controller\CatalogoController;
+use App\Controller\TablasMaestrasController;
 use App\Controller\EditarEmpleadoController;
 use App\Controller\EditarFamiliarController;
 use App\Controller\RegistrarEmpleadoController;
@@ -349,17 +349,17 @@ final class ApiEloquentEndpointsTest extends TestCase
         self::assertSame([1 => 'Madre María'], $this->ultimoJson['data']);
 
         $appCatList = $this->crearMockEngine('GET');
-        (new CatalogoController($appCatList, $this->config, $this->catalogos))->index('tipo_documentos');
+        (new TablasMaestrasController($appCatList, $this->config, $this->catalogos))->index('tipo_documentos');
         self::assertSame(200, $this->ultimoCodigo);
         self::assertCount(1, $this->ultimoJson['data']);
 
         $appCatStore = $this->crearMockEngine('POST', ['cargo' => 'Coordinador Técnico']);
-        (new CatalogoController($appCatStore, $this->config, $this->catalogos))->store('cargo');
+        (new TablasMaestrasController($appCatStore, $this->config, $this->catalogos))->store('cargo');
         self::assertSame(201, $this->ultimoCodigo);
         $nuevoCargoId = (string) $this->ultimoJson['data']['cargo_id'];
 
         $appCatDel = $this->crearMockEngine('DELETE');
-        (new CatalogoController($appCatDel, $this->config, $this->catalogos))->destroy('cargo', $nuevoCargoId);
+        (new TablasMaestrasController($appCatDel, $this->config, $this->catalogos))->destroy('cargo', $nuevoCargoId);
         self::assertSame(200, $this->ultimoCodigo);
         self::assertFalse((bool) CargoModel::query()->find((int) $nuevoCargoId)?->activo);
     }

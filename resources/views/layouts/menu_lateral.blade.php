@@ -1,56 +1,56 @@
 @push('styles')
-    <style>
-        /* Barra de desplazamiento elegante (Scrollbar personalizada) exclusiva del sidebar */
-        #sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
+<style>
+    /* Barra de desplazamiento elegante (Scrollbar personalizada) exclusiva del sidebar */
+    #sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
 
-        #sidebar::-webkit-scrollbar-track {
-            background: transparent;
-        }
+    #sidebar::-webkit-scrollbar-track {
+        background: transparent;
+    }
 
-        #sidebar::-webkit-scrollbar-thumb {
-            background-color: #27272a;
-            /* zinc-800 */
-            border-radius: 9999px;
-        }
+    #sidebar::-webkit-scrollbar-thumb {
+        background-color: #27272a;
+        /* zinc-800 */
+        border-radius: 9999px;
+    }
 
-        #sidebar::-webkit-scrollbar-thumb:hover {
-            background-color: #3f3f46;
-            /* zinc-700 */
-        }
+    #sidebar::-webkit-scrollbar-thumb:hover {
+        background-color: #3f3f46;
+        /* zinc-700 */
+    }
 
-        /* Animaciones iniciales en cascada */
-        @keyframes fadeInUp {
-            0% {
-                opacity: 0;
-                transform: translateY(15px);
-            }
-
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .cascade-enter {
+    /* Animaciones iniciales en cascada */
+    @keyframes fadeInUp {
+        0% {
             opacity: 0;
-            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transform: translateY(15px);
         }
 
-        /* Hover proporcionado para sidebar colapsado */
-        #sidebar[data-expanded="false"] .menu-btn {
-            width: 44px;
-            height: 44px;
-            margin: 0 auto;
-            justify-content: center;
-            padding: 0;
+        100% {
+            opacity: 1;
+            transform: translateY(0);
         }
+    }
 
-        #sidebar[data-expanded="false"] .menu-btn i.chevron {
-            display: none;
-        }
-    </style>
+    .cascade-enter {
+        opacity: 0;
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Hover proporcionado para sidebar colapsado */
+    #sidebar[data-expanded="false"] .menu-btn {
+        width: 44px;
+        height: 44px;
+        margin: 0 auto;
+        justify-content: center;
+        padding: 0;
+    }
+
+    #sidebar[data-expanded="false"] .menu-btn i.chevron {
+        display: none;
+    }
+</style>
 @endpush
 <!-- SIDEBAR NEGRO -->
 <aside id="sidebar" data-expanded="false"
@@ -67,6 +67,20 @@
 
     <!-- Navegación Principal -->
     <nav class="flex flex-col flex-1 w-full gap-2 px-3">
+
+        <!-- Inicio -->
+        <div class="menu-item-container" data-menu="inicio">
+            <button
+                class="cursor-pointer menu-btn w-full h-12 flex items-center justify-between rounded-2xl text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all px-3.5 group relative">
+                <a href="/inicio">
+                    <div class="flex items-center gap-4">
+                        <i data-lucide="house" class="w-5 h-5 shrink-0"></i>
+                        <span
+                            class="hidden font-medium transition-opacity duration-300 opacity-0 whitespace-nowrap sidebar-text">Inicio</span>
+                    </div>
+                </a>
+            </button>
+        </div>
 
         <!-- Nómina -->
         <div class="menu-item-container" data-menu="nomina">
@@ -85,11 +99,13 @@
                 <div class="overflow-hidden">
                     <div class="relative flex flex-col gap-1 py-2 ml-6">
                         <div class="absolute left-0 border-l-2 top-2 bottom-2 border-zinc-700"></div>
-                        <a href="/empleado/registrar" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">
+                        <a href="/empleado/registrar"
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">
                             Registrar
                             empleado
                         </a>
-                        <a href="/empleado/registrar/familiar" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">
+                        <a href="/empleado/registrar/familiar"
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">
                             Registrar
                             familiar
                         </a>
@@ -104,6 +120,21 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Tablas Maestras (estatus, dependencias, departamentos, nivel academico, carrera) -->
+        <div class="menu-item-container" data-menu="tablasmaestras">
+            <button
+                class="cursor-pointer menu-btn w-full h-12 flex items-center justify-between rounded-2xl text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all px-3.5 group relative">
+                <a href="/tablasmaestras">
+                    <div class="flex items-center gap-4">
+                        <i data-lucide="bookmark" class="w-5 h-5 shrink-0"></i>
+                        <span
+                            class="hidden font-medium transition-opacity duration-300 opacity-0 whitespace-nowrap sidebar-text">Tablas
+                            Maestras</span>
+                    </div>
+                </a>
+            </button>
         </div>
 
         <!-- Beneficios -->
@@ -123,9 +154,11 @@
                 <div class="overflow-hidden">
                     <div class="relative flex flex-col gap-1 py-2 ml-6">
                         <div class="absolute left-0 border-l-2 top-2 bottom-2 border-zinc-700"></div>
-                        <a href="/beneficios" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Asignar
+                        <a href="/beneficios"
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Asignar
                             beneficio</a>
-                        {{-- <a href="#" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Hcm</a> --}}
+                        {{-- <a href="#"
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Hcm</a> --}}
                     </div>
                 </div>
             </div>
@@ -148,7 +181,8 @@
                 <div class="overflow-hidden">
                     <div class="relative flex flex-col gap-1 py-2 ml-6">
                         <div class="absolute left-0 border-l-2 top-2 bottom-2 border-zinc-700"></div>
-                        <a href="/vacaciones" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Asignar
+                        <a href="/vacaciones"
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Asignar
                             vacaciones</a>
                         <a href="#" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Suspender
                             vacaciones</a>
@@ -177,7 +211,8 @@
                 <div class="overflow-hidden">
                     <div class="relative flex flex-col gap-1 py-2 ml-6">
                         <div class="absolute left-0 border-l-2 top-2 bottom-2 border-zinc-700"></div>
-                        <a href="/ausencia" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Asignar
+                        <a href="/ausencia"
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Asignar
                             ausencia</a>
                         <a href="#"
                             class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Permisos</a>
@@ -192,11 +227,14 @@
         <div class="menu-item-container" data-menu="asistencias">
             <button
                 class="cursor-pointer menu-btn w-full h-12 flex items-center justify-between rounded-2xl text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all px-3.5 group relative">
-                <div class="flex items-center gap-4">
-                    <i data-lucide="calendar-check-2" class="w-5 h-5 shrink-0"></i>
-                    <span
-                        class="hidden font-medium transition-opacity duration-300 opacity-0 whitespace-nowrap sidebar-text">Asistencias</span>
-                </div>
+
+                <a href="/asistencia">
+                    <div class="flex items-center gap-4">
+                        <i data-lucide="calendar-check-2" class="w-5 h-5 shrink-0"></i>
+                        <span
+                            class="hidden font-medium transition-opacity duration-300 opacity-0 whitespace-nowrap sidebar-text">Asistencias</span>
+                    </div>
+                </a>
             </button>
         </div>
 
@@ -290,13 +328,13 @@
         <button class="flex items-center w-full h-12 text-left rounded-full cursor-pointer group">
             <div
                 class="w-12 h-12 overflow-hidden transition-colors border-2 rounded-full shrink-0 border-zinc-800 group-hover:border-zinc-500">
-                <img src="/assets/icons/usuarioPrueba.webp"
-                    class="object-cover w-full h-full shrink-0" alt="User">
+                <img src="/assets/icons/usuarioPrueba.webp" class="object-cover w-full h-full shrink-0" alt="User">
             </div>
             <div
                 class="flex-col justify-center flex-1 hidden ml-3 truncate transition-opacity duration-300 opacity-0 sidebar-text">
                 <p class="text-sm font-bold leading-tight text-white">{{ $usuario->username }}</p>
-                <p class="text-[11px] font-medium text-zinc-500 mt-0.5 uppercase tracking-wider">{{ $usuario->role }}</p>
+                <p class="text-[11px] font-medium text-zinc-500 mt-0.5 uppercase tracking-wider">{{ $usuario->role }}
+                </p>
             </div>
         </button>
     </div>
@@ -315,5 +353,5 @@
 
 
 @push('scripts')
-    <script type="module" src="/js/menuLateral.js"></script>
+<script type="module" src="/js/menuLateral.js"></script>
 @endpush
