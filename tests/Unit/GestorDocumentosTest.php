@@ -262,15 +262,15 @@ final class GestorDocumentosTest extends TestCase
         self::assertSame([], $this->listarArchivosEn($this->raizDocs));
     }
 
-    public function testReemplazarSustituyeArchivoYMetadatosSinDejarHuerfanos(): void
+    public function testReemplazarConservaArchivoAnteriorEHistorialDeMasViejoAMasNuevo(): void
     {
         $pdfTmp = $this->crearPdfValido('v1.pdf');
-        $doc = $this->gestor->subir($this->archivoLocal($pdfTmp, 'v1.pdf'), 1, 1, null, false);
-        $rutaVieja = $this->gestor->rutaAbsoluta($doc);
+        $docV1 = $this->gestor->subir($this->archivoLocal($pdfTmp, 'v1.pdf'), 1, 1, null, false);
+        $rutaVieja = $this->gestor->rutaAbsoluta($docV1);
 
         $pngTmp = $this->crearPngValido('v2.png');
-        $actualizado = $this->gestor->reemplazar(
-            (int) $doc->documentos_id,
+        $docV2 = $this->gestor->reemplazar(
+            (int) $docV1->documentos_id,
             $this->archivoLocal($pngTmp, 'v2.png'),
             2,
             null,
@@ -278,38 +278,23 @@ final class GestorDocumentosTest extends TestCase
             false
         );
 
-        $rutaNueva = $this->gestor->rutaAbsoluta($actualizado);
+        $rutaNueva = $this->gestor->rutaAbsoluta($docV2);
+        $docV1Actualizado = DocumentosModel::query()->find($docV1->documentos_id);
 
-        self::assertSame(2, $actualizado->tipo_documento_id);
-        self::assertSame('png', $actualizado->formato);
-        self::assertSame('v2.png', $actualizado->nombre_original);
-        self::assertFileDoesNotExist($rutaVieja);
+        self::assertSame('Histórico', $docV1Actualizado?->estatus_documento);
+        self::assertSame('Vigente', $docV2->estatus_documento);
+        self::assertNotSame($docV1->documentos_id, $docV2->documentos_id);
+        self::assertSame(2, $docV2->tipo_documento_id);
+        self::assertSame('png', $docV2->formato);
+        self::assertSame('v2.png', $docV2->nombre_original);
+        self::assertFileExists($rutaVieja);
         self::assertFileExists($rutaNueva);
-        self::assertCount(1, $this->listarArchivosEn($this->raizDocs));
-    }
+        self::assertCount(2, $this->listarArchivosEn($this->raizDocs));
 
-    public function testEliminarDesvinculaTramitesBorraRegistroYArchivoFisico(): void
-    {
-        $pdfTmp = $this->crearPdfValido('tramite.pdf');
-        $doc = $this->gestor->subir($this->archivoLocal($pdfTmp, 'tramite.pdf'), 1, 1, null, false);
-        $rutaFisica = $this->gestor->rutaAbsoluta($doc);
-
-        $tramiteId = $this->capsule->getConnection()->table('tramite')->insertGetId([
-            'persona_id' => 1,
-            'tptramite_id' => 1,
-            'estatus' => 'En proceso',
-        ]);
-        $this->capsule->getConnection()->table('tramite_documento')->insert([
-            'tramite_id' => $tramiteId,
-            'documento_id' => $doc->documentos_id,
-        ]);
-
-        $this->gestor->eliminar((int) $doc->documentos_id);
-
-        self::assertNull(DocumentosModel::query()->find($doc->documentos_id));
-        self::assertSame(0, $this->capsule->getConnection()->table('tramite_documento')->count());
-        self::assertFileDoesNotExist($rutaFisica);
-        self::assertSame([], $this->listarArchivosEn($this->raizDocs));
+        $historial = DocumentosModel::query()->where('persona_id', 1)->orderBy('documentos_id', 'asc')->get();
+        self::assertCount(2, $historial);
+        self::assertSame('v1.pdf', $historial[0]->nombre_original);
+        self::assertSame('v2.png', $historial[1]->nombre_original);
     }
 
     public function testRutaAbsolutaBloqueaPathTraversal(): void

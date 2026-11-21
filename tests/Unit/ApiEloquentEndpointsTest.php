@@ -265,14 +265,24 @@ final class ApiEloquentEndpointsTest extends TestCase
         self::assertInstanceOf(PersonasModel::class, PersonasModel::query()->find($persId));
     }
 
-    public function testDocumentosApiListarPorEmpleadoYDestroy(): void
+    public function testDocumentosApiListarPorEmpleadoOrdenaHistorialMasViejoAMasNuevo(): void
     {
-        $pdfPath = $this->tempDir . DIRECTORY_SEPARATOR . 'cedula.pdf';
-        file_put_contents($pdfPath, "%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n");
-        $doc = $this->gestor->subir([
-            'name' => 'cedula.pdf',
-            'tmp_name' => $pdfPath,
-            'size' => (int) filesize($pdfPath),
+        $pdfPath1 = $this->tempDir . DIRECTORY_SEPARATOR . 'cedula_v1.pdf';
+        $pdfPath2 = $this->tempDir . DIRECTORY_SEPARATOR . 'cedula_v2.pdf';
+        file_put_contents($pdfPath1, "%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n");
+        file_put_contents($pdfPath2, "%PDF-1.4\n2 0 obj\n<<>>\nendobj\n%%EOF\n");
+
+        $doc1 = $this->gestor->subir([
+            'name' => 'cedula_v1.pdf',
+            'tmp_name' => $pdfPath1,
+            'size' => (int) filesize($pdfPath1),
+            'error' => UPLOAD_ERR_OK,
+        ], 1, 1, null, false);
+
+        $doc2 = $this->gestor->reemplazar((int) $doc1->documentos_id, [
+            'name' => 'cedula_v2.pdf',
+            'tmp_name' => $pdfPath2,
+            'size' => (int) filesize($pdfPath2),
             'error' => UPLOAD_ERR_OK,
         ], 1, 1, null, false);
 
@@ -281,11 +291,14 @@ final class ApiEloquentEndpointsTest extends TestCase
         $ctrl->listarPorEmpleado('1');
 
         self::assertSame(200, $this->ultimoCodigo);
-        self::assertCount(1, $this->ultimoJson['personales']);
-        self::assertSame('/documentos/' . $doc->documentos_id, $this->ultimoJson['personales'][0]['url_descarga']);
-
-        $ctrl->destroy((string) $doc->documentos_id);
-        self::assertSame(200, $this->ultimoCodigo);
+        self::assertCount(2, $this->ultimoJson['personales']);
+        self::assertSame('cedula_v1.pdf', $this->ultimoJson['personales'][0]['nombre_original']);
+        self::assertSame('Histórico', $this->ultimoJson['personales'][0]['estatus_documento']);
+        self::assertSame('cedula_v2.pdf', $this->ultimoJson['personales'][1]['nombre_original']);
+        self::assertSame('Vigente', $this->ultimoJson['personales'][1]['estatus_documento']);
+        self::assertSame('/documentos/' . $doc2->documentos_id, $this->ultimoJson['personales'][1]['url_descarga']);
+        self::assertFileExists($this->gestor->rutaAbsoluta($doc1));
+        self::assertFileExists($this->gestor->rutaAbsoluta($doc2));
     }
 
     public function testCatalogosServiceReutilizaEstatusModelYFiltraUbicacion(): void

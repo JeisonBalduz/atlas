@@ -15,6 +15,13 @@
  */
 
 use App\Services\CatalogosService;
+use App\Services\Documentos\AlmacenArchivoDocumento;
+use App\Services\Documentos\ConfiguracionMime;
+use App\Services\Documentos\ConstructorRutaDocumento;
+use App\Services\Documentos\ExtensionesPeligrosas;
+use App\Services\Documentos\ReemplazarDocumento;
+use App\Services\Documentos\SubirDocumento;
+use App\Services\Documentos\ValidadorDocumento;
 use App\Services\GestorDocumentos;
 use App\Utils\Config;
 use App\Utils\DatabaseFactory;
@@ -136,10 +143,22 @@ $raizDocumentos = str_starts_with($rutaRelativaDocs, DIRECTORY_SEPARATOR)
     ? $rutaRelativaDocs
     : $projectRoot . $ds . str_replace(['/', '\\'], $ds, $rutaRelativaDocs);
 
+$tamanoMaximoDocs = (int) $config->get('storage.max_file_size_bytes', 5242880);
+$configMime = new ConfiguracionMime();
+$extensionesPeligrosas = new ExtensionesPeligrosas();
+$validadorDocumento = new ValidadorDocumento($configMime, $extensionesPeligrosas, $tamanoMaximoDocs);
+$constructorRutaDocumento = new ConstructorRutaDocumento();
+$almacenArchivoDocumento = new AlmacenArchivoDocumento($raizDocumentos);
+$subirDocumento = new SubirDocumento($eloquentConnection, $validadorDocumento, $constructorRutaDocumento, $almacenArchivoDocumento);
+$reemplazarDocumento = new ReemplazarDocumento($eloquentConnection, $validadorDocumento, $constructorRutaDocumento, $almacenArchivoDocumento);
+
 $gestorDocumentos = new GestorDocumentos(
     $eloquentConnection,
     $raizDocumentos,
-    (int) $config->get('storage.max_file_size_bytes', 5242880)
+    $tamanoMaximoDocs,
+    $subirDocumento,
+    $reemplazarDocumento,
+    $almacenArchivoDocumento
 );
 
 // ---------------------------------------------------------------------------
@@ -156,6 +175,9 @@ $substitutions = [
     ConnectionInterface::class => $eloquentConnection,
     CatalogosService::class => $catalogosService,
     GestorDocumentos::class => $gestorDocumentos,
+    AlmacenArchivoDocumento::class => $almacenArchivoDocumento,
+    SubirDocumento::class => $subirDocumento,
+    ReemplazarDocumento::class => $reemplazarDocumento,
 ];
 
 if ($db instanceof SimplePdo) {

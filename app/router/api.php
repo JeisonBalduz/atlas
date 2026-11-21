@@ -44,10 +44,9 @@ $router->group('/api', function (Router $router): void {
     $router->post('/familiares/@id:[0-9]+', [FamiliaresApiController::class, 'update']);
     $router->delete('/familiares/@id:[0-9]+', [FamiliaresApiController::class, 'destroy']);
 
-    // --- Gestión Documental (DocumentosInces) ---
+    // --- Gestión Documental (DocumentosInces, historial sin borrado) ---
     $router->post('/documentos', [DocumentosApiController::class, 'store']);
     $router->post('/documentos/@id:[0-9]+/reemplazar', [DocumentosApiController::class, 'reemplazar']);
-    $router->delete('/documentos/@id:[0-9]+', [DocumentosApiController::class, 'destroy']);
 
     // --- Selects dependientes de Ubicación ---
     $router->get('/ubicacion/municipios/@estadoId:[0-9]+', [UbicacionApiController::class, 'municipios']);

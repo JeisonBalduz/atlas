@@ -54,6 +54,7 @@ final class DocumentosApiController
         }
 
         $personales = $empleado->persona->documentos
+            ->sortBy('documentos_id')
             ->map(static fn (DocumentosModel $doc): array => self::formatearDocumento($doc))
             ->values()
             ->all();
@@ -63,7 +64,7 @@ final class DocumentosApiController
             if (!$familiar instanceof FamiliaresModel || !$familiar->persona instanceof PersonasModel) {
                 continue;
             }
-            foreach ($familiar->persona->documentos as $doc) {
+            foreach ($familiar->persona->documentos->sortBy('documentos_id') as $doc) {
                 $item = self::formatearDocumento($doc);
                 $item['familia_id'] = (int) $familiar->familia_id;
                 $item['parentesco'] = (string) ($familiar->tipoParentesco?->parentesco ?? '');
@@ -176,42 +177,11 @@ final class DocumentosApiController
     }
 
     /**
-     * [DELETE] Elimina el documento de la base de datos y su archivo físico en DocumentosInces.
-     */
-    public function destroy(string $id): void
-    {
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de documento inválido.'], 400);
-            return;
-        }
-
-        try {
-            $this->gestorDocumentos->eliminar((int) $id);
-            $this->app->json([
-                'ok' => true,
-                'message' => 'Documento eliminado correctamente.',
-                'data' => ['documentos_id' => (int) $id],
-            ], 200);
-        } catch (InvalidArgumentException $e) {
-            $this->app->json(['ok' => false, 'message' => $e->getMessage()], $this->codigoHttp($e, 404));
-        } catch (RuntimeException $e) {
-            $this->app->json(['ok' => false, 'message' => $e->getMessage()], $this->codigoHttp($e, 500));
-        } catch (Throwable) {
-            $this->app->json(['ok' => false, 'message' => 'No se pudo eliminar el documento.'], 500);
-        }
-    }
-
-    /**
-     * [GET] Sirve de forma segura un documento protegido por sesión desde DocumentosInces.
+     * [GET] Sirve un documento protegido por sesión desde DocumentosInces.
      */
     public function descargar(string $id): void
     {
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->halt(400, 'Identificador de documento inválido.');
-            return;
-        }
-
-        $documento = DocumentosModel::query()->find((int) $id);
+        $documento = ctype_digit($id) && (int) $id > 0 ? DocumentosModel::query()->find((int) $id) : null;
         if (!$documento instanceof DocumentosModel) {
             $this->app->halt(404, 'Documento no encontrado.');
             return;
@@ -224,22 +194,14 @@ final class DocumentosApiController
             return;
         }
 
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file($rutaAbsoluta);
-        $contentType = is_string($mime) && $mime !== '' ? $mime : 'application/octet-stream';
-
-        $forzarDescarga = ($this->app->request()->query['descargar'] ?? '') === '1';
-        $disposicion = $forzarDescarga ? 'attachment' : 'inline';
-        $nombreSeguro = str_replace(["\r", "\n", '"'], '', (string) $documento->nombre_original);
-        if ($nombreSeguro === '') {
-            $nombreSeguro = basename($rutaAbsoluta);
-        }
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($rutaAbsoluta);
+        $disposicion = ($this->app->request()->query['descargar'] ?? '') === '1' ? 'attachment' : 'inline';
+        $nombreSeguro = str_replace(["\r", "\n", '"'], '', (string) $documento->nombre_original) ?: basename($rutaAbsoluta);
 
         header('X-Content-Type-Options: nosniff');
-        header('Content-Type: ' . $contentType);
+        header('Content-Type: ' . (is_string($mime) && $mime !== '' ? $mime : 'application/octet-stream'));
         header('Content-Disposition: ' . $disposicion . '; filename="' . $nombreSeguro . '"');
-        $tamano = filesize($rutaAbsoluta);
-        if ($tamano !== false) {
+        if (($tamano = filesize($rutaAbsoluta)) !== false) {
             header('Content-Length: ' . (string) $tamano);
         }
 
