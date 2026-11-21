@@ -45,8 +45,13 @@ class RegistrosEmpleadosController
      */
     public function render(): void
     {
-        $total = EmpleadosModel::query()->count();
-        $activos = EmpleadosModel::query()->where('estatus_actual', 1)->count();
+        $totales = EmpleadosModel::query()
+            ->selectRaw('COUNT(*) AS total, COALESCE(SUM(CASE WHEN estatus_actual = 1 THEN 1 ELSE 0 END), 0) AS activos')
+            ->toBase()
+            ->first();
+
+        $total = (int) ($totales->total ?? 0);
+        $activos = (int) ($totales->activos ?? 0);
         $inactivos = max(0, $total - $activos);
 
         $this->app->render('registros_empleados', [
@@ -63,6 +68,21 @@ class RegistrosEmpleadosController
                 'inactivos' => $inactivos,
             ],
         ]);
+    }
+
+    /**
+     * [GET] Búsqueda paginada de trabajadores activos para selects remotos.
+     */
+    public function buscarParaSelect(): void
+    {
+        $query = $this->app->request()->query;
+        $busqueda = trim((string) ($query['q'] ?? ''));
+        $limite = is_numeric($query['limit'] ?? null) ? (int) $query['limit'] : 30;
+
+        $this->app->json([
+            'ok' => true,
+            'data' => $this->catalogos->buscarEmpleadosActivosParaSelect($busqueda, $limite),
+        ], 200);
     }
 
     /**

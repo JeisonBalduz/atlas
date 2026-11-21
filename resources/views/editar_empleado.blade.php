@@ -116,6 +116,8 @@
         </header>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            @component('components.select', ['label' => 'Estado', 'id' => 'estado', 'name' => 'estado', 'search' => true, 'options' => $estados ?? [], 'selected' => $estado_seleccionado ?? '']) @endcomponent
+            @component('components.select', ['label' => 'Municipio', 'id' => 'municipio', 'name' => 'municipio', 'search' => true, 'options' => $municipios ?? [], 'selected' => $municipio_seleccionado ?? '']) @endcomponent
             @component('components.select', ['label' => 'Parroquia', 'id' => 'parroquia_id', 'name' => 'parroquia_id', 'required' => true, 'search' => true, 'options' => $parroquias ?? [], 'selected' => $direccion->parroquia_id ?? '']) @endcomponent
             @component('components.input', ['label' => 'Tipo de vivienda', 'id' => 'vivienda', 'name' => 'vivienda', 'value' => $direccion->vivienda ?? '', 'maxlength' => 30, 'required' => true]) @endcomponent
             @component('components.input', ['label' => 'Calle / Avenida', 'id' => 'calle', 'name' => 'calle', 'value' => $direccion->calle ?? '', 'maxlength' => 30, 'required' => true]) @endcomponent

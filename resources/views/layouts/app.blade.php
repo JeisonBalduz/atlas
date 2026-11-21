@@ -4,16 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ATLAS | @yield('titulo', 'Sistema Atlas - INCES')</title>
-     {{-- Vite Client & Styles para tu entorno local FlightPHP --}}
+    @if (!empty($vite_activo))
+    {{-- Vite Client solo cuando existe public/hot --}}
     <script type="module" src="http://localhost:5173/@vite/client"></script>
-    <script src="/lib/js/lucideIcons/lucide.min.js"></script>
-     {{-- Estilos globales de la aplicacion --}}
+    @endif
+    <script defer src="/lib/js/lucideIcons/lucide.min.js"></script>
+    {{-- Estilos globales de la aplicacion --}}
     <link rel="stylesheet" href="/css/app.css">
     <link rel="stylesheet" href="/css/output.css">
-     {{-- FAVAICON --}}
+    {{-- FAVICON --}}
     <link rel="shortcut icon" href="/assets/icons/favicon.webp" type="image/x-icon">
-     {{-- ApexCharts --}}
-    <script defer src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    
     @stack('styles')
     {{-- Inyección de css de las vistas --}}
 </head>
@@ -25,7 +26,13 @@
     </main>
     {{-- Inyección de scripts --}}
     @stack('scripts')
-    <script> if (typeof lucide !== 'undefined') {lucide.createIcons();}</script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 
 </html>

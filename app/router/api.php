@@ -15,6 +15,7 @@ use App\Controller\EditarEmpleadoController;
 use App\Controller\EditarFamiliarController;
 use App\Controller\RegistrarEmpleadoController;
 use App\Controller\RegistrarFamiliarController;
+use App\Controller\RegistroBeneficiosController;
 use App\Controller\RegistrosEmpleadosController;
 use App\Controller\RegistrosFamiliaresController;
 use App\Controller\SesionController;
@@ -53,6 +54,10 @@ $router->group('/api', function (Router $router): void {
     // --- Selects dependientes de Ubicación ---
     $router->get('/ubicacion/municipios/@estadoId:[0-9]+', [RegistrarEmpleadoController::class, 'municipios']);
     $router->get('/ubicacion/parroquias/@municipioId:[0-9]+', [RegistrarEmpleadoController::class, 'parroquias']);
+
+    // --- Selects remotos bajo demanda (evita renderizar cientos/miles de nodos en el HTML) ---
+    $router->get('/select/empleados', [RegistrosEmpleadosController::class, 'buscarParaSelect']);
+    $router->get('/select/personas', [RegistroBeneficiosController::class, 'buscarPersonasParaSelect']);
 
     // --- Catálogos ---
     $router->get('/catalogos/@tipo', [CatalogoController::class, 'index']);

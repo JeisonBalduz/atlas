@@ -45,9 +45,7 @@ class EditarFamiliarController
         $familiaId = (int) $idRaw;
         $familiar = FamiliaresModel::query()
             ->with([
-                'persona.estadoCivil',
-                'persona.documentos.tipoDocumento',
-                'tipoParentesco',
+                'persona',
                 'empleado.persona',
                 'empleado.cargo',
                 'empleado.departamento',
@@ -84,10 +82,7 @@ class EditarFamiliarController
                 'cedula' => $titularCedula,
                 'cargo' => $titularCargo,
             ],
-            'documentos' => $familiar->persona->documentos,
             'parentescos' => $this->catalogos->tiposParentesco(),
-            'estados_civiles' => $this->catalogos->estadosCiviles(),
-            'tipos_documentos' => $this->catalogos->tiposDocumentos(),
             'generos' => $this->catalogos->generos($generoActual),
             'genero_actual' => $generoActual,
         ]);

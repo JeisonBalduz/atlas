@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         setTimeout(() => {
-          window.location.href = '/empleado/registros';
+          window.location.href = '/empleado/registrar';
         }, 700);
       } finally {
         enviando = false;

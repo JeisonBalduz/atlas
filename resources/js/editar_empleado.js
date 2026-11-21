@@ -6,11 +6,48 @@
 
 import { InputValidador } from '/js/class/validator/InputValidador.js';
 import { Solicitud } from '/js/class/Solicitud.js';
-import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
+import {
+  inicializarSelectsPersonalizados,
+  actualizarOpcionesSelect,
+} from '/js/components/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
+
+  const selectEstado = document.getElementById('estado');
+  const selectMunicipio = document.getElementById('municipio');
+
+  selectEstado?.addEventListener('change', async () => {
+    const estadoId = selectEstado.value;
+    actualizarOpcionesSelect('#municipio', {});
+    actualizarOpcionesSelect('#parroquia_id', {});
+    if (!estadoId) return;
+
+    const res = await Solicitud.get(`/api/ubicacion/municipios/${estadoId}`);
+    if (res.status === 401) {
+      window.location.href = '/autenticacion';
+      return;
+    }
+    if (res.ok && res.data?.ok) {
+      actualizarOpcionesSelect('#municipio', res.data.data || {});
+    }
+  });
+
+  selectMunicipio?.addEventListener('change', async () => {
+    const municipioId = selectMunicipio.value;
+    actualizarOpcionesSelect('#parroquia_id', {});
+    if (!municipioId) return;
+
+    const res = await Solicitud.get(`/api/ubicacion/parroquias/${municipioId}`);
+    if (res.status === 401) {
+      window.location.href = '/autenticacion';
+      return;
+    }
+    if (res.ok && res.data?.ok) {
+      actualizarOpcionesSelect('#parroquia_id', res.data.data || {});
+    }
+  });
 
   const formulario = document.getElementById('formulario-editar-empleado');
   const empleadoId = formulario?.dataset?.empleadoId;

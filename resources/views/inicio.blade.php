@@ -2,6 +2,11 @@
 
 @section('titulo', 'Home')
 
+@push('styles')
+    {{-- ApexCharts --}}
+    <script defer src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+@endpush
+
 @section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-4 sm:px-6 md:px-10 pb-12 pt-6 bg-slate-50')
 
 @section('menu_lateral')

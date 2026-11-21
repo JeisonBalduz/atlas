@@ -41,7 +41,7 @@
             </div>
         </div>
         <div class="mt-4">
-            <p class="text-4xl font-bold tracking-tight text-white">{{ count($empleados ?? []) }}</p>
+            <p class="text-4xl font-bold tracking-tight text-white">{{ $total_empleados_activos ?? count($empleados ?? []) }}</p>
             <p class="mt-2 text-xs font-medium text-marca-100">Trabajadores activos en nómina</p>
         </div>
     </article>
@@ -72,9 +72,10 @@
                 'label' => 'Empleado solicitante',
                 'id' => 'empleado_id',
                 'name' => 'empleado_id',
-                'placeholder' => 'Seleccionar empleado...',
+                'placeholder' => 'Buscar empleado por nombre o cédula...',
                 'required' => true,
                 'search' => true,
+                'remoteUrl' => '/api/select/empleados',
                 'options' => $empleados ?? [],
             ])
             @endcomponent

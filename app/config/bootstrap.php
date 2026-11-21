@@ -20,6 +20,11 @@ $projectRoot = dirname(__DIR__, 2);
 
 require $projectRoot . $ds . 'vendor' . $ds . 'autoload.php';
 
+// Fast-path para recursos estáticos (/css, /js, /lib, /photo) sin abrir sesión ni BD
+if (\App\Http\StaticAssetResponder::tryServe($projectRoot)) {
+    return;
+}
+
 use App\Utils\Config;
 use App\Utils\Env;
 

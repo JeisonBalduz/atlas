@@ -33,7 +33,7 @@ class RegistroAusenciaController
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
             'usuario' => (object) ContextoSesion::todo(),
-            'empleados' => $this->catalogos->empleadosActivosParaSelect(),
+            'empleados' => [],
             'tipos_permiso' => $this->catalogos->tiposPermiso(),
             'tipos_reposo' => $this->catalogos->tiposReposo(),
             'tipos_institucion' => $this->catalogos->tiposInstitucionEmisora(),

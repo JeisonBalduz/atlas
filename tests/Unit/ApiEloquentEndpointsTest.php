@@ -10,6 +10,7 @@ use App\Controller\EditarEmpleadoController;
 use App\Controller\EditarFamiliarController;
 use App\Controller\RegistrarEmpleadoController;
 use App\Controller\RegistrarFamiliarController;
+use App\Controller\RegistroBeneficiosController;
 use App\Controller\RegistrosEmpleadosController;
 use App\Controller\RegistrosFamiliaresController;
 use App\Middleware\SesionMiddleware;
@@ -384,18 +385,40 @@ final class ApiEloquentEndpointsTest extends TestCase
         self::assertSame('editar_empleado', $this->ultimaVista);
         self::assertSame(1, $this->ultimosDatosVista['empleado']->empleado_id);
         self::assertArrayHasKey(2, $this->ultimosDatosVista['estatus']);
+        self::assertArrayHasKey(1, $this->ultimosDatosVista['estados']);
 
         $appRegFam = $this->crearMockEngine('GET', [], ['empleado' => '1']);
         (new RegistrarFamiliarController($appRegFam, $this->config, $this->catalogos, $this->gestor))->render();
         self::assertSame('registrar_familiar', $this->ultimaVista);
         self::assertSame('1', $this->ultimosDatosVista['empleado_seleccionado']);
-        self::assertCount(2, $this->ultimosDatosVista['empleados']);
+        self::assertCount(1, $this->ultimosDatosVista['empleados']);
+        self::assertSame('1', $this->ultimosDatosVista['empleados'][0]['value']);
 
         $appEditFam = $this->crearMockEngine('GET');
         (new EditarFamiliarController($appEditFam, $this->config, $this->catalogos, $this->gestor))->render('1');
         self::assertSame('editar_familiar', $this->ultimaVista);
         self::assertSame(1, $this->ultimosDatosVista['familiar']->familia_id);
         self::assertSame('V-21456789', $this->ultimosDatosVista['titular']->cedula);
+    }
+
+    public function testSelectsRemotosBuscanEmpleadosYPersonasConPaginacion(): void
+    {
+        $appEmp = $this->crearMockEngine('GET', [], ['q' => 'mendoza', 'limit' => '10']);
+        (new RegistrosEmpleadosController($appEmp, $this->config, $this->catalogos, $this->gestor))->buscarParaSelect();
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertTrue($this->ultimoJson['ok']);
+        self::assertCount(1, $this->ultimoJson['data']);
+        self::assertSame('V-21456789', $this->ultimoJson['data'][0]['sublabel']);
+
+        $appPer = $this->crearMockEngine('GET', [], ['q' => '31245678', 'limit' => '10']);
+        (new RegistroBeneficiosController($appPer, $this->config, $this->catalogos))->buscarPersonasParaSelect();
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertTrue($this->ultimoJson['ok']);
+        self::assertCount(1, $this->ultimoJson['data']);
+        self::assertSame('V-31245678 · Hija', $this->ultimoJson['data'][0]['sublabel']);
+
+        self::assertSame(2, $this->catalogos->contarEmpleadosActivos());
+        self::assertSame(4, $this->catalogos->contarPersonasElegibles());
     }
 
     /**

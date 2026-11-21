@@ -33,7 +33,8 @@ class RegistroVacacionesController
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
             'usuario' => (object) ContextoSesion::todo(),
-            'empleados' => $this->catalogos->empleadosActivosParaSelect(),
+            'empleados' => [],
+            'total_empleados_activos' => $this->catalogos->contarEmpleadosActivos(),
         ]);
     }
 }

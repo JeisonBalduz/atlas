@@ -61,19 +61,20 @@ if (Debugger::$showBar === true && PHP_SAPI !== 'cli' && class_exists(TracyExten
 }
 
 // ---------------------------------------------------------------------------
-// Database (SimplePdo) — optional if driver is empty
+// Database (SimplePdo) — lazy para no abrir una segunda conexión TCP en cada vista
 // ---------------------------------------------------------------------------
-$db = null;
 if (DatabaseFactory::isEnabled($config)) {
-    $db = DatabaseFactory::create($config);
-    // Optional Flight::db() for ecosystem code; app layer should inject SimplePdo
-    $app->map('db', function () use ($db) {
+    $app->map('db', function () use ($config) {
+        static $db = null;
+        if ($db === null) {
+            $db = DatabaseFactory::create($config);
+        }
         return $db;
     });
 }
 
 // ---------------------------------------------------------------------------
-// BladeOne (Reemplazando a Twig)
+// BladeOne (MODE_AUTO compila si falta o cambia y reutiliza caché compilada)
 // ---------------------------------------------------------------------------
 $viewsPath = $projectRoot . $ds . 'resources' . $ds . 'views';
 $bladeCache = $projectRoot . $ds . 'app' . $ds . 'cache' . $ds . 'blade';
@@ -81,7 +82,6 @@ if (!is_dir($bladeCache)) {
     mkdir($bladeCache, 0775, true);
 }
 
-// Instanciar BladeOne correctamente
 $blade = new BladeOne($viewsPath, $bladeCache, BladeOne::MODE_AUTO);
 
 
@@ -89,6 +89,7 @@ $blade = new BladeOne($viewsPath, $bladeCache, BladeOne::MODE_AUTO);
 $blade->share('csp_nonce', $nonce);
 $blade->share('app_env', $config->env());
 $blade->share('base_url', $config->baseUrl());
+$blade->share('vite_activo', is_file($projectRoot . $ds . 'public' . $ds . 'hot'));
 
 // Mapear Flight::render() para que use BladeOne
 $app->map('render', function (string $template, array $data = []) use ($app, $blade) {
@@ -130,6 +131,7 @@ $capsule->addConnection([
     'charset'   => 'utf8',
     'prefix'    => '',
     'schema'    => 'public',
+    'options'   => PHP_SAPI !== 'cli' ? [PDO::ATTR_PERSISTENT => true] : [],
 ]);
 $capsule->setAsGlobal();
 $capsule->bootEloquent();
@@ -180,10 +182,6 @@ $substitutions = [
     ReemplazarDocumento::class => $reemplazarDocumento,
 ];
 
-if ($db instanceof SimplePdo) {
-    $substitutions[SimplePdo::class] = $db;
-}
-
 $container = $container->addRule('*', [
     'substitutions' => $substitutions,
 ]);
@@ -195,8 +193,20 @@ $container = $container->addRule(Session::class, ['shared' => true]);
 $container = $container->addRule(ConnectionInterface::class, ['shared' => true]);
 $container = $container->addRule(CatalogosService::class, ['shared' => true]);
 $container = $container->addRule(GestorDocumentos::class, ['shared' => true]);
-if ($db instanceof SimplePdo) {
-    $container = $container->addRule(SimplePdo::class, ['shared' => true]);
+if (DatabaseFactory::isEnabled($config)) {
+    $container = $container->addRule(SimplePdo::class, [
+        'shared' => true,
+        'constructParams' => [
+            'pgsql:host=' . $config->get('database.host', 'localhost') . ';port=' . $config->get('database.port', '5432') . ';dbname=' . $config->get('database.dbname', 'talento_humano'),
+            $config->get('database.user'),
+            $config->get('database.password'),
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ],
+        ],
+    ]);
 }
 
 $app->registerContainerHandler(function ($class, $params) use ($container) {

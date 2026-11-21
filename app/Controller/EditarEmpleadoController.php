@@ -46,16 +46,8 @@ class EditarEmpleadoController
         $empleadoId = (int) $idRaw;
         $empleado = EmpleadosModel::query()
             ->with([
-                'persona.estadoCivil',
                 'persona.telefonos',
-                'persona.documentos.tipoDocumento',
-                'direccion.parroquia.municipio.estado',
-                'dependencia',
-                'departamento',
-                'cargo',
-                'estatus',
-                'nivelAcademico',
-                'carrera',
+                'direccion.parroquia.municipio',
             ])
             ->find($empleadoId);
 
@@ -68,6 +60,9 @@ class EditarEmpleadoController
         $telPrincipal = $persona->telefonos->firstWhere('emergencia', false);
         $telEmergencia = $persona->telefonos->firstWhere('emergencia', true);
 
+        $municipioActualId = (int) ($empleado->direccion?->parroquia?->municipio_id ?? 0);
+        $estadoActualId = (int) ($empleado->direccion?->parroquia?->municipio?->estado_id ?? 0);
+
         $this->app->render('editar_empleado', [
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
@@ -77,7 +72,6 @@ class EditarEmpleadoController
             'direccion' => $empleado->direccion,
             'telefono_principal' => $telPrincipal !== null ? (string) $telPrincipal->numero_telefono : '',
             'telefono_emergencia' => $telEmergencia !== null ? (string) $telEmergencia->numero_telefono : '',
-            'documentos' => $persona->documentos,
             'estados_civiles' => $this->catalogos->estadosCiviles(),
             'dependencias' => $this->catalogos->dependencias(false),
             'departamentos' => $this->catalogos->departamentos(false),
@@ -85,7 +79,11 @@ class EditarEmpleadoController
             'estatus' => $this->catalogos->estatus(false),
             'niveles_academicos' => $this->catalogos->nivelesAcademicos(),
             'carreras' => $this->catalogos->carreras(),
-            'parroquias' => $this->catalogos->parroquiasConUbicacion(),
+            'estados' => $this->catalogos->estados(),
+            'municipios' => $estadoActualId > 0 ? $this->catalogos->municipiosPorEstado($estadoActualId) : [],
+            'parroquias' => $municipioActualId > 0 ? $this->catalogos->parroquiasPorMunicipio($municipioActualId) : [],
+            'estado_seleccionado' => $estadoActualId > 0 ? (string) $estadoActualId : '',
+            'municipio_seleccionado' => $municipioActualId > 0 ? (string) $municipioActualId : '',
             'tipos_documentos' => $this->catalogos->tiposDocumentos(),
             'generos' => $this->catalogos->generos((string) $persona->genero),
         ]);

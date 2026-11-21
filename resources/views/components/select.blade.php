@@ -1,21 +1,10 @@
 {{--
     Componente: Select
     Descripción: Menú desplegable con buscador en tiempo real, posicionamiento inteligente
-                 (despliega arriba si no hay espacio abajo) y sincronización con select nativo.
-
-    Parámetros:
-    - label (string, opcional): Texto de la etiqueta superior.
-    - id (string, requerido): Identificador único del select.
-    - name (string, requerido): Nombre del campo para el formulario.
-    - options (array, requerido): Opciones a mostrar. Acepta:
-        * Array asociativo simple: ['01' => 'Enero', '02' => 'Febrero']
-        * Array con metadatos: [['value' => '1', 'label' => 'Texto', 'sublabel' => 'Detalle', 'icon' => '🌐']]
-    - placeholder (string, opcional): Texto inicial sin selección (default: 'Seleccionar opción...').
-    - selected (string|int, opcional): Valor preseleccionado.
-    - required (bool, opcional): Indica si el campo es obligatorio (default: false).
-    - disabled (bool, opcional): Deshabilita la interacción con el select (default: false).
+                 (despliega arriba si no hay espacio abajo), soporte de carga remota desde servidor
+                 (`remoteUrl`) y sincronización con select nativo.
 --}}
-<div class="space-y-1.5" data-custom-select id="{{ $id }}-wrapper">
+<div class="space-y-1.5" data-custom-select id="{{ $id }}-wrapper" @if (!empty($remoteUrl)) data-remote-url="{{ $remoteUrl }}" @endif>
     @if (!empty($label))
     <label for="{{ $id }}" class="block text-sm font-medium text-zinc-900">
         {{ $label }}
@@ -60,15 +49,14 @@
             class="custom-select-dropdown hidden absolute left-0 right-0 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden z-50 p-1.5 space-y-1">
             {{-- Input Buscador --}}
             @if ($search ?? false)
-                <div class="px-2 pt-1 pb-1.5 border-b border-zinc-100">
+            <div class="px-2 pt-1 pb-1.5 border-b border-zinc-100">
                 <div class="flex items-center gap-2 bg-zinc-100 px-2.5 py-1.5 rounded-lg">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-zinc-400 shrink-0"></i>
-                    <input type="text" placeholder="Buscar registro..."
+                    <input type="text" placeholder="{{ !empty($remoteUrl) ? 'Escribir para buscar en el servidor...' : 'Buscar registro...' }}"
                         class="custom-select-search w-full bg-transparent text-xs text-zinc-900 focus:outline-none placeholder-zinc-400" />
                 </div>
             </div>
             @endif
-            
 
             {{-- Lista de Opciones --}}
             <div class="custom-select-options max-h-52 overflow-y-auto space-y-0.5">
@@ -94,8 +82,10 @@
                         @endif
                     </div>
 
-                    <i data-lucide="check"
-                        class="custom-select-check w-4 h-4 text-zinc-900 shrink-0 ml-2 {{ $isSelected ? '' : 'hidden' }}"></i>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                        class="custom-select-check w-4 h-4 text-zinc-900 shrink-0 ml-2 {{ $isSelected ? '' : 'hidden' }}">
+                        <path d="M20 6 9 17l-5-5" />
+                    </svg>
                 </div>
                 @endforeach
 

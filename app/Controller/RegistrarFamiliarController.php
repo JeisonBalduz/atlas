@@ -41,11 +41,15 @@ class RegistrarFamiliarController
             ? (string) (int) $empleadoPreseleccionado
             : '';
 
+        $empleadosPreseleccionados = $empleadoSeleccionado !== ''
+            ? $this->catalogos->empleadoParaSelectPorId((int) $empleadoSeleccionado)
+            : [];
+
         $this->app->render('registrar_familiar', [
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
             'usuario' => (object) ContextoSesion::todo(),
-            'empleados' => $this->catalogos->empleadosActivosParaSelect(),
+            'empleados' => $empleadosPreseleccionados,
             'empleado_seleccionado' => $empleadoSeleccionado,
             'estados_civiles' => $this->catalogos->estadosCiviles(),
             'parentescos' => $this->catalogos->tiposParentesco(),

@@ -87,9 +87,10 @@
                 'label' => 'Empleado',
                 'id' => 'empleado_id',
                 'name' => 'empleado_id',
-                'placeholder' => 'Seleccionar empleado...',
+                'placeholder' => 'Buscar empleado por nombre o cédula...',
                 'required' => true,
                 'search' => true,
+                'remoteUrl' => '/api/select/empleados',
                 'options' => $empleados ?? [],
             ])
             @endcomponent

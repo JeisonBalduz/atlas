@@ -55,7 +55,7 @@
             </div>
         </div>
         <div class="mt-4">
-            <p class="text-4xl font-bold tracking-tight text-zinc-900">{{ count($personas ?? []) }}</p>
+            <p class="text-4xl font-bold tracking-tight text-zinc-900">{{ $total_beneficiarios ?? count($personas ?? []) }}</p>
             <p class="mt-2 text-xs font-medium text-zinc-500">Titulares y familiares registrados</p>
         </div>
     </article>
@@ -72,9 +72,10 @@
                 'label' => 'Beneficiario (Empleado o Familiar)',
                 'id' => 'persona_id',
                 'name' => 'persona_id',
-                'placeholder' => 'Seleccionar persona...',
+                'placeholder' => 'Buscar persona por nombre o cédula...',
                 'required' => true,
                 'search' => true,
+                'remoteUrl' => '/api/select/personas',
                 'options' => $personas ?? [],
             ])
             @endcomponent

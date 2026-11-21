@@ -45,6 +45,7 @@
             'placeholder' => 'Buscar empleado por nombre o cédula...',
             'required' => true,
             'search' => true,
+            'remoteUrl' => '/api/select/empleados',
             'options' => $empleados ?? [],
             'selected' => $empleado_seleccionado ?? '',
         ])
