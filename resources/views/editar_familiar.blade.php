@@ -13,7 +13,7 @@
 @endsection
 
 @section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
-<form id="formulario-editar-familiar" data-familia-id="{{ $familiar->familia_id ?? '' }}" class="w-full max-w-none mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 atlas-vista-entrada" novalidate>
+<form id="formulario-editar-familiar" data-familia-id="{{ $familiar->familia_id ?? '' }}" enctype="multipart/form-data" class="w-full max-w-none mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 atlas-vista-entrada" novalidate>
 
     {{-- Card 1 (Bento Hero Oscura): Cabecera con retorno al listado de familiares --}}
     <header class="col-span-full rounded-3xl border border-zinc-900 bg-zinc-950 p-6 sm:p-7 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -79,6 +79,64 @@
                 @component('components.input', ['label' => 'Tomo', 'id' => 'tomo', 'name' => 'tomo', 'value' => $familiar->tomo ?? '', 'maxlength' => 6, 'required' => true]) @endcomponent
                 @component('components.input', ['label' => 'Folio', 'id' => 'folio', 'name' => 'folio', 'value' => $familiar->folio ?? '', 'maxlength' => 6, 'required' => true]) @endcomponent
             </div>
+        </div>
+    </section>
+
+    {{-- Card 4 (Bento Blanca 12 Columnas): Expediente Documental del Familiar --}}
+    <section class="col-span-full rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+        <header class="border-b border-slate-200 pb-4">
+            <h2 class="text-lg font-semibold text-zinc-900">Documentos del Familiar</h2>
+            <p class="text-sm text-zinc-500">Consulta los documentos cargados para este familiar y adjunta los faltantes según el Contrato Colectivo.</p>
+        </header>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            @foreach(($recaudos ?? []) as $rec)
+                <article class="rounded-2xl border {{ !empty($rec['cargado']) ? 'border-green-200 bg-green-50/40' : (!empty($rec['obligatorio']) ? 'border-yellow-300 bg-yellow-50/40' : 'border-slate-200 bg-slate-50/40') }} p-4 flex flex-col justify-between gap-3">
+                    <div class="space-y-1.5">
+                        <div class="flex items-start justify-between gap-2">
+                            <h3 class="text-sm font-semibold text-zinc-900">{{ $rec['etiqueta'] }}</h3>
+                            @if(!empty($rec['cargado']))
+                                <span class="inline-flex items-center rounded-md bg-green-400/20 px-2 py-0.5 text-[11px] font-semibold text-green-800 whitespace-nowrap">Cargado</span>
+                            @elseif(!empty($rec['obligatorio']))
+                                <span class="inline-flex items-center rounded-md bg-yellow-400/20 px-2 py-0.5 text-[11px] font-semibold text-yellow-900 whitespace-nowrap">Obligatorio</span>
+                            @else
+                                <span class="inline-flex items-center rounded-md bg-slate-200/70 px-2 py-0.5 text-[11px] font-semibold text-zinc-700 whitespace-nowrap">Opcional</span>
+                            @endif
+                        </div>
+                        @if(!empty($rec['motivo']))
+                            <p class="text-xs text-zinc-500">{{ $rec['motivo'] }}</p>
+                        @endif
+                        @if(!empty($rec['cargado']) && !empty($rec['url_descarga']))
+                            <div class="flex items-center justify-between gap-2 pt-1 text-xs">
+                                <span class="truncate text-zinc-600" title="{{ $rec['nombre_original'] ?? '' }}">{{ $rec['nombre_original'] ?? 'Archivo cargado' }}</span>
+                                <a href="{{ $rec['url_descarga'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-semibold text-marca hover:underline whitespace-nowrap">
+                                    <i data-lucide="external-link" class="h-3.5 w-3.5" aria-hidden="true"></i>
+                                    <span>Ver</span>
+                                </a>
+                            </div>
+                        @endif
+                    </div>
+
+                    @if(!empty($rec['es_titular']))
+                        <p class="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800">
+                            Se verifica en el expediente del trabajador titular.
+                        </p>
+                    @else
+                        <div>
+                            <label for="doc-fam-edit-{{ $rec['tipo_documento_id'] }}" class="block text-[11px] font-medium text-zinc-600 mb-1">
+                                {{ !empty($rec['cargado']) ? 'Reemplazar archivo (PDF/JPG/PNG)' : 'Adjuntar archivo (PDF/JPG/PNG)' }}
+                            </label>
+                            <input
+                                id="doc-fam-edit-{{ $rec['tipo_documento_id'] }}"
+                                name="documentos[{{ $rec['tipo_documento_id'] }}]"
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                class="atlas-doc-fam-input w-full rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-zinc-700 file:mr-2.5 file:rounded-lg file:border-0 file:bg-zinc-900 file:px-2.5 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-zinc-800 cursor-pointer"
+                            />
+                        </div>
+                    @endif
+                </article>
+            @endforeach
         </div>
 
         <footer class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">

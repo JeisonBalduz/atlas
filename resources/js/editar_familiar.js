@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   InputValidador.soloNumeros('#cedula', { minimo: 6, limite: 9, requerido: true });
   InputValidador.soloNumeros('#tomo, #folio', { minimo: 1, limite: 6, requerido: true });
   InputValidador.requerido('#formulario-editar-familiar select, #fecha_nacimiento');
+  InputValidador.archivo('.atlas-doc-fam-input', { tamanoMaximoMB: 5 });
 
   let enviando = false;
 

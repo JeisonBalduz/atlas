@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   InputValidador.requerido('#form-registro select, #fechaing3');
 
-  InputValidador.archivo('#achivoDis, #contrato, #notificacion', {
+  InputValidador.archivo('#contrato, #notificacion', {
     tamanoMaximoMB: 5,
   });
 
@@ -174,14 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (etiquetaBtn) etiquetaBtn.textContent = 'Guardando...';
 
       try {
-        const datosFormulario = new FormData();
-        const nombresCampos = new FormData(formulario);
-        for (const [clave, valor] of nombresCampos.entries()) {
-          if (['docArchivoDis', 'contratoArchivo', 'notacionAchivo'].includes(clave)) {
-            continue;
-          }
-          datosFormulario.append(clave, valor);
-        }
+        const datosFormulario = new FormData(formulario);
 
         const resEmpleado = await Solicitud.post('/api/empleados', datosFormulario);
         if (resEmpleado.status === 401) {
@@ -194,46 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        const empleadoId = resEmpleado.data?.data?.empleado_id;
-        let tiposDocs = {};
-        try {
-          tiposDocs = JSON.parse(formulario.dataset.tiposDocumentos || '{}') || {};
-        } catch {
-          tiposDocs = {};
-        }
-
-        // Subir documentos adjuntos vía POST /api/documentos
-        const adjuntos = [
-          { input: document.getElementById('contrato'), claves: ['contrat'] },
-          { input: document.getElementById('notificacion'), claves: ['notific'] },
-          { input: document.getElementById('achivoDis'), claves: ['discap', 'certific'] },
-        ];
-
-        const erroresDocs = [];
-        for (const item of adjuntos) {
-          const archivo = item.input?.files?.[0];
-          const tipoId = resolverTipoDocumentoId(tiposDocs, item.claves);
-          if (!archivo || !empleadoId || !tipoId) continue;
-
-          const fdDoc = new FormData();
-          fdDoc.append('empleado_id', String(empleadoId));
-          fdDoc.append('tipo_documento_id', String(tipoId));
-          fdDoc.append('archivo', archivo);
-
-          const resDoc = await Solicitud.post('/api/documentos', fdDoc);
-          if (!resDoc.ok || !resDoc.data?.ok) {
-            erroresDocs.push(resDoc.message || `No se pudo subir ${archivo.name}`);
-          }
-        }
-
-        if (erroresDocs.length > 0) {
-          mostrarToast('warning', `Trabajador registrado, pero con advertencia en documentos: ${erroresDocs[0]}`);
-        } else {
-          mostrarToast('success', resEmpleado.data.message || 'Trabajador registrado correctamente.');
-        }
+        mostrarToast('success', resEmpleado.data.message || 'Trabajador registrado en estado Pendiente.');
 
         setTimeout(() => {
-          window.location.href = '/empleado/registrar';
+          window.location.href = '/empleados/registros';
         }, 700);
       } finally {
         enviando = false;

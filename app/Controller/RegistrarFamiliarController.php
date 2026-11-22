@@ -46,6 +46,12 @@ class RegistrarFamiliarController implements RenderInterfaces
             ? $this->catalogos->empleadoParaSelectPorId((int) $empleadoSeleccionado)
             : [];
 
+        $parentescos = $this->catalogos->tiposParentesco();
+        $recaudosPorParentesco = [];
+        foreach (array_keys($parentescos) as $parentescoId) {
+            $recaudosPorParentesco[(string) $parentescoId] = $this->catalogos->recaudosParaFamiliar((int) $parentescoId);
+        }
+
         $this->app->render('registrar_familiar', [
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
@@ -53,8 +59,9 @@ class RegistrarFamiliarController implements RenderInterfaces
             'empleados' => $empleadosPreseleccionados,
             'empleado_seleccionado' => $empleadoSeleccionado,
             'estados_civiles' => $this->catalogos->estadosCiviles(),
-            'parentescos' => $this->catalogos->tiposParentesco(),
+            'parentescos' => $parentescos,
             'tipos_documentos' => $this->catalogos->tiposDocumentos(),
+            'recaudos_por_parentesco' => $recaudosPorParentesco,
             'generos' => $this->catalogos->generos(),
         ]);
     }
@@ -114,6 +121,7 @@ class RegistrarFamiliarController implements RenderInterfaces
 
         $archivos = $this->app->request()->files->getData();
         $entradaArchivo = $archivos['archivo'] ?? null;
+        $documentosPorTipo = CatalogosService::normalizarArchivosPorTipo($archivos);
         $tipoDocRaw = $input->get('tipo_documento_id');
         $tipoDocumentoId = is_numeric($tipoDocRaw) && (int) $tipoDocRaw > 0 ? (int) $tipoDocRaw : null;
 
@@ -135,7 +143,8 @@ class RegistrarFamiliarController implements RenderInterfaces
                 $tomo,
                 $folio,
                 $entradaArchivo,
-                $tipoDocumentoId
+                $tipoDocumentoId,
+                $documentosPorTipo
             ): array {
                 $persona = PersonasModel::query()
                     ->where('nacionalidad', $nacionalidad)
@@ -174,26 +183,39 @@ class RegistrarFamiliarController implements RenderInterfaces
                     'genero' => $genero,
                 ]);
 
-                $documento = null;
-                if (
-                    $this->gestorDocumentos !== null
-                    && is_array($entradaArchivo)
-                    && ($entradaArchivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
-                    && $tipoDocumentoId !== null
-                ) {
-                    $documento = $this->gestorDocumentos->subir(
-                        $entradaArchivo,
-                        $tipoDocumentoId,
-                        $empleadoId,
-                        (int) $familiar->familia_id
-                    );
+                $documentosIds = [];
+                if ($this->gestorDocumentos !== null) {
+                    if (
+                        is_array($entradaArchivo)
+                        && ($entradaArchivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
+                        && $tipoDocumentoId !== null
+                    ) {
+                        $doc = $this->gestorDocumentos->subir(
+                            $entradaArchivo,
+                            $tipoDocumentoId,
+                            $empleadoId,
+                            (int) $familiar->familia_id
+                        );
+                        $documentosIds[] = (int) $doc->documentos_id;
+                    }
+
+                    foreach ($documentosPorTipo as $tipoDocId => $archivoDoc) {
+                        $doc = $this->gestorDocumentos->subir(
+                            $archivoDoc,
+                            (int) $tipoDocId,
+                            $empleadoId,
+                            (int) $familiar->familia_id
+                        );
+                        $documentosIds[] = (int) $doc->documentos_id;
+                    }
                 }
 
                 return [
                     'familia_id' => (int) $familiar->familia_id,
                     'persona_id' => (int) $persona->persona_id,
                     'empleado_id' => (int) $familiar->empleado_id,
-                    'documento_id' => $documento?->documentos_id,
+                    'documento_id' => $documentosIds[0] ?? null,
+                    'documentos_ids' => $documentosIds,
                 ];
             });
 

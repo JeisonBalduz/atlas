@@ -152,24 +152,6 @@
                     ])
                     @endcomponent
 
-                    @component('components.select', [
-                        'label' => 'Tipo De Discapacidad',
-                        'id' => 'tpDiscapacidad',
-                        'name' => 'tpDiscapacidad',
-                        'required' => true,
-                        'search'=> true,
-                        'options' => $tipos_discapacidad ?? ['0' => 'Ninguna'],
-                    ])
-                    @endcomponent
-
-                    @component('components.file', [
-                        'label' => 'Partida De Discapacidad',
-                        'id' => 'achivoDis',
-                        'name' => 'docArchivoDis',
-                        'hint' => 'PDF, JPG o PNG. Máximo 5 MB.',
-                    ])
-                    @endcomponent
-
                     <fieldset class="md:col-span-2">
                         <legend class="mb-3 text-sm font-semibold text-zinc-900">Fecha de nacimiento</legend>
                         <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">

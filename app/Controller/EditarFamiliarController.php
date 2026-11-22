@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Http\LimpiarInputs;
+use App\Model\Personas\DocumentosModel;
 use App\Model\Personas\EmpleadosModel;
 use App\Model\Personas\FamiliaresModel;
 use App\Model\Personas\PersonasModel;
@@ -84,6 +85,11 @@ class EditarFamiliarController implements RenderInterfaces
                 'cargo' => $titularCargo,
             ],
             'parentescos' => $this->catalogos->tiposParentesco(),
+            'recaudos' => $this->catalogos->recaudosParaFamiliar(
+                (int) $familiar->parentesco_id,
+                (int) $familiar->persona_id,
+                (int) ($titularPersona?->persona_id ?? 0)
+            ),
             'generos' => $this->catalogos->generos($generoActual),
             'genero_actual' => $generoActual,
         ]);
@@ -140,9 +146,10 @@ class EditarFamiliarController implements RenderInterfaces
         $genero = substr((string) $input->get('genero', $personaActual->genero), 0, 20);
         $tomo = (int) $input->get('tomo', (string) $familiar->tomo);
         $folio = (int) $input->get('folio', (string) $familiar->folio);
+        $documentosPorTipo = CatalogosService::normalizarArchivosPorTipo($this->app->request()->files->getData());
 
         try {
-            $familiar->getConnection()->transaction(function () use (
+            $documentosIds = $familiar->getConnection()->transaction(function () use (
                 $familiar,
                 $personaActual,
                 $parentescoId,
@@ -156,8 +163,9 @@ class EditarFamiliarController implements RenderInterfaces
                 $fechaNacimiento,
                 $genero,
                 $tomo,
-                $folio
-            ): void {
+                $folio,
+                $documentosPorTipo
+            ): array {
                 $personaActual->fill([
                     'primer_nombre' => $primerNombre,
                     'segundo_nombre' => $segundoNombre,
@@ -178,15 +186,54 @@ class EditarFamiliarController implements RenderInterfaces
                     'genero' => $genero,
                 ]);
                 $familiar->save();
+
+                $procesados = [];
+                if ($this->gestorDocumentos !== null && $documentosPorTipo !== []) {
+                    foreach ($documentosPorTipo as $tipoDocId => $archivoDoc) {
+                        $vigente = DocumentosModel::query()
+                            ->where('persona_id', (int) $personaActual->persona_id)
+                            ->where('tipo_documento_id', (int) $tipoDocId)
+                            ->where('estatus_documento', 'Vigente')
+                            ->orderByDesc('documentos_id')
+                            ->first();
+
+                        if ($vigente instanceof DocumentosModel) {
+                            $nuevo = $this->gestorDocumentos->reemplazar(
+                                (int) $vigente->documentos_id,
+                                $archivoDoc,
+                                (int) $tipoDocId,
+                                (int) $familiar->empleado_id,
+                                (int) $familiar->familia_id
+                            );
+                        } else {
+                            $nuevo = $this->gestorDocumentos->subir(
+                                $archivoDoc,
+                                (int) $tipoDocId,
+                                (int) $familiar->empleado_id,
+                                (int) $familiar->familia_id
+                            );
+                        }
+                        $procesados[] = (int) $nuevo->documentos_id;
+                    }
+                }
+
+                return $procesados;
             });
 
             $this->app->json([
                 'ok' => true,
                 'message' => 'Familiar actualizado correctamente.',
-                'data' => ['familia_id' => (int) $familiar->familia_id],
+                'data' => [
+                    'familia_id' => (int) $familiar->familia_id,
+                    'documentos_ids' => $documentosIds,
+                ],
             ], 200);
-        } catch (Throwable) {
-            $this->app->json(['ok' => false, 'message' => 'No se pudo actualizar el familiar.'], 500);
+        } catch (Throwable $e) {
+            $codigo = (int) $e->getCode();
+            $this->app->json([
+                'ok' => false,
+                'message' => $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo actualizar el familiar.',
+            ], $codigo >= 400 && $codigo < 600 ? $codigo : 500);
         }
     }
 }

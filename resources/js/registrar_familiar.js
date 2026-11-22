@@ -14,8 +14,86 @@ document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
 
   const selectEmpleado = document.getElementById('empleado_id');
+  const selectParentesco = document.getElementById('parentesco_id');
+  const contenedorRecaudos = document.getElementById('contenedor-recaudos-familiar');
   const tarjetaTitular = document.getElementById('tarjeta-resumen-titular');
   const formulario = document.getElementById('formulario-registrar-familiar');
+
+  let recaudosPorParentesco = {};
+  try {
+    const scriptRecaudos = document.getElementById('recaudos-parentesco-json');
+    if (scriptRecaudos?.textContent) {
+      recaudosPorParentesco = JSON.parse(scriptRecaudos.textContent) || {};
+    }
+  } catch {
+    recaudosPorParentesco = {};
+  }
+
+  const escapar = (v) =>
+    String(v ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+
+  const renderizarRecaudosFamiliar = (parentescoId) => {
+    if (!contenedorRecaudos) return;
+    const lista = recaudosPorParentesco[String(parentescoId || '')] || [];
+    if (!Array.isArray(lista) || lista.length === 0) {
+      contenedorRecaudos.innerHTML = `
+        <p class="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-zinc-500">
+          Selecciona un parentesco arriba para cargar los campos de documentos correspondientes.
+        </p>`;
+      return;
+    }
+
+    contenedorRecaudos.innerHTML = lista
+      .map((rec) => {
+        const esTitular = Boolean(rec.es_titular);
+        const badge = rec.obligatorio
+          ? '<span class="inline-flex items-center rounded-md bg-yellow-400/20 px-2 py-0.5 text-[11px] font-semibold text-yellow-900 whitespace-nowrap">Obligatorio</span>'
+          : '<span class="inline-flex items-center rounded-md bg-slate-200/70 px-2 py-0.5 text-[11px] font-semibold text-zinc-700 whitespace-nowrap">Opcional</span>';
+
+        const controlHtml = esTitular
+          ? '<p class="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800">Este documento se verifica directamente en el expediente del trabajador titular.</p>'
+          : `
+            <div>
+              <label for="doc-fam-${escapar(rec.tipo_documento_id)}" class="block text-[11px] font-medium text-zinc-600 mb-1">
+                Adjuntar archivo (PDF/JPG/PNG)
+              </label>
+              <input
+                id="doc-fam-${escapar(rec.tipo_documento_id)}"
+                name="documentos[${escapar(rec.tipo_documento_id)}]"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                class="atlas-doc-fam-input w-full rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-zinc-700 file:mr-2.5 file:rounded-lg file:border-0 file:bg-zinc-900 file:px-2.5 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-zinc-800 cursor-pointer"
+              />
+            </div>`;
+
+        return `
+          <article class="rounded-2xl border ${rec.obligatorio ? 'border-yellow-300 bg-yellow-50/40' : 'border-slate-200 bg-slate-50/40'} p-4 flex flex-col justify-between gap-3">
+            <div class="space-y-1">
+              <div class="flex items-start justify-between gap-2">
+                <h3 class="text-sm font-semibold text-zinc-900">${escapar(rec.etiqueta)}</h3>
+                ${badge}
+              </div>
+              ${rec.motivo ? `<p class="text-xs text-zinc-500">${escapar(rec.motivo)}</p>` : ''}
+            </div>
+            ${controlHtml}
+          </article>`;
+      })
+      .join('');
+
+    InputValidador.archivo('.atlas-doc-fam-input', { tamanoMaximoMB: 5 });
+  };
+
+  selectParentesco?.addEventListener('change', () => {
+    renderizarRecaudosFamiliar(selectParentesco.value);
+  });
+  if (selectParentesco?.value) {
+    renderizarRecaudosFamiliar(selectParentesco.value);
+  }
 
   let controladorTitular = null;
 

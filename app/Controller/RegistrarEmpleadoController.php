@@ -139,6 +139,9 @@ class RegistrarEmpleadoController implements RenderInterfaces
 
         $archivos = $this->app->request()->files->getData();
         $entradaArchivo = $archivos['archivo'] ?? null;
+        $archivoContrato = $archivos['contratoArchivo'] ?? null;
+        $archivoNotificacion = $archivos['notacionAchivo'] ?? null;
+        $documentosPorTipo = CatalogosService::normalizarArchivosPorTipo($archivos);
         $tipoDocRaw = $input->get('tipo_documento_id');
         $tipoDocumentoId = is_numeric($tipoDocRaw) && (int) $tipoDocRaw > 0 ? (int) $tipoDocRaw : null;
 
@@ -168,6 +171,9 @@ class RegistrarEmpleadoController implements RenderInterfaces
                 $telPrincipal,
                 $telEmergencia,
                 $entradaArchivo,
+                $archivoContrato,
+                $archivoNotificacion,
+                $documentosPorTipo,
                 $tipoDocumentoId
             ): array {
                 $persona = PersonasModel::query()->create([
@@ -191,7 +197,7 @@ class RegistrarEmpleadoController implements RenderInterfaces
                     'nivel_academico_id' => $nivelAcademicoId,
                     'carrera_id' => $carreraId,
                     'codigo_empleado' => $codigoEmpleado,
-                    'estatus_actual' => 1,
+                    'estatus_actual' => 3, // Pendiente hasta completar documentos obligatorios
                     'correo' => $correo,
                 ]);
 
@@ -224,27 +230,54 @@ class RegistrarEmpleadoController implements RenderInterfaces
                     ]);
                 }
 
-                $documento = null;
-                if (
-                    $this->gestorDocumentos !== null
-                    && is_array($entradaArchivo)
-                    && ($entradaArchivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
-                    && $tipoDocumentoId !== null
-                ) {
-                    $documento = $this->gestorDocumentos->subir($entradaArchivo, $tipoDocumentoId, (int) $empleado->empleado_id);
+                $documentosIds = [];
+                if ($this->gestorDocumentos !== null) {
+                    if (
+                        is_array($entradaArchivo)
+                        && ($entradaArchivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
+                        && $tipoDocumentoId !== null
+                    ) {
+                        $doc = $this->gestorDocumentos->subir($entradaArchivo, $tipoDocumentoId, (int) $empleado->empleado_id);
+                        $documentosIds[] = (int) $doc->documentos_id;
+                    }
+
+                    if (
+                        is_array($archivoContrato)
+                        && ($archivoContrato['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
+                    ) {
+                        $tipoContratoId = $this->catalogos->resolverTipoDocumentoPorPalabras(['contrato laboral', 'nombramiento', 'contrato'], 15);
+                        $doc = $this->gestorDocumentos->subir($archivoContrato, $tipoContratoId, (int) $empleado->empleado_id);
+                        $documentosIds[] = (int) $doc->documentos_id;
+                    }
+
+                    if (
+                        is_array($archivoNotificacion)
+                        && ($archivoNotificacion['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
+                    ) {
+                        $tipoNotifId = $this->catalogos->resolverTipoDocumentoPorPalabras(['notificacion', 'notificación', 'designacion', 'designación'], 15);
+                        $doc = $this->gestorDocumentos->subir($archivoNotificacion, $tipoNotifId, (int) $empleado->empleado_id);
+                        $documentosIds[] = (int) $doc->documentos_id;
+                    }
+
+                    foreach ($documentosPorTipo as $tipoDocId => $archivoDoc) {
+                        $doc = $this->gestorDocumentos->subir($archivoDoc, (int) $tipoDocId, (int) $empleado->empleado_id);
+                        $documentosIds[] = (int) $doc->documentos_id;
+                    }
                 }
 
                 return [
                     'empleado_id' => (int) $empleado->empleado_id,
                     'persona_id' => (int) $persona->persona_id,
                     'codigo_empleado' => (string) $empleado->codigo_empleado,
-                    'documento_id' => $documento?->documentos_id,
+                    'estatus_actual' => 3,
+                    'documento_id' => $documentosIds[0] ?? null,
+                    'documentos_ids' => $documentosIds,
                 ];
             });
 
             $this->app->json([
                 'ok' => true,
-                'message' => 'Trabajador registrado correctamente.',
+                'message' => 'Trabajador registrado en estado Pendiente. Complete sus documentos en la vista de edición.',
                 'data' => $resultado,
             ], 201);
         } catch (Throwable $e) {

@@ -14,6 +14,8 @@ use App\Controller\RegistroBeneficiosController;
 use App\Controller\RegistrosEmpleadosController;
 use App\Controller\RegistrosFamiliaresController;
 use App\Middleware\SesionMiddleware;
+use App\Model\Beneficios\DetalleDiscapacidadModel;
+use App\Model\Beneficios\GradoDiscapacidadModel;
 use App\Model\Beneficios\TipoDiscapacidadModel;
 use App\Model\Catalogos\CargoModel;
 use App\Model\Catalogos\CarreraModel;
@@ -189,11 +191,22 @@ final class ApiEloquentEndpointsTest extends TestCase
 
         $creado = EmpleadosModel::query()->with(['persona.telefonos', 'direccion'])->find($nuevoId);
         self::assertInstanceOf(EmpleadosModel::class, $creado);
-        self::assertSame(1, (int) $creado->estatus_actual);
+        self::assertSame(3, (int) $creado->estatus_actual);
         self::assertSame('V', $creado->persona?->nacionalidad);
         self::assertSame(25999888, (int) $creado->persona?->cedula);
         self::assertLessThanOrEqual(10, strlen((string) $creado->codigo_empleado));
         self::assertSame('Av. Bolívar', $creado->direccion?->calle);
+
+        // Asignar discapacidad al trabajador recién creado
+        $appDisc = $this->crearMockEngine('POST', [
+            'tipo_discapacidad' => 'Visual',
+            'grado_discapacidad_id' => 1,
+            'numero_carnet' => 'CONAPDIS-777',
+            'entidad_emisora' => 'CONAPDIS',
+        ]);
+        (new RegistrosEmpleadosController($appDisc, $this->config, $this->catalogos, $this->gestor))->asignarDiscapacidad((string) $nuevoId);
+        self::assertSame(201, $this->ultimoCodigo);
+        self::assertTrue(DetalleDiscapacidadModel::query()->where('persona_id', (int) $creado->persona_id)->exists());
 
         $appUpdate = $this->crearMockEngine('PUT', [
             'correo' => 'luis.actualizado@inces.gob.ve',
@@ -204,7 +217,32 @@ final class ApiEloquentEndpointsTest extends TestCase
 
         $actualizado = EmpleadosModel::query()->with('persona.telefonos')->find($nuevoId);
         self::assertSame('luis.actualizado@inces.gob.ve', $actualizado?->correo);
+        self::assertSame(3, (int) $actualizado?->estatus_actual);
         self::assertCount(2, $actualizado?->persona?->telefonos ?? []);
+
+        // Subir documentos obligatorios del perfil (Cédula ID 1, Partida ID 2) debe activar automáticamente (3 -> 1)
+        $pdf1 = $this->tempDir . DIRECTORY_SEPARATOR . 'cedula.pdf';
+        $pdf2 = $this->tempDir . DIRECTORY_SEPARATOR . 'partida.pdf';
+        file_put_contents($pdf1, "%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF");
+        file_put_contents($pdf2, "%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF");
+        $this->gestor->subir([
+            'name' => 'cedula.pdf',
+            'tmp_name' => $pdf1,
+            'size' => (int) filesize($pdf1),
+            'error' => UPLOAD_ERR_OK,
+        ], 1, $nuevoId, null, false);
+        $this->gestor->subir([
+            'name' => 'partida.pdf',
+            'tmp_name' => $pdf2,
+            'size' => (int) filesize($pdf2),
+            'error' => UPLOAD_ERR_OK,
+        ], 2, $nuevoId, null, false);
+
+        $appUpdateDocs = $this->crearMockEngine('POST', []);
+        (new EditarEmpleadoController($appUpdateDocs, $this->config, $this->catalogos, $this->gestor))->update((string) $nuevoId);
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertTrue($this->ultimoJson['data']['activado_automaticamente']);
+        self::assertSame(1, (int) EmpleadosModel::query()->find($nuevoId)?->estatus_actual);
 
         $appDestroy = $this->crearMockEngine('DELETE');
         (new RegistrosEmpleadosController($appDestroy, $this->config, $this->catalogos, $this->gestor))->destroy((string) $nuevoId);
@@ -357,7 +395,7 @@ final class ApiEloquentEndpointsTest extends TestCase
         $appCatList = $this->crearMockEngine('GET');
         (new TablasMaestrasController($appCatList, $this->config, $this->catalogos))->index('tipo_documentos');
         self::assertSame(200, $this->ultimoCodigo);
-        self::assertCount(1, $this->ultimoJson['data']);
+        self::assertCount(2, $this->ultimoJson['data']);
 
         $appCatStore = $this->crearMockEngine('POST', ['cargo' => 'Coordinador Técnico']);
         (new TablasMaestrasController($appCatStore, $this->config, $this->catalogos))->store('cargo');
@@ -437,7 +475,8 @@ final class ApiEloquentEndpointsTest extends TestCase
         array $data = [],
         array $query = [],
         string $url = '/api/test',
-        bool $ajax = false
+        bool $ajax = false,
+        array $files = []
     ): Engine {
         $this->ultimoJson = null;
         $this->ultimoCodigo = 0;
@@ -457,7 +496,7 @@ final class ApiEloquentEndpointsTest extends TestCase
         $request->accept = $ajax ? 'application/json' : 'text/html';
         $request->data = new Collection($data);
         $request->query = new Collection($query);
-        $request->files = new Collection([]);
+        $request->files = new Collection($files);
 
         $app = $this->getMockBuilder(Engine::class)
             ->disableOriginalConstructor()
@@ -612,11 +651,28 @@ final class ApiEloquentEndpointsTest extends TestCase
             $t->increments('tpdiscapacidad_id');
             $t->string('tipo_discapacidad');
         });
+        $schema->create('grado_discapacidad', static function (Blueprint $t): void {
+            $t->increments('gradodisca_id');
+            $t->string('nombre_gradodis');
+            $t->integer('nivel')->nullable();
+        });
+        $schema->create('detalle_discapacidad', static function (Blueprint $t): void {
+            $t->increments('dt_discapacidad_id');
+            $t->integer('persona_id');
+            $t->integer('grado_discapacidad_id');
+            $t->string('numero_carnet');
+            $t->string('entidad_emisora');
+            $t->text('descripcion')->nullable();
+            $t->string('dirigido')->nullable();
+            $t->date('fecha_emision_carnet');
+            $t->date('fecha_vencimiento_carnet');
+        });
     }
 
     private function poblarDatos(): void
     {
         TipoDiscapacidadModel::query()->create(['tipo_discapacidad' => 'Visual']);
+        GradoDiscapacidadModel::query()->create(['nombre_gradodis' => 'Leve', 'nivel' => 1]);
         EstadosModel::query()->create(['estado' => 'Aragua']);
         MunicipiosModel::query()->create(['estado_id' => 1, 'municipio' => 'Girardot']);
         ParroquiasModel::query()->create(['municipio_id' => 1, 'parroquia' => 'Madre María']);
@@ -643,6 +699,7 @@ final class ApiEloquentEndpointsTest extends TestCase
         TipoParentescoModel::query()->create(['parentesco' => 'Hija']);
 
         TipoDocumentosModel::query()->create(['tipo_documentos' => 'Cédula de Identidad']);
+        TipoDocumentosModel::query()->create(['tipo_documentos' => 'Partida de Nacimiento del Titular']);
 
         PersonasModel::query()->create([
             'primer_nombre' => 'Carlos', 'segundo_nombre' => 'Eduardo',

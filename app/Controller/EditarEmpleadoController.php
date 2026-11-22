@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Http\LimpiarInputs;
 use App\Model\Personas\DireccionModel;
+use App\Model\Personas\DocumentosModel;
 use App\Model\Personas\EmpleadosModel;
 use App\Model\Personas\PersonasModel;
 use App\Model\Personas\TelefonoPersonasModel;
@@ -86,6 +87,11 @@ final class EditarEmpleadoController implements RenderInterfaces
             'estado_seleccionado' => $estadoActualId > 0 ? (string) $estadoActualId : '',
             'municipio_seleccionado' => $municipioActualId > 0 ? (string) $municipioActualId : '',
             'tipos_documentos' => $this->catalogos->tiposDocumentos(),
+            'recaudos' => $this->catalogos->recaudosParaEmpleado(
+                (int) ($persona->estado_civil_id ?? 0),
+                (int) $empleado->nivel_academico_id,
+                (int) $persona->persona_id
+            ),
             'generos' => $this->catalogos->generos((string) $persona->genero),
         ]);
     }
@@ -150,7 +156,11 @@ final class EditarEmpleadoController implements RenderInterfaces
         $codigoEmpleado = substr($codigoRaw !== '' ? $codigoRaw : (string) $cedula, 0, 10);
 
         $estatusActualRaw = $input->get('estatus_actual', $empleado->estatus_actual);
-        $estatusActual = is_numeric($estatusActualRaw) && (int) $estatusActualRaw === 0 ? 0 : 1;
+        $estatusActual = in_array((int) $estatusActualRaw, [0, 1, 3], true)
+            ? (int) $estatusActualRaw
+            : (int) $empleado->estatus_actual;
+
+        $documentosPorTipo = CatalogosService::normalizarArchivosPorTipo($this->app->request()->files->getData());
 
         $correoRaw = (string) $input->get('correo', (string) ($empleado->correo ?? ''));
         $correo = $correoRaw !== '' ? substr($correoRaw, 0, 255) : null;
@@ -162,7 +172,7 @@ final class EditarEmpleadoController implements RenderInterfaces
         $telEmergencia = substr((string) $input->get('telefono_emergencia', ''), 0, 20);
 
         try {
-            $empleado->getConnection()->transaction(function () use (
+            $resultado = $empleado->getConnection()->transaction(function () use (
                 $persona,
                 $empleado,
                 $dirActual,
@@ -187,8 +197,9 @@ final class EditarEmpleadoController implements RenderInterfaces
                 $parroquiaId,
                 $input,
                 $telPrincipal,
-                $telEmergencia
-            ): void {
+                $telEmergencia,
+                $documentosPorTipo
+            ): array {
                 $persona->fill([
                     'primer_nombre' => $primerNombre,
                     'segundo_nombre' => $segundoNombre,
@@ -245,15 +256,64 @@ final class EditarEmpleadoController implements RenderInterfaces
                         ['numero_telefono' => $telEmergencia]
                     );
                 }
+
+                $documentosProcesados = [];
+                if ($this->gestorDocumentos !== null && $documentosPorTipo !== []) {
+                    foreach ($documentosPorTipo as $tipoDocId => $archivoDoc) {
+                        $vigente = DocumentosModel::query()
+                            ->where('persona_id', (int) $persona->persona_id)
+                            ->where('tipo_documento_id', (int) $tipoDocId)
+                            ->where('estatus_documento', 'Vigente')
+                            ->orderByDesc('documentos_id')
+                            ->first();
+
+                        if ($vigente instanceof DocumentosModel) {
+                            $nuevo = $this->gestorDocumentos->reemplazar(
+                                (int) $vigente->documentos_id,
+                                $archivoDoc,
+                                (int) $tipoDocId,
+                                (int) $empleado->empleado_id
+                            );
+                        } else {
+                            $nuevo = $this->gestorDocumentos->subir($archivoDoc, (int) $tipoDocId, (int) $empleado->empleado_id);
+                        }
+                        $documentosProcesados[] = (int) $nuevo->documentos_id;
+                    }
+                }
+
+                $activadoAutomaticamente = false;
+                if (
+                    (int) $empleado->estatus_actual === 3
+                    && $this->catalogos->recaudosObligatoriosCompletosEmpleado($estadoCivilId, $nivelAcademicoId, (int) $persona->persona_id)
+                ) {
+                    $empleado->estatus_actual = 1;
+                    $empleado->save();
+                    $activadoAutomaticamente = true;
+                }
+
+                return [
+                    'empleado_id' => (int) $empleado->empleado_id,
+                    'estatus_actual' => (int) $empleado->estatus_actual,
+                    'activado_automaticamente' => $activadoAutomaticamente,
+                    'documentos_ids' => $documentosProcesados,
+                ];
             });
+
+            $mensaje = $resultado['activado_automaticamente']
+                ? 'Expediente actualizado y documentos obligatorios completos. El trabajador pasó automáticamente a estado Activo.'
+                : 'Datos del trabajador actualizados correctamente.';
 
             $this->app->json([
                 'ok' => true,
-                'message' => 'Datos del trabajador actualizados correctamente.',
-                'data' => ['empleado_id' => (int) $empleado->empleado_id],
+                'message' => $mensaje,
+                'data' => $resultado,
             ], 200);
-        } catch (Throwable) {
-            $this->app->json(['ok' => false, 'message' => 'No se pudo actualizar el trabajador.'], 500);
+        } catch (Throwable $e) {
+            $codigo = (int) $e->getCode();
+            $this->app->json([
+                'ok' => false,
+                'message' => $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo actualizar el trabajador.',
+            ], $codigo >= 400 && $codigo < 600 ? $codigo : 500);
         }
     }
 }

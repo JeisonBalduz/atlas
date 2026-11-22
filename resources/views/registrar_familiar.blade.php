@@ -13,7 +13,7 @@
 @endsection
 
 @section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
-<form id="formulario-registrar-familiar" class="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-6" novalidate>
+<form id="formulario-registrar-familiar" enctype="multipart/form-data" class="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-6" novalidate>
 
     {{-- Cabecera con enlace de retorno --}}
     <header class="col-span-full flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -204,6 +204,20 @@
             ])
             @endcomponent
         </div>
+    </section>
+
+    {{-- Bloque 3: Documentos del Familiar según Parentesco (Contrato Colectivo) --}}
+    <section class="col-span-full rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+        <header>
+            <h2 class="text-lg font-semibold text-zinc-900">3. Documentos del Familiar</h2>
+            <p class="text-sm text-zinc-500">Selecciona el parentesco para visualizar los recaudos exigidos por el Contrato Colectivo.</p>
+        </header>
+
+        <div id="contenedor-recaudos-familiar" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <p class="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-zinc-500">
+                Selecciona un parentesco arriba para cargar los campos de documentos correspondientes.
+            </p>
+        </div>
 
         <footer class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
             <button
@@ -223,6 +237,8 @@
         </footer>
     </section>
 </form>
+
+<script id="recaudos-parentesco-json" type="application/json">{!! json_encode($recaudos_por_parentesco ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
 @endsection
 
 @push('scripts') {{-- CARGAR SCRIPTS DE JS --}}

@@ -126,11 +126,12 @@
                     @component('components.select', [
                         'id' => 'filtro-activo-empleado',
                         'name' => 'filtro_activo_empleado',
-                        'placeholder' => 'Activos e inactivos',
+                        'placeholder' => 'Todos los estados',
                         'selected' => 'todos',
                         'options' => [
-                            'todos' => 'Activos e inactivos',
+                            'todos' => 'Todos los estados',
                             '1' => 'Solo activos',
+                            '3' => 'Solo pendientes',
                             '0' => 'Solo inactivos',
                         ],
                     ])
@@ -146,6 +147,7 @@
                         <th>Cargo</th>
                         <th>Departamento</th>
                         <th>Dependencia</th>
+                        <th class="text-center">Discapacidad</th>
                         <th class="text-center">Estatus</th>
                         <th class="text-right">Acciones</th>
                     </tr>
@@ -155,6 +157,24 @@
         </div>
     </section>
 </div>
+
+{{-- Datos de catálogos para modal de discapacidad --}}
+<script id="catalogos-discapacidad-json" type="application/json">{!! json_encode([
+    'tipos' => $tipos_discapacidad ?? [],
+    'grados' => $grados_discapacidad ?? [],
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+
+{{-- Modal para asignar discapacidad a un trabajador --}}
+@component('components.modal', [
+    'id' => 'modal-discapacidad-empleado',
+    'titulo' => 'Asignar discapacidad al trabajador',
+    'subtitulo' => 'Registra el carnet CONAPDIS y el grado de discapacidad en el expediente.',
+    'tamano' => 'lg',
+    'textoCancelar' => 'Cancelar',
+    'textoConfirmar' => 'Guardar discapacidad',
+    'varianteConfirmar' => 'marca',
+])
+@endcomponent
 
 {{-- Modal de carga familiar asociada al trabajador --}}
 @component('components.modal', [

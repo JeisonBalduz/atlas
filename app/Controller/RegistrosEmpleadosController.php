@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Http\LimpiarInputs;
+use App\Model\Beneficios\DetalleDiscapacidadModel;
+use App\Model\Beneficios\GradoDiscapacidadModel;
 use App\Model\Catalogos\CargoModel;
 use App\Model\Catalogos\DepartamentosModel;
 use App\Model\Catalogos\DependenciasModel;
@@ -63,6 +65,8 @@ class RegistrosEmpleadosController implements RenderInterfaces
             'dependencias' => $this->catalogos->dependencias(true),
             'departamentos' => $this->catalogos->departamentos(true),
             'tipos_documentos' => $this->catalogos->tiposDocumentos(),
+            'tipos_discapacidad' => $this->catalogos->tiposDiscapacidad(),
+            'grados_discapacidad' => $this->catalogos->gradosDiscapacidad(),
             'resumen' => [
                 'total' => $total,
                 'activos' => $activos,
@@ -100,7 +104,15 @@ class RegistrosEmpleadosController implements RenderInterfaces
 
         try {
             $query = EmpleadosModel::query()
-                ->with(['persona', 'cargo', 'departamento', 'dependencia', 'estatus', 'nivelAcademico', 'carrera'])
+                ->with([
+                    'persona.detallesDiscapacidad.gradoDiscapacidad',
+                    'cargo',
+                    'departamento',
+                    'dependencia',
+                    'estatus',
+                    'nivelAcademico',
+                    'carrera',
+                ])
                 ->withCount('familiares');
 
             $columnasOrdenables = [
@@ -156,6 +168,27 @@ class RegistrosEmpleadosController implements RenderInterfaces
                 columnasBuscables: $columnasBuscables,
                 transformar: static function (EmpleadosModel $empleado): array {
                     $persona = $empleado->persona;
+                    $detalleDisc = $persona instanceof PersonasModel
+                        ? $persona->detallesDiscapacidad->sortByDesc('dt_discapacidad_id')->first()
+                        : null;
+                    $discapacidad = null;
+                    if ($detalleDisc instanceof DetalleDiscapacidadModel) {
+                        $gradoNombre = (string) ($detalleDisc->gradoDiscapacidad?->nombre_gradodis ?? '');
+                        $tipoNombre = trim((string) ($detalleDisc->dirigido ?? ''));
+                        $etiqueta = $tipoNombre !== '' && $gradoNombre !== ''
+                            ? $tipoNombre . ' (' . $gradoNombre . ')'
+                            : ($tipoNombre !== '' ? $tipoNombre : ($gradoNombre !== '' ? $gradoNombre : 'Con discapacidad'));
+                        $discapacidad = [
+                            'dt_discapacidad_id' => (int) $detalleDisc->dt_discapacidad_id,
+                            'grado_discapacidad_id' => (int) $detalleDisc->grado_discapacidad_id,
+                            'grado' => $gradoNombre,
+                            'tipo' => $tipoNombre,
+                            'numero_carnet' => (string) $detalleDisc->numero_carnet,
+                            'entidad_emisora' => (string) $detalleDisc->entidad_emisora,
+                            'etiqueta' => $etiqueta,
+                        ];
+                    }
+
                     return [
                         'empleado_id' => (int) $empleado->empleado_id,
                         'persona_id' => (int) $empleado->persona_id,
@@ -173,6 +206,8 @@ class RegistrosEmpleadosController implements RenderInterfaces
                         'estatus_id' => (int) $empleado->estatus_id,
                         'estatus_actual' => (int) $empleado->estatus_actual,
                         'activo' => (int) $empleado->estatus_actual === 1,
+                        'pendiente' => (int) $empleado->estatus_actual === 3,
+                        'discapacidad' => $discapacidad,
                         'nivel_academico' => (string) ($empleado->nivelAcademico?->nivel_academico ?? ''),
                         'carrera' => (string) ($empleado->carrera?->carrera ?? ''),
                         'correo' => (string) ($empleado->correo ?? ''),
@@ -611,6 +646,89 @@ class RegistrosEmpleadosController implements RenderInterfaces
         readfile($rutaAbsoluta);
         if (empty(getenv('PHPUNIT_TEST')) && PHP_SAPI !== 'cli') {
             exit;
+        }
+    }
+
+    /**
+     * [POST] Registra o asigna un detalle de discapacidad a un trabajador (y opcionalmente su carnet CONAPDIS).
+     */
+    public function asignarDiscapacidad(string $id): void
+    {
+        if (!ctype_digit($id) || (int) $id <= 0) {
+            $this->app->json(['ok' => false, 'message' => 'Identificador de empleado inválido.'], 400);
+            return;
+        }
+
+        $empleado = EmpleadosModel::query()->with('persona')->find((int) $id);
+        if (!$empleado instanceof EmpleadosModel || !$empleado->persona instanceof PersonasModel) {
+            $this->app->json(['ok' => false, 'message' => 'Trabajador no encontrado.'], 404);
+            return;
+        }
+
+        $input = new LimpiarInputs();
+        $gradoRaw = $input->get('grado_discapacidad_id');
+        $gradoId = is_numeric($gradoRaw) && (int) $gradoRaw > 0 ? (int) $gradoRaw : null;
+        $tipoNombre = trim((string) $input->get('tipo_discapacidad', ''));
+        $numeroCarnet = trim((string) $input->get('numero_carnet', ''));
+        $entidadEmisora = trim((string) $input->get('entidad_emisora', 'CONAPDIS'));
+        $descripcion = trim((string) $input->get('descripcion', ''));
+        $emisionRaw = trim((string) $input->get('fecha_emision_carnet', ''));
+        $vencimientoRaw = trim((string) $input->get('fecha_vencimiento_carnet', ''));
+        $fechaEmision = preg_match('/^\d{4}-\d{2}-\d{2}$/', $emisionRaw) === 1 ? $emisionRaw : date('Y-m-d');
+        $fechaVencimiento = preg_match('/^\d{4}-\d{2}-\d{2}$/', $vencimientoRaw) === 1
+            ? $vencimientoRaw
+            : date('Y-m-d', strtotime('+5 years'));
+
+        if ($gradoId === null || !GradoDiscapacidadModel::query()->whereKey($gradoId)->exists()) {
+            $this->app->json(['ok' => false, 'message' => 'Debe seleccionar un grado de discapacidad válido.'], 422);
+            return;
+        }
+        if ($numeroCarnet === '') {
+            $this->app->json(['ok' => false, 'message' => 'El número de carnet CONAPDIS es obligatorio.'], 422);
+            return;
+        }
+        if ($entidadEmisora === '') {
+            $entidadEmisora = 'CONAPDIS';
+        }
+
+        try {
+            $detalle = DetalleDiscapacidadModel::query()->create([
+                'persona_id' => (int) $empleado->persona_id,
+                'grado_discapacidad_id' => $gradoId,
+                'numero_carnet' => substr($numeroCarnet, 0, 30),
+                'entidad_emisora' => substr($entidadEmisora, 0, 100),
+                'descripcion' => $descripcion !== '' ? $descripcion : null,
+                'dirigido' => $tipoNombre !== '' ? substr($tipoNombre, 0, 30) : 'Trabajador',
+                'fecha_emision_carnet' => $fechaEmision,
+                'fecha_vencimiento_carnet' => $fechaVencimiento,
+            ]);
+
+            $archivo = $this->app->request()->files->getData()['archivo'] ?? null;
+            $documentoId = null;
+            if (
+                $this->gestorDocumentos !== null
+                && is_array($archivo)
+                && ($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
+            ) {
+                $doc = $this->gestorDocumentos->subir($archivo, 10, (int) $empleado->empleado_id);
+                $documentoId = (int) $doc->documentos_id;
+            }
+
+            $this->app->json([
+                'ok' => true,
+                'message' => 'Discapacidad asignada correctamente al trabajador.',
+                'data' => [
+                    'dt_discapacidad_id' => (int) $detalle->dt_discapacidad_id,
+                    'persona_id' => (int) $empleado->persona_id,
+                    'documento_id' => $documentoId,
+                ],
+            ], 201);
+        } catch (Throwable $e) {
+            $codigo = (int) $e->getCode();
+            $this->app->json([
+                'ok' => false,
+                'message' => $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo registrar la discapacidad del trabajador.',
+            ], $codigo >= 400 && $codigo < 600 ? $codigo : 500);
         }
     }
 

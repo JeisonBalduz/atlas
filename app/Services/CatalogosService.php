@@ -19,6 +19,7 @@ use App\Model\Catalogos\EstatusModel;
 use App\Model\Catalogos\NivelAcademicosModel;
 use App\Model\Catalogos\TipoDocumentosModel;
 use App\Model\Catalogos\TipoParentescoModel;
+use App\Model\Personas\DocumentosModel;
 use App\Model\Personas\EmpleadosModel;
 use App\Model\Personas\PersonasModel;
 use App\Model\Ubicacion\EstadosModel;
@@ -762,5 +763,297 @@ final class CatalogosService
         return function_exists('mb_convert_case')
             ? mb_convert_case($unido, MB_CASE_TITLE, 'UTF-8')
             : ucwords(strtolower($unido));
+    }
+
+    /**
+     * Resuelve los recaudos documentales de un trabajador (obligatorios y opcionales)
+     * según Contrato Colectivo, Procesos RRHH y `tipo_documentos`, cruzando con `documentos` vigentes.
+     *
+     * @return list<array{
+     *     tipo_documento_id: int,
+     *     nombre: string,
+     *     obligatorio: bool,
+     *     condicion: string,
+     *     grupo: string,
+     *     cargado: bool,
+     *     documento: array{documentos_id: int, nombre_original: string, url_descarga: string}|null
+     * }>
+     */
+    public function recaudosParaEmpleado(int $estadoCivilId, int $nivelAcademicoId, int $personaId = 0): array
+    {
+        $tipos = $this->tiposDocumentos();
+        $vigentes = $this->documentosVigentesPorPersona($personaId);
+
+        // Generales obligatorios (IDs existentes + los nuevos cuando estén en tipo_documentos)
+        $reglas = [
+            ['id' => 1, 'obligatorio' => true, 'condicion' => 'Obligatorio para todo trabajador', 'grupo' => 'general'],
+            ['id' => 2, 'obligatorio' => true, 'condicion' => 'Obligatorio para todo trabajador', 'grupo' => 'general'],
+            ['id' => 15, 'obligatorio' => true, 'condicion' => 'Constancia de trabajo / solicitud de empleo', 'grupo' => 'general'],
+        ];
+
+        $extrasObligatorios = [
+            ['palabras' => ['curriculum', 'currículum'], 'condicion' => 'Ingreso de personal (Procesos RRHH)'],
+            ['palabras' => ['rif', 'informacion fiscal', 'información fiscal'], 'condicion' => 'Ingreso y Prima de Transporte'],
+            ['palabras' => ['referencia bancaria', 'bdt'], 'condicion' => 'Ingreso de personal (Procesos RRHH)'],
+            ['palabras' => ['contrato laboral', 'nombramiento'], 'condicion' => 'Formalización de ingreso'],
+            ['palabras' => ['notificacion de ingreso', 'notificación de ingreso', 'designacion', 'designación'], 'condicion' => 'Formalización de ingreso'],
+            ['palabras' => ['14-04', 'asegurado ivss'], 'condicion' => 'Registro de asegurado IVSS'],
+            ['palabras' => ['afiliacion hcm', 'afiliación hcm'], 'condicion' => 'Inclusión titular HCM'],
+        ];
+        foreach ($extrasObligatorios as $extra) {
+            $idExtra = $this->buscarTipoPorPalabras($tipos, $extra['palabras']);
+            if ($idExtra !== null) {
+                $reglas[] = ['id' => $idExtra, 'obligatorio' => true, 'condicion' => $extra['condicion'], 'grupo' => 'general'];
+            }
+        }
+
+        // Condicionales por Estado Civil (Cláusula 45)
+        if ($estadoCivilId === 2) {
+            $reglas[] = ['id' => 4, 'obligatorio' => true, 'condicion' => 'Estado civil: Casado/a (Cláusula 45)', 'grupo' => 'estado_civil'];
+        } elseif ($estadoCivilId === 5) {
+            $reglas[] = ['id' => 5, 'obligatorio' => true, 'condicion' => 'Estado civil: Unión Estable de Hecho (Cláusula 45)', 'grupo' => 'estado_civil'];
+        }
+
+        // Condicionales por Nivel Académico (Cláusula 24 - Prima de Profesionalización)
+        if ($nivelAcademicoId >= 4) {
+            $reglas[] = ['id' => 8, 'obligatorio' => true, 'condicion' => 'Nivel TSU / Universitario / Ingeniería (Cláusula 24)', 'grupo' => 'academico'];
+        }
+        if ($nivelAcademicoId >= 7) {
+            $reglas[] = ['id' => 9, 'obligatorio' => true, 'condicion' => 'Especialización / Maestría / Doctorado (Cláusula 24)', 'grupo' => 'academico'];
+        }
+
+        // Opcionales / complementarios
+        $reglas[] = ['id' => 13, 'obligatorio' => false, 'condicion' => 'Opcional · Caja de Ahorros', 'grupo' => 'opcional'];
+        $idCursos = $this->buscarTipoPorPalabras($tipos, ['cursos realizados', 'certificados de cursos']);
+        if ($idCursos !== null) {
+            $reglas[] = ['id' => $idCursos, 'obligatorio' => false, 'condicion' => 'Opcional · Cursos realizados', 'grupo' => 'opcional'];
+        }
+
+        return $this->construirListaRecaudos($reglas, $tipos, $vigentes);
+    }
+
+    /**
+     * Indica si el trabajador tiene cargados todos los recaudos obligatorios según su perfil.
+     */
+    public function recaudosObligatoriosCompletosEmpleado(int $estadoCivilId, int $nivelAcademicoId, int $personaId): bool
+    {
+        $recaudos = $this->recaudosParaEmpleado($estadoCivilId, $nivelAcademicoId, $personaId);
+        foreach ($recaudos as $item) {
+            if ($item['obligatorio'] && !$item['cargado']) {
+                return false;
+            }
+        }
+
+        return $recaudos !== [];
+    }
+
+    /**
+     * Resuelve los recaudos documentales de un familiar según `parentesco_id` y Contrato Colectivo.
+     *
+     * @return list<array{
+     *     tipo_documento_id: int,
+     *     nombre: string,
+     *     obligatorio: bool,
+     *     condicion: string,
+     *     grupo: string,
+     *     cargado: bool,
+     *     documento: array{documentos_id: int, nombre_original: string, url_descarga: string}|null
+     * }>
+     */
+    public function recaudosParaFamiliar(int $parentescoId, int $personaFamiliarId = 0, int $personaTitularId = 0): array
+    {
+        $tipos = $this->tiposDocumentos();
+        $vigentesFamiliar = $this->documentosVigentesPorPersona($personaFamiliarId);
+        $vigentesTitular = $personaTitularId > 0 ? $this->documentosVigentesPorPersona($personaTitularId) : [];
+
+        $reglas = [];
+
+        if (in_array($parentescoId, [3, 4], true)) {
+            // Hijo / Hija
+            $reglas[] = ['id' => 3, 'obligatorio' => true, 'condicion' => 'Obligatorio · Filiación de hijo/hija', 'grupo' => 'familiar'];
+            $reglas[] = ['id' => 1, 'obligatorio' => false, 'condicion' => 'Opcional si es menor sin cédula', 'grupo' => 'familiar'];
+            $reglas[] = ['id' => 6, 'obligatorio' => false, 'condicion' => 'Condicional · Estudios / Becas / HCM (hasta 27 años)', 'grupo' => 'familiar'];
+            $idExpensas = $this->buscarTipoPorPalabras($tipos, ['expensas', 'dependencia economica', 'dependencia económica']);
+            if ($idExpensas !== null) {
+                $reglas[] = ['id' => $idExpensas, 'obligatorio' => false, 'condicion' => 'Alternativa a constancia de estudios (HCM)', 'grupo' => 'familiar'];
+            }
+            $reglas[] = ['id' => 10, 'obligatorio' => false, 'condicion' => 'Condicional · Discapacidad sin límite de edad (Cláusula 49)', 'grupo' => 'familiar'];
+            $reglas[] = ['id' => 14, 'obligatorio' => false, 'condicion' => 'Condicional · Sentencia de adopción o tutela (Cláusula 46)', 'grupo' => 'familiar'];
+        } elseif (in_array($parentescoId, [1, 2], true)) {
+            // Madre / Padre
+            $reglas[] = ['id' => 1, 'obligatorio' => true, 'condicion' => 'Obligatorio · Cédula del padre/madre', 'grupo' => 'familiar'];
+            $reglas[] = ['id' => 2, 'obligatorio' => true, 'condicion' => 'Filiación con el trabajador titular (HCM)', 'grupo' => 'titular'];
+        } elseif ($parentescoId === 6) {
+            // Cónyuge
+            $reglas[] = ['id' => 1, 'obligatorio' => true, 'condicion' => 'Obligatorio · Cédula del cónyuge o pareja', 'grupo' => 'familiar'];
+            $reglas[] = ['id' => 4, 'obligatorio' => false, 'condicion' => 'Requerido si existe matrimonio civil (Cláusula 45)', 'grupo' => 'familiar'];
+            $reglas[] = ['id' => 5, 'obligatorio' => false, 'condicion' => 'Requerido si es Unión Estable de Hecho (Cláusula 45)', 'grupo' => 'familiar'];
+        } elseif ($parentescoId === 5) {
+            // Hermano
+            $reglas[] = ['id' => 1, 'obligatorio' => true, 'condicion' => 'Obligatorio · Cédula del familiar', 'grupo' => 'familiar'];
+            $reglas[] = ['id' => 14, 'obligatorio' => true, 'condicion' => 'Decisión judicial de tutela / dependencia (Cláusula 49)', 'grupo' => 'familiar'];
+            $reglas[] = ['id' => 10, 'obligatorio' => true, 'condicion' => 'Certificación CONAPDIS (Cláusula 49)', 'grupo' => 'familiar'];
+        } else {
+            $reglas[] = ['id' => 1, 'obligatorio' => true, 'condicion' => 'Identificación del familiar', 'grupo' => 'familiar'];
+        }
+
+        // Para Madre/Padre, si el titular ya cargó su Partida de Nacimiento (ID 2), la marcamos como cubierta
+        $mapa = $vigentesFamiliar;
+        if (in_array($parentescoId, [1, 2], true) && !isset($mapa[2]) && isset($vigentesTitular[2])) {
+            $mapa[2] = $vigentesTitular[2];
+        }
+
+        return $this->construirListaRecaudos($reglas, $tipos, $mapa);
+    }
+
+    /**
+     * Busca el ID de un tipo de documento por palabras clave (con respaldo seguro a un ID existente).
+     *
+     * @param list<string> $palabras
+     */
+    public function resolverTipoDocumentoPorPalabras(array $palabras, int $fallbackId = 15): int
+    {
+        $tipos = $this->tiposDocumentos();
+        $encontrado = $this->buscarTipoPorPalabras($tipos, $palabras);
+        if ($encontrado !== null) {
+            return $encontrado;
+        }
+        if (isset($tipos[$fallbackId])) {
+            return $fallbackId;
+        }
+
+        $primeraClave = array_key_first($tipos);
+
+        return $primeraClave !== null ? (int) $primeraClave : 1;
+    }
+
+    /**
+     * Normaliza `$_FILES['documentos']` con estructura `name="documentos[{tipo_id}]"` a `[tipo_id => array]`.
+     *
+     * @param array<string, mixed> $archivosRequest
+     * @return array<int, array<string, mixed>>
+     */
+    public static function normalizarArchivosPorTipo(array $archivosRequest): array
+    {
+        $resultado = [];
+        $bloque = $archivosRequest['documentos'] ?? null;
+
+        if (!is_array($bloque) || !isset($bloque['name']) || !is_array($bloque['name'])) {
+            return $resultado;
+        }
+
+        foreach ($bloque['name'] as $tipoIdRaw => $nombre) {
+            if (!is_numeric($tipoIdRaw) || (int) $tipoIdRaw <= 0) {
+                continue;
+            }
+            $error = (int) ($bloque['error'][$tipoIdRaw] ?? UPLOAD_ERR_NO_FILE);
+            if ($error === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+
+            $resultado[(int) $tipoIdRaw] = [
+                'name' => (string) $nombre,
+                'type' => (string) ($bloque['type'][$tipoIdRaw] ?? ''),
+                'tmp_name' => (string) ($bloque['tmp_name'][$tipoIdRaw] ?? ''),
+                'error' => $error,
+                'size' => (int) ($bloque['size'][$tipoIdRaw] ?? 0),
+            ];
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * @return array<int, array{documentos_id: int, nombre_original: string, url_descarga: string}>
+     */
+    private function documentosVigentesPorPersona(int $personaId): array
+    {
+        if ($personaId <= 0) {
+            return [];
+        }
+
+        $docs = DocumentosModel::query()
+            ->where('persona_id', $personaId)
+            ->where('estatus_documento', 'Vigente')
+            ->orderBy('documentos_id', 'desc')
+            ->get(['documentos_id', 'tipo_documento_id', 'nombre_original']);
+
+        $mapa = [];
+        foreach ($docs as $doc) {
+            $tipoId = (int) $doc->tipo_documento_id;
+            if (!isset($mapa[$tipoId])) {
+                $mapa[$tipoId] = [
+                    'documentos_id' => (int) $doc->documentos_id,
+                    'nombre_original' => (string) $doc->nombre_original,
+                    'url_descarga' => '/documentos/' . (int) $doc->documentos_id,
+                ];
+            }
+        }
+
+        return $mapa;
+    }
+
+    /**
+     * @param array<int|string, string> $tipos
+     * @param list<string> $palabras
+     */
+    private function buscarTipoPorPalabras(array $tipos, array $palabras): ?int
+    {
+        foreach ($tipos as $id => $nombre) {
+            $norm = strtolower($nombre);
+            foreach ($palabras as $palabra) {
+                if (str_contains($norm, strtolower($palabra))) {
+                    return (int) $id;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<array{id: int, obligatorio: bool, condicion: string, grupo: string}> $reglas
+     * @param array<int|string, string> $tipos
+     * @param array<int, array{documentos_id: int, nombre_original: string, url_descarga: string}> $vigentes
+     * @return list<array{
+     *     tipo_documento_id: int,
+     *     nombre: string,
+     *     obligatorio: bool,
+     *     condicion: string,
+     *     grupo: string,
+     *     cargado: bool,
+     *     documento: array{documentos_id: int, nombre_original: string, url_descarga: string}|null
+     * }>
+     */
+    private function construirListaRecaudos(array $reglas, array $tipos, array $vigentes): array
+    {
+        $lista = [];
+        $vistos = [];
+
+        foreach ($reglas as $regla) {
+            $id = (int) $regla['id'];
+            if (isset($vistos[$id]) || !isset($tipos[$id])) {
+                continue;
+            }
+            $vistos[$id] = true;
+            $doc = $vigentes[$id] ?? null;
+
+            $lista[] = [
+                'tipo_documento_id' => $id,
+                'nombre' => (string) $tipos[$id],
+                'etiqueta' => (string) $tipos[$id],
+                'obligatorio' => (bool) $regla['obligatorio'],
+                'condicion' => (string) $regla['condicion'],
+                'motivo' => (string) $regla['condicion'],
+                'grupo' => (string) $regla['grupo'],
+                'es_titular' => $regla['grupo'] === 'titular',
+                'cargado' => $doc !== null,
+                'documento' => $doc,
+                'nombre_original' => $doc['nombre_original'] ?? null,
+                'url_descarga' => $doc['url_descarga'] ?? null,
+            ];
+        }
+
+        return $lista;
     }
 }

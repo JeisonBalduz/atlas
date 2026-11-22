@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
   InputValidador.soloNumeros('#cedula', { minimo: 6, limite: 9, requerido: true });
   InputValidador.correoElectronico('#correo');
   InputValidador.requerido('#formulario-editar-empleado select');
+  InputValidador.archivo('.atlas-doc-input', { tamanoMaximoMB: 5 });
 
   let enviando = false;
 

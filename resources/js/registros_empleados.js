@@ -165,8 +165,19 @@ document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
   const modalFamiliares = new ControladorModal('#modal-familiares-empleado');
   const modalEliminar = new ControladorModal('#modal-eliminar-empleado');
+  const modalDiscapacidad = new ControladorModal('#modal-discapacidad-empleado');
   const filtroEstatus = document.getElementById('filtro-estatus-empleado');
   const filtroActivo = document.getElementById('filtro-activo-empleado');
+
+  let catalogosDiscapacidad = { tipos: {}, grados: {} };
+  try {
+    const scriptCat = document.getElementById('catalogos-discapacidad-json');
+    if (scriptCat?.textContent) {
+      catalogosDiscapacidad = JSON.parse(scriptCat.textContent) || { tipos: {}, grados: {} };
+    }
+  } catch {
+    catalogosDiscapacidad = { tipos: {}, grados: {} };
+  }
 
   let controladorFamiliares = null;
   let ultimaFilaFamiliares = null;
@@ -228,10 +239,35 @@ document.addEventListener('DOMContentLoaded', () => {
         render: (valor) => escaparHtml(valor || '—'),
       },
       {
+        data: 'discapacidad',
+        name: 'discapacidad',
+        orderable: false,
+        searchable: false,
+        className: 'text-center',
+        render: (valor, _tipo, fila) => {
+          if (valor && typeof valor === 'object') {
+            const tituloCarnet = valor.numero_carnet ? `Carnet: ${valor.numero_carnet}` : 'Discapacidad registrada';
+            return `<span title="${escaparHtml(tituloCarnet)}">${crearBadge(valor.etiqueta || 'Con discapacidad', 'sky')}</span>`;
+          }
+
+          return crearBotonAccion({
+            accion: 'asignar-discapacidad',
+            id: fila.empleado_id,
+            etiqueta: 'Asignar',
+            icono: 'accessibility',
+            variante: 'zinc',
+            titulo: `Asignar discapacidad a ${fila.nombre_completo || 'empleado'}`,
+          });
+        },
+      },
+      {
         data: 'estatus_actual',
         name: 'estatus_actual',
         className: 'text-center',
         render: (_valor, _tipo, fila) => {
+          if (Number(fila.estatus_actual) === 3) {
+            return `<div class="inline-flex flex-wrap items-center justify-center gap-1">${crearBadge('Pendiente', 'yellow')}</div>`;
+          }
           const badgeLaboral = crearBadge(
             fila.estatus || 'Sin estatus',
             variantePorEstatus(fila.estatus, fila.activo)
@@ -246,6 +282,17 @@ document.addEventListener('DOMContentLoaded', () => {
         searchable: false,
         className: 'text-right',
         render: (_datos, _tipo, fila) => {
+          if (Number(fila.estatus_actual) === 3) {
+            const btnPendiente = crearBotonAccion({
+              etiqueta: 'Pendiente',
+              icono: 'clock',
+              variante: 'yellow',
+              href: `/empleado/editar/${fila.empleado_id}`,
+              titulo: `Completar documentos pendientes de ${fila.nombre_completo || 'empleado'}`,
+            });
+            return `<div class="inline-flex items-center justify-end gap-1.5">${btnPendiente}</div>`;
+          }
+
           const btnFamiliares = crearBotonAccion({
             accion: 'familiares',
             id: fila.empleado_id,
@@ -423,6 +470,103 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  const abrirModalDiscapacidad = (registro) => {
+    const opcionesTipo = Object.values(catalogosDiscapacidad.tipos || {})
+      .map((nombre) => `<option value="${escaparHtml(nombre)}">${escaparHtml(nombre)}</option>`)
+      .join('');
+    const opcionesGrado = Object.entries(catalogosDiscapacidad.grados || {})
+      .map(([id, nombre]) => `<option value="${escaparHtml(id)}">${escaparHtml(nombre)}</option>`)
+      .join('');
+    const hoy = new Date().toISOString().slice(0, 10);
+    const enCincoAnios = new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const formularioHtml = `
+      <form id="form-asignar-discapacidad" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" enctype="multipart/form-data">
+        <div>
+          <label for="disc-tipo" class="block text-xs font-semibold text-zinc-700 mb-1">Tipo de discapacidad</label>
+          <select id="disc-tipo" name="tipo_discapacidad" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-marca focus:outline-none">
+            <option value="">Seleccionar tipo...</option>
+            ${opcionesTipo}
+          </select>
+        </div>
+        <div>
+          <label for="disc-grado" class="block text-xs font-semibold text-zinc-700 mb-1">Grado de discapacidad <span class="text-red-500">*</span></label>
+          <select id="disc-grado" name="grado_discapacidad_id" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-marca focus:outline-none">
+            <option value="">Seleccionar grado...</option>
+            ${opcionesGrado}
+          </select>
+        </div>
+        <div>
+          <label for="disc-carnet" class="block text-xs font-semibold text-zinc-700 mb-1">N.° de Carnet CONAPDIS <span class="text-red-500">*</span></label>
+          <input id="disc-carnet" name="numero_carnet" type="text" maxlength="30" required placeholder="Ej. CONAPDIS-123456" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-zinc-900 focus:border-marca focus:outline-none" />
+        </div>
+        <div>
+          <label for="disc-entidad" class="block text-xs font-semibold text-zinc-700 mb-1">Entidad emisora <span class="text-red-500">*</span></label>
+          <input id="disc-entidad" name="entidad_emisora" type="text" maxlength="100" required value="CONAPDIS" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-zinc-900 focus:border-marca focus:outline-none" />
+        </div>
+        <div>
+          <label for="disc-emision" class="block text-xs font-semibold text-zinc-700 mb-1">Fecha de emisión</label>
+          <input id="disc-emision" name="fecha_emision_carnet" type="date" value="${hoy}" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-zinc-900 focus:border-marca focus:outline-none" />
+        </div>
+        <div>
+          <label for="disc-vencimiento" class="block text-xs font-semibold text-zinc-700 mb-1">Fecha de vencimiento</label>
+          <input id="disc-vencimiento" name="fecha_vencimiento_carnet" type="date" value="${enCincoAnios}" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-zinc-900 focus:border-marca focus:outline-none" />
+        </div>
+        <div class="md:col-span-2">
+          <label for="disc-descripcion" class="block text-xs font-semibold text-zinc-700 mb-1">Descripción / Observaciones</label>
+          <textarea id="disc-descripcion" name="descripcion" rows="2" placeholder="Detalles médicos o indicaciones relevantes..." class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-zinc-900 focus:border-marca focus:outline-none"></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label for="disc-archivo" class="block text-xs font-semibold text-zinc-700 mb-1">Certificado / Carnet CONAPDIS (PDF o imagen, opcional)</label>
+          <input id="disc-archivo" name="archivo" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-zinc-800" />
+        </div>
+      </form>
+    `;
+
+    modalDiscapacidad.abrir({
+      titulo: `Asignar discapacidad · ${registro.nombre_completo || 'Trabajador'}`,
+      subtitulo: `${registro.codigo_empleado || ''} · ${registro.cedula || ''}`,
+      contenidoHtml: formularioHtml,
+      textoConfirmar: 'Guardar discapacidad',
+      alConfirmar: (dialogo) => {
+        const form = dialogo.querySelector('#form-asignar-discapacidad');
+        if (!form) return false;
+        if (!form.reportValidity()) return false;
+
+        const btnConfirmar = dialogo.querySelector('[data-modal-confirmar]');
+        const textoOriginal = btnConfirmar?.textContent || 'Guardar discapacidad';
+        if (btnConfirmar) {
+          btnConfirmar.disabled = true;
+          btnConfirmar.textContent = 'Guardando...';
+        }
+
+        const fd = new FormData(form);
+        Solicitud.post(`/api/empleados/${registro.empleado_id}/discapacidad`, fd)
+          .then((res) => {
+            if (res.status === 401) {
+              window.location.href = '/autenticacion';
+              return;
+            }
+            if (!res.ok || !res.data?.ok) {
+              mostrarToast('error', res.message || 'No se pudo asignar la discapacidad.');
+              return;
+            }
+            mostrarToast('success', res.data.message || 'Discapacidad asignada correctamente.');
+            modalDiscapacidad.cerrar();
+            tabla.ajax.reload(null, false);
+          })
+          .finally(() => {
+            if (btnConfirmar) {
+              btnConfirmar.disabled = false;
+              btnConfirmar.textContent = textoOriginal;
+            }
+          });
+
+        return false;
+      },
+    });
+  };
+
   // Delegación de eventos de acciones por fila en #tabla-empleados
   document.getElementById('tabla-empleados')?.addEventListener('click', (evento) => {
     const boton = evento.target.closest('button[data-accion]');
@@ -432,6 +576,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const filaDom = boton.closest('tr');
     const registro = filaDom ? tabla.row(filaDom).data() : null;
     if (!registro) return;
+
+    if (accion === 'asignar-discapacidad') {
+      abrirModalDiscapacidad(registro);
+      return;
+    }
 
     if (accion === 'familiares') {
       cargarFamiliaresEmpleado(registro);
