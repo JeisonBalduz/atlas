@@ -210,6 +210,12 @@ final class ApiEloquentEndpointsTest extends TestCase
         (new RegistrosEmpleadosController($appDestroy, $this->config, $this->catalogos, $this->gestor))->destroy((string) $nuevoId);
         self::assertSame(200, $this->ultimoCodigo);
         self::assertSame(0, (int) EmpleadosModel::query()->find($nuevoId)?->estatus_actual);
+
+        $appActivar = $this->crearMockEngine('POST', ['empleado_id' => (string) $nuevoId]);
+        (new RegistrosEmpleadosController($appActivar, $this->config, $this->catalogos, $this->gestor))->activar();
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertTrue($this->ultimoJson['ok']);
+        self::assertSame(1, (int) EmpleadosModel::query()->find($nuevoId)?->estatus_actual);
     }
 
     public function testFamiliaresDatatableCrudYConservacionDePersona(): void

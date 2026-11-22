@@ -18,11 +18,11 @@ import {
 
 const variantePorEstatus = (estatus, activo) => {
   if (!activo) return 'red';
-  const normalizado = String(estatus || '').trim().toLowerCase();
-  if (normalizado.includes('activo') || normalizado.includes('empleado')) return 'green';
-  if (normalizado.includes('vacacion')) return 'sky';
-  if (normalizado.includes('reposo') || normalizado.includes('permiso')) return 'yellow';
-  if (normalizado.includes('inactivo') || normalizado.includes('jubilad') || normalizado.includes('egres')) return 'red';
+  // const normalizado = String(estatus || '').trim().toLowerCase();
+  // if (normalizado.includes('activo') || normalizado.includes('empleado')) return 'green';
+  // if (normalizado.includes('vacacion')) return 'sky';
+  // if (normalizado.includes('reposo') || normalizado.includes('permiso')) return 'yellow';
+  // if (normalizado.includes('inactivo') || normalizado.includes('jubilad') || normalizado.includes('egres')) return 'red';
   return 'marca';
 };
 
@@ -264,19 +264,26 @@ document.addEventListener('DOMContentLoaded', () => {
             titulo: `Editar ficha de ${fila.nombre_completo || 'empleado'}`,
           });
 
-          const btnEliminar = crearBotonAccion({
-            accion: 'eliminar',
-            id: fila.empleado_id,
-            etiqueta: fila.activo ? 'Eliminar' : 'Inactivo',
-            icono: 'trash-2',
-            variante: 'red',
-            deshabilitado: !fila.activo,
-            titulo: fila.activo
-              ? `Desactivar a ${fila.nombre_completo || 'empleado'}`
-              : 'Trabajador ya desactivado',
-          });
+          const btnEstado = fila.activo
+            ? crearBotonAccion({
+                accion: 'eliminar',
+                id: fila.empleado_id,
+                etiqueta: 'Eliminar',
+                icono: 'trash-2',
+                variante: 'red',
+                titulo: `Desactivar a ${fila.nombre_completo || 'empleado'}`,
+              })
+            : crearBotonAccion({
+                accion: 'activar',
+                id: fila.empleado_id,
+                etiqueta: 'Activar',
+                icono: 'user-check',
+                variante: 'green',
+                deshabilitado: false,
+                titulo: `Activar a ${fila.nombre_completo || 'empleado'}`,
+              });
 
-          return `<div class="inline-flex items-center justify-end gap-1.5">${btnFamiliares}${btnEditar}${btnEliminar}</div>`;
+          return `<div class="inline-flex items-center justify-end gap-1.5">${btnFamiliares}${btnEditar}${btnEstado}</div>`;
         },
       },
     ],
@@ -336,6 +343,86 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  const confirmarCambioEstado = (registro, esActivacion) => {
+    const btnConfirmarModal = modalEliminar.botonConfirmar;
+    if (btnConfirmarModal) {
+      btnConfirmarModal.classList.toggle('bg-red-600', !esActivacion);
+      btnConfirmarModal.classList.toggle('hover:bg-red-700', !esActivacion);
+      btnConfirmarModal.classList.toggle('focus:ring-red-500', !esActivacion);
+      btnConfirmarModal.classList.toggle('bg-green-600', esActivacion);
+      btnConfirmarModal.classList.toggle('hover:bg-green-700', esActivacion);
+      btnConfirmarModal.classList.toggle('focus:ring-green-500', esActivacion);
+    }
+
+    const textoBoton = esActivacion ? 'Activar empleado' : 'Desactivar empleado';
+    const contenidoHtml = esActivacion
+      ? `
+        <div class="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+          <i data-lucide="user-check" class="mt-0.5 h-5 w-5 shrink-0 text-green-700" aria-hidden="true"></i>
+          <p>
+            ¿Estás seguro de que deseas activar a <strong>${escaparHtml(registro.nombre_completo)}</strong>?
+            El trabajador volverá a figurar como <strong>Activo</strong> en nómina.
+          </p>
+        </div>
+      `
+      : `
+        <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          ¿Deseas marcar como <strong>Inactivo</strong> a <strong>${escaparHtml(registro.nombre_completo)}</strong>?
+          El trabajador permanecerá en el historial con estatus inactivo.
+        </div>
+      `;
+
+    modalEliminar.abrir({
+      titulo: esActivacion ? 'Confirmar activación de empleado' : 'Confirmar baja de empleado',
+      subtitulo: `${registro.codigo_empleado || ''} · ${registro.cedula || ''}`,
+      contenidoHtml,
+      textoConfirmar: textoBoton,
+      alConfirmar: (dialogo) => {
+        const btnConfirmar = dialogo.querySelector('[data-modal-confirmar]');
+        const textoOriginal = btnConfirmar?.textContent || textoBoton;
+
+        if (btnConfirmar) {
+          btnConfirmar.disabled = true;
+          btnConfirmar.textContent = 'Procesando...';
+        }
+
+        const peticion = esActivacion
+          ? Solicitud.post('/api/empleados/activar', { empleado_id: registro.empleado_id })
+          : Solicitud.delete(`/api/empleados/${registro.empleado_id}`);
+
+        peticion
+          .then((res) => {
+            if (res.status === 401) {
+              window.location.href = '/autenticacion';
+              return;
+            }
+            if (!res.ok || !res.data?.ok) {
+              mostrarToast(
+                'error',
+                res.message || (esActivacion ? 'No se pudo activar el trabajador.' : 'No se pudo desactivar el trabajador.')
+              );
+              return;
+            }
+
+            mostrarToast(
+              'success',
+              res.data.message || (esActivacion ? 'Trabajador activado correctamente.' : 'Trabajador desactivado correctamente.')
+            );
+            modalEliminar.cerrar();
+            tabla.ajax.reload(null, false);
+          })
+          .finally(() => {
+            if (btnConfirmar) {
+              btnConfirmar.disabled = false;
+              btnConfirmar.textContent = textoOriginal;
+            }
+          });
+
+        return false;
+      },
+    });
+  };
+
   // Delegación de eventos de acciones por fila en #tabla-empleados
   document.getElementById('tabla-empleados')?.addEventListener('click', (evento) => {
     const boton = evento.target.closest('button[data-accion]');
@@ -351,51 +438,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (accion === 'activar') {
+      confirmarCambioEstado(registro, true);
+      return;
+    }
+
     if (accion === 'eliminar') {
-      modalEliminar.abrir({
-        titulo: 'Confirmar baja de empleado',
-        subtitulo: `${registro.codigo_empleado || ''} · ${registro.cedula || ''}`,
-        contenidoHtml: `
-          <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            ¿Deseas marcar como <strong>Inactivo</strong> a <strong>${escaparHtml(registro.nombre_completo)}</strong>?
-            El trabajador permanecerá en el historial con estatus inactivo.
-          </div>
-        `,
-        textoConfirmar: 'Desactivar empleado',
-        alConfirmar: (dialogo) => {
-          const btnConfirmar = dialogo.querySelector('[data-modal-confirmar]');
-          const textoOriginal = btnConfirmar?.textContent || 'Desactivar empleado';
-
-          if (btnConfirmar) {
-            btnConfirmar.disabled = true;
-            btnConfirmar.textContent = 'Procesando...';
-          }
-
-          Solicitud.delete(`/api/empleados/${registro.empleado_id}`)
-            .then((res) => {
-              if (res.status === 401) {
-                window.location.href = '/autenticacion';
-                return;
-              }
-              if (!res.ok || !res.data?.ok) {
-                mostrarToast('error', res.message || 'No se pudo desactivar el trabajador.');
-                return;
-              }
-
-              mostrarToast('success', res.data.message || 'Trabajador desactivado correctamente.');
-              modalEliminar.cerrar();
-              tabla.ajax.reload(null, false);
-            })
-            .finally(() => {
-              if (btnConfirmar) {
-                btnConfirmar.disabled = false;
-                btnConfirmar.textContent = textoOriginal;
-              }
-            });
-
-          return false;
-        },
-      });
+      confirmarCambioEstado(registro, false);
     }
   });
 });

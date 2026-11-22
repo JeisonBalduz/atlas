@@ -36,6 +36,8 @@ $router->group('/api', function (Router $router): void {
     $router->post('/empleados', [RegistrarEmpleadoController::class, 'store']);
     $router->put('/empleados/@id:[0-9]+', [EditarEmpleadoController::class, 'update']);
     $router->post('/empleados/@id:[0-9]+', [EditarEmpleadoController::class, 'update']);
+    $router->post('/empleados/activar', [RegistrosEmpleadosController::class, 'activar']);
+    $router->post('/empleados/@id:[0-9]+/activar', [RegistrosEmpleadosController::class, 'activar']);
     $router->delete('/empleados/@id:[0-9]+', [RegistrosEmpleadosController::class, 'destroy']);
 
     // --- Familiares ---

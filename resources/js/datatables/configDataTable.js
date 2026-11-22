@@ -108,6 +108,7 @@ export const crearBotonAccion = ({
     zinc: 'bg-zinc-900 hover:bg-zinc-800 focus-visible:outline-zinc-950',
     marca: 'bg-marca hover:bg-marca-700 focus-visible:outline-marca',
     red: 'bg-red-600 hover:bg-red-700 focus-visible:outline-red-600',
+    green: 'bg-green-600 hover:bg-green-700 focus-visible:outline-green-600',
   };
 
   const clases = [

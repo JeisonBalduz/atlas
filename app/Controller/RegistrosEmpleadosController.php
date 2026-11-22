@@ -396,6 +396,47 @@ class RegistrosEmpleadosController implements RenderInterfaces
     }
 
     /**
+     * [POST|PUT] Activa nuevamente a un trabajador desactivado (`estatus_actual = 1`).
+     */
+    public function activar(?string $id = null): void
+    {
+        $input = new LimpiarInputs();
+
+        if ($id === null) {
+            $error = $input->validar(['empleado_id']);
+            if ($error !== null) {
+                $this->app->json(['ok' => false, 'message' => $error], 422);
+                return;
+            }
+            if (!$input->validarNumericos('empleado_id')) {
+                $this->app->json(['ok' => false, 'message' => 'Identificador de empleado inválido.'], 400);
+                return;
+            }
+            $id = (string) $input->get('empleado_id');
+        }
+
+        if (!ctype_digit($id) || (int) $id <= 0) {
+            $this->app->json(['ok' => false, 'message' => 'Identificador de empleado inválido.'], 400);
+            return;
+        }
+
+        $empleado = EmpleadosModel::query()->find((int) $id);
+        if (!$empleado instanceof EmpleadosModel) {
+            $this->app->json(['ok' => false, 'message' => 'Trabajador no encontrado.'], 404);
+            return;
+        }
+
+        $empleado->estatus_actual = 1;
+        $empleado->save();
+
+        $this->app->json([
+            'ok' => true,
+            'message' => 'Trabajador activado correctamente.',
+            'data' => ['empleado_id' => (int) $empleado->empleado_id, 'estatus_actual' => 1],
+        ], 200);
+    }
+
+    /**
      * [GET] Lista los documentos personales y familiares de un trabajador ordenados del más viejo al más nuevo.
      */
     public function listarDocumentos(string $id): void

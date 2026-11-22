@@ -54,7 +54,7 @@
     <article class="col-span-full sm:col-span-4 xl:col-span-3 rounded-3xl border border-marca bg-marca p-6 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between">
         <div class="flex items-center justify-between">
             <span class="text-xs font-semibold uppercase tracking-wider text-marca-200">Total registrados</span>
-            <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-marca-100">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-marca-100">
                 <i data-lucide="users" class="h-5 w-5" aria-hidden="true"></i>
             </div>
         </div>
@@ -96,11 +96,11 @@
     <section aria-labelledby="titulo-directorio-personal" class="col-span-full rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
         <header class="flex flex-col gap-4 rounded-t-3xl border-b border-slate-200 bg-slate-50/70 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex items-start gap-3.5">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-marca-50 border border-marca-200 text-marca-800">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-marca-400/20 text-marca-800">
                     <i data-lucide="id-card" class="h-5 w-5" aria-hidden="true"></i>
                 </div>
                 <div>
-                    <h2 id="titulo-directorio-personal" class="text-base font-bold text-zinc-900">Directorio Institucional de Trabajadores</h2>
+                    <h2 id="titulo-directorio-personal" class="text-base font-bold text-zinc-900">Nomina de los trabajadores <span class="text-red-600">INCES</span></h2>
                     <p class="text-xs text-zinc-500">Filtra por estatus laboral o estado en nómina; pulsa Familiares para consultar su carga familiar en tiempo real.</p>
                 </div>
             </div>
