@@ -76,13 +76,13 @@
 #main-content .dt-container .dt-layout-row:first-child {
   padding-top: 0.25rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #f1f5f9;
+   border-bottom: none; /*1px solid #f1f5f9 */
 }
 
 #main-content .dt-container .dt-layout-row:last-child {
   padding-top: 1rem;
   padding-bottom: 0.25rem;
-  border-top: 1px solid #f1f5f9;
+  border-top:none ; /*1px solid #f1f5f9*/
 }
 
 #main-content .dt-container .dt-layout-row.dt-layout-table {
@@ -169,42 +169,43 @@
 
 #main-content .dt-container table.dataTable > thead > tr > th,
 #main-content .dt-container table.dataTable > thead > tr > td {
-  background-color: #f8fafc !important;
-  color: #71717a !important;
+  /* background-color: #f8fafc !important; */
+  /* color: #71717a !important; */
   font-size: 0.75rem !important;
   font-weight: 600 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.05em !important;
   padding: 0.875rem 1rem !important;
-  border-top: 1px solid #e2e8f0 !important;
-  border-bottom: 1px solid #e2e8f0 !important;
+  /* border-top: 1px solid #e2e8f0 !important;*/
+  border-bottom: 1px solid #cfcfd4!important; 
+
   white-space: nowrap;
   vertical-align: middle;
   transition: background-color 150ms ease, color 150ms ease;
 }
 
 #main-content .dt-container table.dataTable > thead > tr > th:first-child {
-  border-left: 1px solid #e2e8f0;
+  /* border-left: 1px solid #e2e8f0;
   border-top-left-radius: 0.75rem;
-  border-bottom-left-radius: 0.75rem;
+  border-bottom-left-radius: 0.75rem; */
 }
 
 #main-content .dt-container table.dataTable > thead > tr > th:last-child {
-  border-right: 1px solid #e2e8f0;
+  /* border-right: 1px solid #e2e8f0;
   border-top-right-radius: 0.75rem;
-  border-bottom-right-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem; */
 }
 
 #main-content .dt-container table.dataTable > thead > tr > th.dt-orderable-asc:hover,
 #main-content .dt-container table.dataTable > thead > tr > th.dt-orderable-desc:hover {
-  background-color: #f1f5f9 !important;
+  /* background-color: #f1f5f9 !important; */
   color: #18181b !important;
   outline: none !important;
 }
 
 #main-content .dt-container table.dataTable > thead > tr > th.dt-ordering-asc,
 #main-content .dt-container table.dataTable > thead > tr > th.dt-ordering-desc {
-  background-color: #edf3fd !important;
+  /* background-color: #edf3fd !important; */
   color: #052659 !important;
 }
 
@@ -232,11 +233,11 @@
 }
 
 #main-content .dt-container table.dataTable > tbody > tr > td {
-  padding: 0.875rem 1rem !important;
+  /* padding: 0.875rem 1rem !important; */
   font-size: 0.875rem !important;
   line-height: 1.35rem !important;
   color: #3f3f46 !important;
-  border-bottom: 1px solid #f1f5f9 !important;
+  /* border-bottom: 1px solid #f1f5f9 !important; */
   border-top: none !important;
   vertical-align: middle !important;
   box-shadow: none !important;

@@ -105,6 +105,10 @@
                 </div>
             </div>
 
+            
+        </header>
+
+        <div class="overflow-x-auto px-6 py-5">
             <div class="flex flex-wrap items-center gap-2.5">
                 <div class="w-full sm:w-56">
                     @component('components.select', [
@@ -133,13 +137,10 @@
                     @endcomponent
                 </div>
             </div>
-        </header>
-
-        <div class="overflow-x-auto px-6 py-5">
             <table id="tabla-empleados" class="w-full text-sm text-left">
-                <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50">
+                <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-700  ">
                     <tr>
-                        <th>Código</th>
+                        <th >Código</th>
                         <th>Cédula</th>
                         <th>Nombre completo</th>
                         <th>Cargo</th>

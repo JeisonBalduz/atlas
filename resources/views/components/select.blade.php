@@ -32,9 +32,9 @@
             @endforeach
         </select>
 
-        {{-- Botón Disparador del Select --}}
+        {{-- Botón Disparador del Select  bg-slate-50--}}
         <button type="button"
-            class="custom-select-trigger w-full flex items-center justify-between px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg  hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black transition duration-200 cursor-pointer"
+            class="custom-select-trigger w-full flex items-center justify-between px-3.5 py-2.5  border border-slate-300 rounded-lg  hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black transition duration-200 cursor-pointer"
             {{ $disabled ?? false ? 'disabled' : '' }}>
             <div class="custom-select-display flex items-center gap-2.5 truncate">
                 <span class="text-xs text-zinc-400 truncate">{{ $placeholder ?? 'Seleccionar opción...' }}</span>
