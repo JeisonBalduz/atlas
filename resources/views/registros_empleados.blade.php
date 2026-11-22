@@ -68,7 +68,7 @@
     <article class="col-span-full sm:col-span-4 xl:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between">
         <div class="flex items-center justify-between">
             <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Personal activo</span>
-            <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-green-50 border border-green-200 text-green-800">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl  bg-green-400/20  text-green-800">
                 <i data-lucide="user-check" class="h-5 w-5" aria-hidden="true"></i>
             </div>
         </div>
@@ -82,7 +82,7 @@
     <article class="col-span-full sm:col-span-4 xl:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between">
         <div class="flex items-center justify-between">
             <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Inactivos / Baja</span>
-            <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-yellow-50 border border-yellow-200 text-yellow-900">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl  bg-red-400/20  text-red-800">
                 <i data-lucide="user-minus" class="h-5 w-5" aria-hidden="true"></i>
             </div>
         </div>
