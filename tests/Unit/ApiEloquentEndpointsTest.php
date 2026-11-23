@@ -454,6 +454,13 @@ final class ApiEloquentEndpointsTest extends TestCase
         self::assertCount(1, $this->ultimoJson['data']);
         self::assertSame('V-21456789', $this->ultimoJson['data'][0]['sublabel']);
 
+        $appCatDisc = $this->crearMockEngine('GET');
+        (new RegistrosEmpleadosController($appCatDisc, $this->config, $this->catalogos, $this->gestor))->catalogosDiscapacidad();
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertTrue($this->ultimoJson['ok']);
+        self::assertSame('Visual', $this->ultimoJson['data']['tipos'][1]);
+        self::assertArrayHasKey(1, $this->ultimoJson['data']['grados']);
+
         $appPer = $this->crearMockEngine('GET', [], ['q' => '31245678', 'limit' => '10']);
         (new RegistroBeneficiosController($appPer, $this->config, $this->catalogos))->buscarPersonasParaSelect();
         self::assertSame(200, $this->ultimoCodigo);

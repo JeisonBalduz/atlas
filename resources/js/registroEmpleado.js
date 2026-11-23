@@ -1,34 +1,17 @@
 /**
  * registroEmpleado.js
- * Formulario multipaso de registro de trabajadores conectado a POST /api/empleados,
- * POST /api/documentos y selects dependientes de /api/ubicacion/*.
+ * Formulario multipaso de registro de trabajadores conectado a POST /api/empleados
+ * y selects dependientes de /api/ubicacion/*.
  */
 
-import { InputValidador } from '/js/class/validator/InputValidador.js';
 import { Solicitud } from '/js/class/Solicitud.js';
+import { InputValidador } from '/js/class/validator/InputValidador.js';
 import { inicializarPasoMultiple } from '/js/components/pasoMultiple.js';
 import {
-  inicializarSelectsPersonalizados,
   actualizarOpcionesSelect,
+  inicializarSelectsPersonalizados,
 } from '/js/components/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast.js';
-
-const resolverTipoDocumentoId = (mapaTipos, palabrasClave) => {
-  const entradas = Object.entries(mapaTipos || {});
-  if (entradas.length === 0) return null;
-
-  for (const [id, nombre] of entradas) {
-    const normalizado = String(nombre || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-    if (palabrasClave.some((clave) => normalizado.includes(clave))) {
-      return id;
-    }
-  }
-
-  return entradas[0][0];
-};
 
 const calcularEdad = (ano, mes, dia) => {
   if (!ano || !mes || !dia) return '';
@@ -42,55 +25,57 @@ const calcularEdad = (ano, mes, dia) => {
   return edad >= 0 && edad <= 99 ? String(edad) : '';
 };
 
+const configurarValidaciones = () => {
+  InputValidador.soloLetras('#primerNombre, #primerApellido, #segundoNombre, #segundoApellido', {
+    minimo: 2,
+    limite: 50,
+    requerido: true,
+  });
+  InputValidador.soloLetras('#calle', { permitirNumeros: true, limite: 120 });
+  InputValidador.soloNumeros('#cedula', { limite: 8, minimo: 6 });
+  InputValidador.soloNumeros('#edad', { limite: 2 });
+  InputValidador.soloNumeros('#telefono', { limite: 7, minimo: 7 });
+  InputValidador.requerido('#form-registro select, #fechaing3');
+  InputValidador.archivo('#contrato, #notificacion', { tamanoMaximoMB: 5 });
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
+  configurarValidaciones();
 
   const selectAno = document.getElementById('ano');
   const selectMes = document.getElementById('meses');
   const selectDia = document.getElementById('dia');
   const inputEdad = document.getElementById('edad');
+  const selectEstado = document.getElementById('estado');
+  const selectMunicipio = document.getElementById('municipio');
 
   const actualizarDiasDelMes = () => {
     const ano = parseInt(selectAno?.value || '', 10) || new Date().getFullYear();
     const mes = parseInt(selectMes?.value || '', 10);
-
-    if (!mes) {
-      actualizarOpcionesSelect(
-        '#dia',
-        Array.from({ length: 31 }, (_, indice) => indice + 1),
-        selectDia?.value || ''
-      );
-      return;
-    }
-
-    const cantidadDias = new Date(ano, mes, 0).getDate();
-    const dias = Array.from({ length: cantidadDias }, (_, indice) => indice + 1);
+    const totalDias = mes ? new Date(ano, mes, 0).getDate() : 31;
+    const dias = Array.from({ length: totalDias }, (_, indice) => indice + 1);
     actualizarOpcionesSelect('#dia', dias, selectDia?.value || '');
   };
 
-  const actualizarEdadDesdeFecha = () => {
-    const ano = parseInt(selectAno?.value || '', 10);
-    const mes = parseInt(selectMes?.value || '', 10);
-    const dia = parseInt(selectDia?.value || '', 10);
-    const calculada = calcularEdad(ano, mes, dia);
-    if (inputEdad && calculada !== '') {
-      inputEdad.value = calculada;
-    }
+  const actualizarEdad = () => {
+    const calculada = calcularEdad(
+      parseInt(selectAno?.value || '', 10),
+      parseInt(selectMes?.value || '', 10),
+      parseInt(selectDia?.value || '', 10)
+    );
+    if (inputEdad && calculada !== '') inputEdad.value = calculada;
   };
 
   selectMes?.addEventListener('change', () => {
     actualizarDiasDelMes();
-    actualizarEdadDesdeFecha();
+    actualizarEdad();
   });
   selectAno?.addEventListener('change', () => {
     actualizarDiasDelMes();
-    actualizarEdadDesdeFecha();
+    actualizarEdad();
   });
-  selectDia?.addEventListener('change', actualizarEdadDesdeFecha);
-
-  // Selects dependientes de ubicación: Estado -> Municipio -> Parroquia
-  const selectEstado = document.getElementById('estado');
-  const selectMunicipio = document.getElementById('municipio');
+  selectDia?.addEventListener('change', actualizarEdad);
 
   selectEstado?.addEventListener('change', async () => {
     const estadoId = selectEstado.value;
@@ -99,10 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!estadoId) return;
 
     const res = await Solicitud.get(`/api/ubicacion/municipios/${estadoId}`);
-    if (res.status === 401) {
-      window.location.href = '/autenticacion';
-      return;
-    }
     if (!res.ok || !res.data?.ok) {
       mostrarToast('error', res.message || 'No se pudieron cargar los municipios.');
       return;
@@ -116,47 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!municipioId) return;
 
     const res = await Solicitud.get(`/api/ubicacion/parroquias/${municipioId}`);
-    if (res.status === 401) {
-      window.location.href = '/autenticacion';
-      return;
-    }
     if (!res.ok || !res.data?.ok) {
       mostrarToast('error', res.message || 'No se pudieron cargar las parroquias.');
       return;
     }
     actualizarOpcionesSelect('#parroquia', res.data.data || {});
-  });
-
-  // Validaciones por campo
-  InputValidador.soloLetras('#primerNombre, #primerApellido, #segundoNombre, #segundoApellido', {
-    minimo: 2,
-    limite: 50,
-    requerido: true,
-  });
-
-  InputValidador.soloLetras('#calle', {
-    permitirNumeros: true,
-    limite: 120,
-  });
-
-  InputValidador.soloNumeros('#cedula', {
-    limite: 8,
-    minimo: 6,
-  });
-
-  InputValidador.soloNumeros('#edad', {
-    limite: 2,
-  });
-
-  InputValidador.soloNumeros('#telefono', {
-    limite: 7,
-    minimo: 7,
-  });
-
-  InputValidador.requerido('#form-registro select, #fechaing3');
-
-  InputValidador.archivo('#contrato, #notificacion', {
-    tamanoMaximoMB: 5,
   });
 
   let enviando = false;
@@ -174,21 +119,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (etiquetaBtn) etiquetaBtn.textContent = 'Guardando...';
 
       try {
-        const datosFormulario = new FormData(formulario);
-
-        const resEmpleado = await Solicitud.post('/api/empleados', datosFormulario);
-        if (resEmpleado.status === 401) {
-          window.location.href = '/autenticacion';
+        const res = await Solicitud.post('/api/empleados', new FormData(formulario));
+        if (!res.ok || !res.data?.ok) {
+          mostrarToast('error', res.message || 'No se pudo registrar el trabajador.');
           return;
         }
 
-        if (!resEmpleado.ok || !resEmpleado.data?.ok) {
-          mostrarToast('error', resEmpleado.message || 'No se pudo registrar el trabajador.');
-          return;
-        }
-
-        mostrarToast('success', resEmpleado.data.message || 'Trabajador registrado en estado Pendiente.');
-
+        mostrarToast('success', res.data.message || 'Trabajador registrado en estado Pendiente.');
         setTimeout(() => {
           window.location.href = '/empleados/registros';
         }, 700);

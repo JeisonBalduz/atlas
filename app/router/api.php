@@ -39,6 +39,7 @@ $router->group('/api', function (Router $router): void {
     $router->post('/empleados/activar', [RegistrosEmpleadosController::class, 'activar']);
     $router->post('/empleados/@id:[0-9]+/activar', [RegistrosEmpleadosController::class, 'activar']);
     $router->post('/empleados/@id:[0-9]+/discapacidad', [RegistrosEmpleadosController::class, 'asignarDiscapacidad']);
+    $router->get('/discapacidad/catalogos', [RegistrosEmpleadosController::class, 'catalogosDiscapacidad']);
     $router->delete('/empleados/@id:[0-9]+', [RegistrosEmpleadosController::class, 'destroy']);
 
     // --- Familiares ---

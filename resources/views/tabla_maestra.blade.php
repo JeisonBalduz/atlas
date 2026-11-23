@@ -3,8 +3,7 @@
 @section('titulo', 'Tabla Maestras del Sistema') {{-- TÍTULO DE LA PÁGINA --}}
 
 @push('styles')
-    <link rel="stylesheet" href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css">
-    <script src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"></script>
+    @include('components.datatables_assets')
 @endpush
 
 @section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 xl:px-12 2xl:px-16 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
@@ -86,29 +85,20 @@
     </nav>
 
     {{-- Card 3 (Bento 12 Columnas): Tabla dinámica del Tabla Maestra activo (DataTables 3.1.5) --}}
-    <section
-        id="contenedor-tabla-catalogo"
-        data-estados="{{ json_encode($estados ?? [], JSON_UNESCAPED_UNICODE) }}"
-        aria-labelledby="titulo-tabla-catalogo"
-        class="col-span-full rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)]"
-    >
-        <header class="flex items-center gap-3.5 rounded-t-3xl border-b border-slate-200 bg-slate-50/70 px-6 py-5">
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-marca-50 border border-marca-200 text-marca-800">
-                <i data-lucide="database" class="h-5 w-5" aria-hidden="true"></i>
-            </div>
-            <div>
-                <h2 id="titulo-tabla-catalogo" class="text-base font-bold text-zinc-900">Tabla Maestra de Estatus</h2>
-                <p class="text-xs text-zinc-500">Los encabezados y el formulario se adaptan automáticamente al Tabla Maestra seleccionado.</p>
-            </div>
-        </header>
-
-        <div id="envoltura-tabla-catalogo" class="overflow-x-auto px-6 py-5">
-            <table id="tabla-catalogo" class="w-full text-sm text-left">
-                <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50"></thead>
-                <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
-            </table>
-        </div>
-    </section>
+    @component('components.contenedor_tabla', [
+        'idSeccion' => 'contenedor-tabla-catalogo',
+        'idTitulo' => 'titulo-tabla-catalogo',
+        'idEnvoltura' => 'envoltura-tabla-catalogo',
+        'icono' => 'database',
+        'titulo' => 'Tabla Maestra de Estatus',
+        'subtitulo' => 'Los encabezados y el formulario se adaptan automáticamente al Tabla Maestra seleccionado.',
+        'atributosSeccion' => 'data-estados="' . htmlspecialchars(json_encode($estados ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') . '"',
+    ])
+        <table id="tabla-catalogo" class="w-full text-sm text-left">
+            <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50"></thead>
+            <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
+        </table>
+    @endcomponent
 </div>
 
 {{-- Modal dinámico para crear o editar registro del Tabla Maestra activo --}}
@@ -124,14 +114,11 @@
 @endcomponent
 
 {{-- Modal de confirmación para eliminar/cambiar estado --}}
-@component('components.modal', [
+@component('components.modal_confirmacion', [
     'id' => 'modal-eliminar-catalogo',
     'titulo' => 'Eliminar registro de Tabla Maestra',
     'subtitulo' => 'Confirma la operación sobre el registro del Tabla Maestra.',
-    'tamano' => 'sm',
-    'textoCancelar' => 'Cancelar',
     'textoConfirmar' => 'Eliminar',
-    'varianteConfirmar' => 'red',
 ])
 @endcomponent
 @endsection

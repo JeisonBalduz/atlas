@@ -1,19 +1,14 @@
 /**
  * registro_vacaciones.js
- * Formulario de solicitud de vacaciones y tabla con DataTables 3.1.5 (100% JS Nativo, cero jQuery)
- * preservando los <select> hidratados desde PHP.
+ * Formulario de solicitud de vacaciones y tabla con DataTables 3.1.5.
  */
 
 import { ControladorModal } from '/js/class/ControladorModal.js';
+import { GestorDataTable } from '/js/class/GestorDataTable.js';
 import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast.js';
-import {
-  crearBadge,
-  crearBotonAccion,
-  crearTablaCliente,
-  escaparHtml,
-  formatearFecha,
-} from '/js/datatables/configDataTable.js';
+import { crearBadge, crearBotonAccion } from '/js/templates/template_ui.js';
+import { calcularDiasEntreFechas, escaparHtml, formatearFecha } from '/js/utils/dom.js';
 
 let solicitudesIniciales = [
   {
@@ -88,22 +83,75 @@ const varianteEstatusVacaciones = (estatus) => {
   return mapa[estatus] || 'neutro';
 };
 
-const calcularDiasEntreFechas = (inicio, fin) => {
-  if (!inicio || !fin) return 0;
-  const fInicio = new Date(`${inicio}T00:00:00`);
-  const fFin = new Date(`${fin}T00:00:00`);
-  if (Number.isNaN(fInicio.getTime()) || Number.isNaN(fFin.getTime()) || fFin < fInicio) {
-    return 0;
-  }
-  const diferencia = Math.round((fFin - fInicio) / (1000 * 60 * 60 * 24)) + 1;
-  return Math.max(0, diferencia);
+const renderDetalleVacaciones = (registro) => {
+  const filasPeriodos = (registro.periodos_descontados || [])
+    .map(
+      (p) => `
+        <li class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm">
+          <span class="font-medium text-zinc-900">Período ${escaparHtml(p.periodo)}</span>
+          <span class="font-semibold text-marca-700">${escaparHtml(p.dia_descontados)} días descontados</span>
+        </li>
+      `
+    )
+    .join('');
+
+  const filasHistorial = (registro.historial || [])
+    .map(
+      (h) => `
+        <li class="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            ${crearBadge(h.estatus, varianteEstatusVacaciones(h.estatus))}
+            <span class="text-xs text-zinc-500">${escaparHtml(h.fecha_registro)}</span>
+          </div>
+          <p class="mt-1.5 text-xs text-zinc-700">${escaparHtml(h.observacion)}</p>
+        </li>
+      `
+    )
+    .join('');
+
+  return `
+    <div class="space-y-5">
+      <section>
+        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Períodos descontados</h3>
+        <ul class="space-y-2">${filasPeriodos || '<li class="text-xs text-zinc-500">Sin desglose registrado.</li>'}</ul>
+      </section>
+      <section>
+        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Historial de movimientos</h3>
+        <ul class="space-y-2">${filasHistorial || '<li class="text-xs text-zinc-500">Sin movimientos registrados.</li>'}</ul>
+      </section>
+    </div>
+  `;
 };
+
+const obtenerColumnasVacaciones = () => [
+  { data: 'empleado', render: (v) => `<span class="font-medium text-zinc-900">${escaparHtml(v)}</span>` },
+  { data: 'cedula', render: (v) => `<span class="font-medium text-zinc-900 whitespace-nowrap">${escaparHtml(v || '—')}</span>` },
+  {
+    data: 'dias_solicitado',
+    className: 'text-center',
+    render: (v) => `<span class="font-semibold text-zinc-900">${escaparHtml(v)}</span>`,
+  },
+  { data: 'fecha_inicio', render: (v) => `<span class="whitespace-nowrap">${escaparHtml(formatearFecha(v))}</span>` },
+  { data: 'fecha_final', render: (v) => `<span class="whitespace-nowrap">${escaparHtml(formatearFecha(v))}</span>` },
+  {
+    data: 'estatus_texto',
+    className: 'text-center',
+    render: (v) => crearBadge(v, varianteEstatusVacaciones(v)),
+  },
+  {
+    data: null,
+    orderable: false,
+    searchable: false,
+    className: 'text-right',
+    render: (_d, _t, fila) =>
+      crearBotonAccion({ accion: 'mostrar', id: fila.solicitud_vacaciones_id, etiqueta: 'Ver', icono: 'eye', variante: 'marca' }),
+  },
+];
 
 document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
   const modalDetalle = new ControladorModal('#modal-detalle-vacaciones');
 
-  // Cálculo automático de días solicitados
   const selectEmpleado = document.getElementById('empleado_id');
   const tarjetaSaldo = document.getElementById('tarjeta-saldo-vacaciones');
   const inputInicio = document.getElementById('fecha_inicio');
@@ -128,96 +176,24 @@ document.addEventListener('DOMContentLoaded', () => {
   inputInicio?.addEventListener('change', actualizarDias);
   inputFin?.addEventListener('change', actualizarDias);
 
-  const tabla = crearTablaCliente('#tabla-vacaciones', {
+  const tabla = new GestorDataTable('#tabla-vacaciones', {
     datos: solicitudesIniciales,
     ordenInicial: [[3, 'desc']],
-    columnas: [
-      { data: 'empleado', render: (v) => `<span class="font-medium text-zinc-900">${escaparHtml(v)}</span>` },
-      { data: 'cedula', render: (v) => `<span class="font-medium text-zinc-900 whitespace-nowrap">${escaparHtml(v || '—')}</span>` },
-      {
-        data: 'dias_solicitado',
-        className: 'text-center',
-        render: (v) => `<span class="font-semibold text-zinc-900">${escaparHtml(v)}</span>`,
-      },
-      { data: 'fecha_inicio', render: (v) => `<span class="whitespace-nowrap">${escaparHtml(formatearFecha(v))}</span>` },
-      { data: 'fecha_final', render: (v) => `<span class="whitespace-nowrap">${escaparHtml(formatearFecha(v))}</span>` },
-      {
-        data: 'estatus_texto',
-        className: 'text-center',
-        render: (v) => crearBadge(v, varianteEstatusVacaciones(v)),
-      },
-      {
-        data: null,
-        orderable: false,
-        searchable: false,
-        className: 'text-right',
-        render: (_d, _t, fila) =>
-          crearBotonAccion({
-            accion: 'mostrar',
-            id: fila.solicitud_vacaciones_id,
-            etiqueta: 'Ver',
-            icono: 'eye',
-            variante: 'marca',
-          }),
-      },
-    ],
+    columnas: obtenerColumnasVacaciones(),
+    alAccionar: (accion, registro) => {
+      if (accion !== 'mostrar') return;
+      modalDetalle.abrir({
+        titulo: `Solicitud #${registro.solicitud_vacaciones_id} · ${registro.empleado}`,
+        subtitulo: `${formatearFecha(registro.fecha_inicio)} al ${formatearFecha(registro.fecha_final)} (${registro.dias_solicitado} días solicitados)`,
+        contenidoHtml: renderDetalleVacaciones(registro),
+      });
+    },
   });
 
   if (!tabla) return;
 
-  document.getElementById('tabla-vacaciones')?.addEventListener('click', (evento) => {
-    const boton = evento.target.closest('button[data-accion="mostrar"]');
-    if (!boton) return;
-
-    const registro = tabla.row(boton.closest('tr')).data();
-    if (!registro) return;
-
-    const filasPeriodos = (registro.periodos_descontados || [])
-      .map(
-        (p) => `
-          <li class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm">
-            <span class="font-medium text-zinc-900">Período ${escaparHtml(p.periodo)}</span>
-            <span class="font-semibold text-marca-700">${escaparHtml(p.dia_descontados)} días descontados</span>
-          </li>
-        `
-      )
-      .join('');
-
-    const filasHistorial = (registro.historial || [])
-      .map(
-        (h) => `
-          <li class="rounded-lg border border-slate-200 bg-white p-3 text-sm">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              ${crearBadge(h.estatus, varianteEstatusVacaciones(h.estatus))}
-              <span class="text-xs text-zinc-500">${escaparHtml(h.fecha_registro)}</span>
-            </div>
-            <p class="mt-1.5 text-xs text-zinc-700">${escaparHtml(h.observacion)}</p>
-          </li>
-        `
-      )
-      .join('');
-
-    modalDetalle.abrir({
-      titulo: `Solicitud #${registro.solicitud_vacaciones_id} · ${registro.empleado}`,
-      subtitulo: `${formatearFecha(registro.fecha_inicio)} al ${formatearFecha(registro.fecha_final)} (${registro.dias_solicitado} días solicitados)`,
-      contenidoHtml: `
-        <div class="space-y-5">
-          <section>
-            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Períodos descontados</h3>
-            <ul class="space-y-2">${filasPeriodos || '<li class="text-xs text-zinc-500">Sin desglose registrado.</li>'}</ul>
-          </section>
-          <section>
-            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Historial de movimientos</h3>
-            <ul class="space-y-2">${filasHistorial || '<li class="text-xs text-zinc-500">Sin movimientos registrados.</li>'}</ul>
-          </section>
-        </div>
-      `,
-    });
-  });
-
   document.getElementById('filtro-estatus-vacaciones')?.addEventListener('change', (evento) => {
-    const val = evento.target.value;
-    tabla.column(5).search(val === 'todos' ? '' : val).draw();
+    tabla.filtrarColumna(5, evento.target.value);
   });
 
   const formulario = document.getElementById('formulario-vacaciones');
@@ -233,12 +209,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const nombreEmp = opcionEmp.textContent.trim();
-    const cedulaEmp = opcionEmp.dataset.sublabel || '—';
-
     const nuevaSolicitud = {
       solicitud_vacaciones_id: solicitudesIniciales.length + 1,
       empleado: nombreEmp,
-      cedula: cedulaEmp,
+      cedula: opcionEmp.dataset.sublabel || '—',
       dias_solicitado: dias,
       fecha_inicio: inputInicio.value,
       fecha_final: inputFin.value,
@@ -254,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     solicitudesIniciales = [nuevaSolicitud, ...solicitudesIniciales];
-    tabla.clear().rows.add(solicitudesIniciales).draw();
+    tabla.actualizarDatos(solicitudesIniciales);
     formulario.reset();
     tarjetaSaldo?.classList.add('hidden');
     mostrarToast('success', `Solicitud de ${dias} días registrada para ${nombreEmp}.`);

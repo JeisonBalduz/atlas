@@ -76,6 +76,20 @@ class RegistrosEmpleadosController implements RenderInterfaces
     }
 
     /**
+     * [GET] Devuelve los tipos y grados de discapacidad para el modal de asignación.
+     */
+    public function catalogosDiscapacidad(): void
+    {
+        $this->app->json([
+            'ok' => true,
+            'data' => [
+                'tipos' => $this->catalogos->tiposDiscapacidad(),
+                'grados' => $this->catalogos->gradosDiscapacidad(),
+            ],
+        ], 200);
+    }
+
+    /**
      * [GET] Búsqueda paginada de trabajadores activos para selects remotos.
      */
     public function buscarParaSelect(): void

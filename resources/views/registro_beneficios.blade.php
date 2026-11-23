@@ -3,8 +3,7 @@
 @section('titulo', 'Registro de Beneficios') {{-- TÍTULO DE LA PÁGINA --}}
 
 @push('styles')
-    <link rel="stylesheet" href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css">
-    <script src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"></script>
+    @include('components.datatables_assets')
 @endpush
 
 @section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 xl:px-12 2xl:px-16 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
@@ -119,18 +118,14 @@
     </section>
 
     {{-- Bloque 2: Tabla de personal y beneficios asignados (DataTables 3.1.5) --}}
-    <section aria-labelledby="titulo-tabla-beneficios" class="col-span-full lg:col-span-8 rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
-        <header class="flex flex-col gap-3 rounded-t-3xl border-b border-slate-200 bg-slate-50/70 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-start gap-3.5">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-marca-50 border border-marca-200 text-marca-800">
-                    <i data-lucide="list-checks" class="h-5 w-5" aria-hidden="true"></i>
-                </div>
-                <div>
-                    <h2 id="titulo-tabla-beneficios" class="text-base font-bold text-zinc-900">Beneficios Asignados</h2>
-                    <p class="text-xs text-zinc-500">Consulta beneficiarios, fechas de solicitud y aprobación.</p>
-                </div>
-            </div>
-
+    @component('components.contenedor_tabla', [
+        'colSpan' => 'col-span-full lg:col-span-8',
+        'idTitulo' => 'titulo-tabla-beneficios',
+        'icono' => 'list-checks',
+        'titulo' => 'Beneficios Asignados',
+        'subtitulo' => 'Consulta beneficiarios, fechas de solicitud y aprobación.',
+    ])
+        @slot('filtros')
             <div class="w-full sm:w-52">
                 @component('components.select', [
                     'id' => 'filtro-estatus-beneficio',
@@ -145,26 +140,24 @@
                 ])
                 @endcomponent
             </div>
-        </header>
+        @endslot
 
-        <div class="overflow-x-auto px-6 py-5">
-            <table id="tabla-beneficios" class="w-full text-sm text-left">
-                <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50">
-                    <tr>
-                        <th>Cédula</th>
-                        <th>Beneficiario</th>
-                        <th>Rol / Parentesco</th>
-                        <th>Beneficio</th>
-                        <th>Solicitud</th>
-                        <th>Aprobación</th>
-                        <th class="text-center">Estatus</th>
-                        <th class="text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
-            </table>
-        </div>
-    </section>
+        <table id="tabla-beneficios" class="w-full text-sm text-left">
+            <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50">
+                <tr>
+                    <th>Cédula</th>
+                    <th>Beneficiario</th>
+                    <th>Rol / Parentesco</th>
+                    <th>Beneficio</th>
+                    <th>Solicitud</th>
+                    <th>Aprobación</th>
+                    <th class="text-center">Estatus</th>
+                    <th class="text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
+        </table>
+    @endcomponent
 </div>
 
 {{-- Modal de detalle / aprobación del beneficio --}}

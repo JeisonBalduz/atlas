@@ -3,8 +3,7 @@
 @section('titulo', 'Registro de Vacaciones') {{-- TÍTULO DE LA PÁGINA --}}
 
 @push('styles')
-    <link rel="stylesheet" href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css">
-    <script src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"></script>
+    @include('components.datatables_assets')
 @endpush
 
 @section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 xl:px-12 2xl:px-16 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
@@ -149,18 +148,14 @@
     </section>
 
     {{-- Bloque 2: Tabla de solicitudes de vacaciones (DataTables 3.1.5) --}}
-    <section aria-labelledby="titulo-tabla-vacaciones" class="col-span-full lg:col-span-7 xl:col-span-8 rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
-        <header class="flex flex-col gap-3 rounded-t-3xl border-b border-slate-200 bg-slate-50/70 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-start gap-3.5">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-marca-50 border border-marca-200 text-marca-800">
-                    <i data-lucide="calendar-days" class="h-5 w-5" aria-hidden="true"></i>
-                </div>
-                <div>
-                    <h2 id="titulo-tabla-vacaciones" class="text-base font-bold text-zinc-900">Solicitudes de Vacaciones</h2>
-                    <p class="text-xs text-zinc-500">Consulta el estatus de aprobación y el desglose de períodos descontados.</p>
-                </div>
-            </div>
-
+    @component('components.contenedor_tabla', [
+        'colSpan' => 'col-span-full lg:col-span-7 xl:col-span-8',
+        'idTitulo' => 'titulo-tabla-vacaciones',
+        'icono' => 'calendar-days',
+        'titulo' => 'Solicitudes de Vacaciones',
+        'subtitulo' => 'Consulta el estatus de aprobación y el desglose de períodos descontados.',
+    ])
+        @slot('filtros')
             <div class="w-full sm:w-64">
                 @component('components.select', [
                     'id' => 'filtro-estatus-vacaciones',
@@ -180,34 +175,30 @@
                 ])
                 @endcomponent
             </div>
-        </header>
+        @endslot
 
-        <div class="overflow-x-auto px-6 py-5">
-            <table id="tabla-vacaciones" class="w-full text-sm text-left">
-                <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50">
-                    <tr>
-                        <th>Empleado</th>
-                        <th>Cédula</th>
-                        <th class="text-center">Días</th>
-                        <th>Inicio</th>
-                        <th>Fin</th>
-                        <th class="text-center">Estatus</th>
-                        <th class="text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
-            </table>
-        </div>
-    </section>
+        <table id="tabla-vacaciones" class="w-full text-sm text-left">
+            <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50">
+                <tr>
+                    <th>Empleado</th>
+                    <th>Cédula</th>
+                    <th class="text-center">Días</th>
+                    <th>Inicio</th>
+                    <th>Fin</th>
+                    <th class="text-center">Estatus</th>
+                    <th class="text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
+        </table>
+    @endcomponent
 </div>
 
 {{-- Modal de desglose de períodos descontados e historial --}}
-@component('components.modal', [
+@component('components.modal_detalle', [
     'id' => 'modal-detalle-vacaciones',
     'titulo' => 'Detalle de solicitud de vacaciones',
     'subtitulo' => 'Desglose de períodos descontados e historial de movimientos.',
-    'tamano' => 'lg',
-    'textoCancelar' => 'Cerrar',
 ])
 @endcomponent
 @endsection

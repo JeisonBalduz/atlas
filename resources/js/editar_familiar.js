@@ -1,21 +1,14 @@
 /**
  * editar_familiar.js
- * Formulario de edición de carga familiar conectado a POST /api/familiares/{id} con FormData,
- * manteniendo íntegramente los datos del familiar y su titular hidratados desde PHP.
+ * Formulario de edición de carga familiar conectado a POST /api/familiares/{id} con FormData.
  */
 
-import { InputValidador } from '/js/class/validator/InputValidador.js';
 import { Solicitud } from '/js/class/Solicitud.js';
+import { InputValidador } from '/js/class/validator/InputValidador.js';
 import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-  inicializarSelectsPersonalizados();
-
-  const formulario = document.getElementById('formulario-editar-familiar');
-  const familiaId = formulario?.dataset?.familiaId;
-
-  // Validaciones
+const configurarValidaciones = () => {
   InputValidador.soloLetras('#primer_nombre, #segundo_nombre, #primer_apellido, #segundo_apellido', {
     minimo: 2,
     limite: 100,
@@ -25,7 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
   InputValidador.soloNumeros('#tomo, #folio', { minimo: 1, limite: 6, requerido: true });
   InputValidador.requerido('#formulario-editar-familiar select, #fecha_nacimiento');
   InputValidador.archivo('.atlas-doc-fam-input', { tamanoMaximoMB: 5 });
+};
 
+document.addEventListener('DOMContentLoaded', () => {
+  inicializarSelectsPersonalizados();
+  configurarValidaciones();
+
+  const formulario = document.getElementById('formulario-editar-familiar');
+  const familiaId = formulario?.dataset?.familiaId;
   let enviando = false;
 
   formulario?.addEventListener('submit', async (evento) => {
@@ -46,14 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (textoSpan) textoSpan.textContent = 'Guardando...';
 
     try {
-      const formData = new FormData(formulario);
-      const res = await Solicitud.post(`/api/familiares/${familiaId}`, formData);
-
-      if (res.status === 401) {
-        window.location.href = '/autenticacion';
-        return;
-      }
-
+      const res = await Solicitud.post(`/api/familiares/${familiaId}`, new FormData(formulario));
       if (!res.ok || !res.data?.ok) {
         mostrarToast('error', res.message || 'No se pudo actualizar el familiar.');
         return;

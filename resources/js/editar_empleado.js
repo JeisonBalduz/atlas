@@ -1,22 +1,48 @@
 /**
  * editar_empleado.js
- * Formulario de edición de trabajador conectado a POST /api/empleados/{id} con FormData,
- * manteniendo íntegramente los datos y <select> hidratados desde PHP.
+ * Formulario de edición de trabajador conectado a POST /api/empleados/{id} con FormData.
  */
 
-import { InputValidador } from '/js/class/validator/InputValidador.js';
 import { Solicitud } from '/js/class/Solicitud.js';
+import { InputValidador } from '/js/class/validator/InputValidador.js';
 import {
-  inicializarSelectsPersonalizados,
   actualizarOpcionesSelect,
+  inicializarSelectsPersonalizados,
 } from '/js/components/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast.js';
 
+const actualizarSubtituloEdicion = () => {
+  const codigo = document.getElementById('codigo_empleado')?.value || '';
+  const primerNombre = document.getElementById('primer_nombre')?.value || '';
+  const primerApellido = document.getElementById('primer_apellido')?.value || '';
+  const subtitulo = document.getElementById('subtitulo-editar-empleado');
+
+  if (subtitulo && (primerNombre || codigo)) {
+    subtitulo.textContent = `Editando ficha de ${primerNombre} ${primerApellido} (${codigo}).`.trim();
+  }
+};
+
+const configurarValidaciones = () => {
+  InputValidador.soloLetras('#primer_nombre, #segundo_nombre, #primer_apellido, #segundo_apellido', {
+    minimo: 2,
+    limite: 100,
+    requerido: true,
+  });
+  InputValidador.soloNumeros('#cedula', { minimo: 6, limite: 9, requerido: true });
+  InputValidador.correoElectronico('#correo');
+  InputValidador.requerido('#formulario-editar-empleado select');
+  InputValidador.archivo('.atlas-doc-input', { tamanoMaximoMB: 5 });
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
+  actualizarSubtituloEdicion();
+  configurarValidaciones();
 
   const selectEstado = document.getElementById('estado');
   const selectMunicipio = document.getElementById('municipio');
+  const formulario = document.getElementById('formulario-editar-empleado');
+  const empleadoId = formulario?.dataset?.empleadoId;
 
   selectEstado?.addEventListener('change', async () => {
     const estadoId = selectEstado.value;
@@ -25,10 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!estadoId) return;
 
     const res = await Solicitud.get(`/api/ubicacion/municipios/${estadoId}`);
-    if (res.status === 401) {
-      window.location.href = '/autenticacion';
-      return;
-    }
     if (res.ok && res.data?.ok) {
       actualizarOpcionesSelect('#municipio', res.data.data || {});
     }
@@ -40,36 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!municipioId) return;
 
     const res = await Solicitud.get(`/api/ubicacion/parroquias/${municipioId}`);
-    if (res.status === 401) {
-      window.location.href = '/autenticacion';
-      return;
-    }
     if (res.ok && res.data?.ok) {
       actualizarOpcionesSelect('#parroquia_id', res.data.data || {});
     }
   });
-
-  const formulario = document.getElementById('formulario-editar-empleado');
-  const empleadoId = formulario?.dataset?.empleadoId;
-
-  const codigo = document.getElementById('codigo_empleado')?.value || '';
-  const primerNombre = document.getElementById('primer_nombre')?.value || '';
-  const primerApellido = document.getElementById('primer_apellido')?.value || '';
-  const subtitulo = document.getElementById('subtitulo-editar-empleado');
-  if (subtitulo && (primerNombre || codigo)) {
-    subtitulo.textContent = `Editando ficha de ${primerNombre} ${primerApellido} (${codigo}).`.trim();
-  }
-
-  // Validaciones de campos
-  InputValidador.soloLetras('#primer_nombre, #segundo_nombre, #primer_apellido, #segundo_apellido', {
-    minimo: 2,
-    limite: 100,
-    requerido: true,
-  });
-  InputValidador.soloNumeros('#cedula', { minimo: 6, limite: 9, requerido: true });
-  InputValidador.correoElectronico('#correo');
-  InputValidador.requerido('#formulario-editar-empleado select');
-  InputValidador.archivo('.atlas-doc-input', { tamanoMaximoMB: 5 });
 
   let enviando = false;
 
@@ -91,20 +87,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (textoSpan) textoSpan.textContent = 'Guardando...';
 
     try {
-      const formData = new FormData(formulario);
-      const respuesta = await Solicitud.post(`/api/empleados/${empleadoId}`, formData);
-
-      if (respuesta.status === 401) {
-        window.location.href = '/autenticacion';
+      const res = await Solicitud.post(`/api/empleados/${empleadoId}`, new FormData(formulario));
+      if (!res.ok || !res.data?.ok) {
+        mostrarToast('error', res.message || 'No se pudo actualizar el trabajador.');
         return;
       }
 
-      if (!respuesta.ok || !respuesta.data?.ok) {
-        mostrarToast('error', respuesta.message || 'No se pudo actualizar el trabajador.');
-        return;
-      }
-
-      mostrarToast('success', respuesta.data.message || 'Datos del trabajador actualizados correctamente.');
+      mostrarToast('success', res.data.message || 'Datos del trabajador actualizados correctamente.');
       setTimeout(() => {
         window.location.href = '/empleado/registros';
       }, 650);

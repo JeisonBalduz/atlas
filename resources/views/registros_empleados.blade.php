@@ -3,8 +3,7 @@
 @section('titulo', 'Registros de Empleados') {{-- TÍTULO DE LA PÁGINA --}}
 
 @push('styles')
-    <link rel="stylesheet" href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css">
-    <script src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"></script>
+    @include('components.datatables_assets')
 @endpush
 
 @section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 xl:px-12 2xl:px-16 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
@@ -93,76 +92,60 @@
     </article>
 
     {{-- Card 5 (Bento 12 Columnas): Tabla principal de empleados (DataTables 3.1.5 Server-Side) --}}
-    <section aria-labelledby="titulo-directorio-personal" class="col-span-full rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
-        <header class="flex flex-col gap-4 rounded-t-3xl border-b border-slate-200 bg-slate-50/70 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
-            <div class="flex items-start gap-3.5">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-marca-400/20 text-marca-800">
-                    <i data-lucide="id-card" class="h-5 w-5" aria-hidden="true"></i>
-                </div>
-                <div>
-                    <h2 id="titulo-directorio-personal" class="text-base font-bold text-zinc-900">Nomina de los trabajadores <span class="text-red-600">INCES</span></h2>
-                    <p class="text-xs text-zinc-500">Filtra por estatus laboral o estado en nómina; pulsa Familiares para consultar su carga familiar en tiempo real.</p>
-                </div>
+    @component('components.contenedor_tabla', [
+        'idTitulo' => 'titulo-directorio-personal',
+        'icono' => 'id-card',
+        'iconoClase' => 'rounded-xl bg-marca-400/20 text-marca-800',
+        'titulo' => 'Nomina de los trabajadores <span class="text-red-600">INCES</span>',
+        'subtitulo' => 'Filtra por estatus laboral o estado en nómina; pulsa Familiares para consultar su carga familiar en tiempo real.',
+    ])
+        <div class="flex flex-wrap items-center gap-2.5">
+            <div class="w-full sm:w-56">
+                @component('components.select', [
+                    'id' => 'filtro-estatus-empleado',
+                    'name' => 'filtro_estatus_empleado',
+                    'placeholder' => 'Todos los estatus',
+                    'selected' => 'todos',
+                    'search' => true,
+                    'options' => ['todos' => 'Todos los estatus'] + ($estatus_catalogo ?? []),
+                ])
+                @endcomponent
             </div>
 
-            
-        </header>
-
-        <div class="overflow-x-auto px-6 py-5">
-            <div class="flex flex-wrap items-center gap-2.5">
-                <div class="w-full sm:w-56">
-                    @component('components.select', [
-                        'id' => 'filtro-estatus-empleado',
-                        'name' => 'filtro_estatus_empleado',
-                        'placeholder' => 'Todos los estatus',
-                        'selected' => 'todos',
-                        'search' => true,
-                        'options' => ['todos' => 'Todos los estatus'] + ($estatus_catalogo ?? []),
-                    ])
-                    @endcomponent
-                </div>
-
-                <div class="w-full sm:w-52">
-                    @component('components.select', [
-                        'id' => 'filtro-activo-empleado',
-                        'name' => 'filtro_activo_empleado',
-                        'placeholder' => 'Todos los estados',
-                        'selected' => 'todos',
-                        'options' => [
-                            'todos' => 'Todos los estados',
-                            '1' => 'Solo activos',
-                            '3' => 'Solo pendientes',
-                            '0' => 'Solo inactivos',
-                        ],
-                    ])
-                    @endcomponent
-                </div>
+            <div class="w-full sm:w-52">
+                @component('components.select', [
+                    'id' => 'filtro-activo-empleado',
+                    'name' => 'filtro_activo_empleado',
+                    'placeholder' => 'Todos los estados',
+                    'selected' => 'todos',
+                    'options' => [
+                        'todos' => 'Todos los estados',
+                        '1' => 'Solo activos',
+                        '3' => 'Solo pendientes',
+                        '0' => 'Solo inactivos',
+                    ],
+                ])
+                @endcomponent
             </div>
-            <table id="tabla-empleados" class="w-full text-sm text-left">
-                <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-700  ">
-                    <tr>
-                        <th >Código</th>
-                        <th>Cédula</th>
-                        <th>Nombre completo</th>
-                        <th>Cargo</th>
-                        <th>Departamento</th>
-                        <th>Dependencia</th>
-                        <th class="text-center">Discapacidad</th>
-                        <th class="text-center">Estatus</th>
-                        <th class="text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
-            </table>
         </div>
-    </section>
+        <table id="tabla-empleados" class="w-full text-sm text-left">
+            <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-700  ">
+                <tr>
+                    <th>Código</th>
+                    <th>Cédula</th>
+                    <th>Nombre completo</th>
+                    <th>Cargo</th>
+                    <th>Departamento</th>
+                    <th>Dependencia</th>
+                    <th class="text-center">Discapacidad</th>
+                    <th class="text-center">Estatus</th>
+                    <th class="text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
+        </table>
+    @endcomponent
 </div>
-
-{{-- Datos de catálogos para modal de discapacidad --}}
-<script id="catalogos-discapacidad-json" type="application/json">{!! json_encode([
-    'tipos' => $tipos_discapacidad ?? [],
-    'grados' => $grados_discapacidad ?? [],
-], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
 
 {{-- Modal para asignar discapacidad a un trabajador --}}
 @component('components.modal', [
@@ -177,34 +160,20 @@
 @endcomponent
 
 {{-- Modal de carga familiar asociada al trabajador --}}
-@component('components.modal', [
+@component('components.modal_detalle', [
     'id' => 'modal-familiares-empleado',
     'titulo' => 'Carga familiar del trabajador',
     'subtitulo' => 'Familiares registrados asociados al empleado titular.',
     'tamano' => 'xl',
-    'textoCancelar' => 'Cerrar',
-])
-@endcomponent
-
-{{-- Modal de ficha técnica resumida del empleado --}}
-@component('components.modal', [
-    'id' => 'modal-ficha-empleado',
-    'titulo' => 'Ficha técnica del empleado',
-    'subtitulo' => 'Información laboral y de contacto registrada.',
-    'tamano' => 'lg',
-    'textoCancelar' => 'Cerrar',
 ])
 @endcomponent
 
 {{-- Modal de confirmación para desactivar/eliminar empleado --}}
-@component('components.modal', [
+@component('components.modal_confirmacion', [
     'id' => 'modal-eliminar-empleado',
     'titulo' => 'Desactivar empleado',
     'subtitulo' => 'Esta acción actualizará el estatus actual del trabajador.',
-    'tamano' => 'sm',
-    'textoCancelar' => 'Cancelar',
     'textoConfirmar' => 'Confirmar baja',
-    'varianteConfirmar' => 'red',
 ])
 @endcomponent
 @endsection

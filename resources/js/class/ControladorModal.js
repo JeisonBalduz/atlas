@@ -5,6 +5,12 @@
  * callbacks de confirmación y respaldo de cierre al clic en backdrop para navegadores sin `closedBy`.
  */
 
+const VARIANTES_CONFIRMAR = {
+  marca: ['bg-marca', 'hover:bg-marca-700', 'focus:ring-marca-500'],
+  red: ['bg-red-600', 'hover:bg-red-700', 'focus:ring-red-500'],
+  green: ['bg-green-600', 'hover:bg-green-700', 'focus:ring-green-500'],
+};
+
 export class ControladorModal {
   /**
    * @param {string|HTMLDialogElement} selector - Selector CSS o nodo <dialog>
@@ -22,18 +28,14 @@ export class ControladorModal {
     this.nodoCuerpo = this.dialogo.querySelector("[data-modal-cuerpo]");
     this.botonConfirmar = this.dialogo.querySelector("[data-modal-confirmar]");
     this.accionConfirmarActual = null;
+    this.textoCargandoActual = "Procesando...";
 
     this.#vincularEventos();
   }
 
   /**
-   * Abre la ventana modal actualizando opcionalmente sus textos, contenido y acción de confirmación.
+   * Abre la ventana modal actualizando opcionalmente sus textos, contenido, variantes y acción async.
    * @param {Object} [opciones]
-   * @param {string} [opciones.titulo]
-   * @param {string} [opciones.subtitulo]
-   * @param {string} [opciones.contenidoHtml]
-   * @param {string} [opciones.textoConfirmar]
-   * @param {Function|null} [opciones.alConfirmar]
    */
   abrir(opciones = {}) {
     if (opciones.titulo !== undefined && this.nodoTitulo) {
@@ -49,13 +51,7 @@ export class ControladorModal {
       this.nodoCuerpo.innerHTML = opciones.contenidoHtml;
     }
 
-    if (this.botonConfirmar) {
-      if (opciones.textoConfirmar) {
-        this.botonConfirmar.textContent = opciones.textoConfirmar;
-      }
-      this.accionConfirmarActual =
-        typeof opciones.alConfirmar === "function" ? opciones.alConfirmar : null;
-    }
+    this.#configurarBotonConfirmar(opciones);
 
     if (!this.dialogo.open) {
       this.dialogo.showModal();
@@ -64,6 +60,29 @@ export class ControladorModal {
     if (typeof window.lucide !== "undefined") {
       window.lucide.createIcons();
     }
+  }
+
+  #configurarBotonConfirmar(opciones) {
+    if (!this.botonConfirmar) return;
+
+    if (opciones.varianteConfirmar && VARIANTES_CONFIRMAR[opciones.varianteConfirmar]) {
+      Object.values(VARIANTES_CONFIRMAR).forEach((clases) => {
+        this.botonConfirmar.classList.remove(...clases);
+      });
+      this.botonConfirmar.classList.add(...VARIANTES_CONFIRMAR[opciones.varianteConfirmar]);
+    }
+
+    if (opciones.mostrarConfirmar !== undefined) {
+      this.botonConfirmar.classList.toggle("hidden", !opciones.mostrarConfirmar);
+    }
+
+    if (opciones.textoConfirmar) {
+      this.botonConfirmar.textContent = opciones.textoConfirmar;
+    }
+
+    this.textoCargandoActual = opciones.textoCargando || "Procesando...";
+    this.accionConfirmarActual =
+      typeof opciones.alConfirmar === "function" ? opciones.alConfirmar : null;
   }
 
   /**
@@ -88,27 +107,43 @@ export class ControladorModal {
     }
   }
 
+  async #ejecutarConfirmacion() {
+    if (typeof this.accionConfirmarActual !== "function") return;
+
+    const resultado = this.accionConfirmarActual(this.dialogo);
+    if (typeof resultado?.then !== "function") {
+      if (resultado !== false) this.cerrar();
+      return;
+    }
+
+    const textoOriginal = this.botonConfirmar.textContent;
+    this.botonConfirmar.disabled = true;
+    this.botonConfirmar.textContent = this.textoCargandoActual;
+
+    try {
+      const resultadoFinal = await resultado;
+      if (resultadoFinal !== false) {
+        this.cerrar();
+      }
+    } finally {
+      this.botonConfirmar.disabled = false;
+      this.botonConfirmar.textContent = textoOriginal;
+    }
+  }
+
   #vincularEventos() {
-    // Botones de cierre internos
     this.dialogo.addEventListener("click", (evento) => {
       if (evento.target.closest("[data-modal-cerrar]")) {
         this.cerrar();
       }
     });
 
-    // Botón de confirmación
     if (this.botonConfirmar) {
       this.botonConfirmar.addEventListener("click", () => {
-        if (typeof this.accionConfirmarActual === "function") {
-          const resultado = this.accionConfirmarActual(this.dialogo);
-          if (resultado !== false) {
-            this.cerrar();
-          }
-        }
+        this.#ejecutarConfirmacion();
       });
     }
 
-    // Respaldo obligatorio de light-dismiss para navegadores sin soporte de `closedby="any"`
     if (!("closedBy" in HTMLDialogElement.prototype)) {
       this.dialogo.addEventListener("click", (evento) => {
         if (evento.target !== this.dialogo) return;

@@ -3,8 +3,7 @@
 @section('titulo', 'Registros de Familiares') {{-- TÍTULO DE LA PÁGINA --}}
 
 @push('styles')
-    <link rel="stylesheet" href="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.css">
-    <script src="https://cdn.datatables.net/v/dt/dt-3.1.5/datatables.min.js"></script>
+    @include('components.datatables_assets')
 @endpush
 
 @section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 xl:px-12 2xl:px-16 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
@@ -79,18 +78,13 @@
     </article>
 
     {{-- Card 4 (Bento 12 Columnas): Tabla de familiares registrados (DataTables 3.1.5 Server-Side) --}}
-    <section aria-labelledby="titulo-carga-familiar" class="col-span-full rounded-3xl border border-slate-200 bg-white shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
-        <header class="flex flex-col gap-4 rounded-t-3xl border-b border-slate-200 bg-slate-50/70 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-start gap-3.5">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-marca-50 border border-marca-200 text-marca-800">
-                    <i data-lucide="users" class="h-5 w-5" aria-hidden="true"></i>
-                </div>
-                <div>
-                    <h2 id="titulo-carga-familiar" class="text-base font-bold text-zinc-900">Carga Familiar Registrada</h2>
-                    <p class="text-xs text-zinc-500">Incluye vínculo con el titular, parentesco, cálculo automático de edad y datos de acta civil.</p>
-                </div>
-            </div>
-
+    @component('components.contenedor_tabla', [
+        'idTitulo' => 'titulo-carga-familiar',
+        'icono' => 'users',
+        'titulo' => 'Carga Familiar Registrada',
+        'subtitulo' => 'Incluye vínculo con el titular, parentesco, cálculo automático de edad y datos de acta civil.',
+    ])
+        @slot('filtros')
             <div class="w-full sm:w-56">
                 @component('components.select', [
                     'id' => 'filtro-parentesco',
@@ -102,48 +96,41 @@
                 ])
                 @endcomponent
             </div>
-        </header>
+        @endslot
 
-        <div class="overflow-x-auto px-6 py-5">
-            <table id="tabla-familiares" class="w-full text-sm text-left">
-                <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50">
-                    <tr>
-                        <th>Cédula Titular</th>
-                        <th>Empleado Titular</th>
-                        <th>Cédula Familiar</th>
-                        <th>Nombre del Familiar</th>
-                        <th>Parentesco</th>
-                        <th class="text-center">Edad</th>
-                        <th class="text-center">Género</th>
-                        <th class="text-center">Tomo / Folio</th>
-                        <th class="text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
-            </table>
-        </div>
-    </section>
+        <table id="tabla-familiares" class="w-full text-sm text-left">
+            <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50">
+                <tr>
+                    <th>Cédula Titular</th>
+                    <th>Empleado Titular</th>
+                    <th>Cédula Familiar</th>
+                    <th>Nombre del Familiar</th>
+                    <th>Parentesco</th>
+                    <th class="text-center">Edad</th>
+                    <th class="text-center">Género</th>
+                    <th class="text-center">Tomo / Folio</th>
+                    <th class="text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-zinc-700"></tbody>
+        </table>
+    @endcomponent
 </div>
 
 {{-- Modal de detalle del familiar y acta --}}
-@component('components.modal', [
+@component('components.modal_detalle', [
     'id' => 'modal-detalle-familiar',
     'titulo' => 'Detalle del familiar',
     'subtitulo' => 'Datos personales y registro de acta.',
-    'tamano' => 'lg',
-    'textoCancelar' => 'Cerrar',
 ])
 @endcomponent
 
 {{-- Modal de confirmación para eliminar familiar --}}
-@component('components.modal', [
+@component('components.modal_confirmacion', [
     'id' => 'modal-eliminar-familiar',
     'titulo' => 'Eliminar carga familiar',
     'subtitulo' => 'Esta acción eliminará el vínculo familiar del trabajador.',
-    'tamano' => 'sm',
-    'textoCancelar' => 'Cancelar',
     'textoConfirmar' => 'Eliminar registro',
-    'varianteConfirmar' => 'red',
 ])
 @endcomponent
 @endsection
