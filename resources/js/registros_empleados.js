@@ -1,8 +1,6 @@
 /**
  * registros_empleados.js
  * Controlador principal de la vista de empleados:
- * - Inicializa filtros, tabla DataTables y los 3 modales (familiares, estado y discapacidad).
- * - Carga los catálogos de discapacidad vía API (/api/discapacidad/catalogos).
  */
 
 import { ControladorModal } from '/js/class/ControladorModal.js';
