@@ -2214,6 +2214,9 @@
     .sm\:w-10 {
       width: calc(var(--spacing) * 10);
     }
+    .sm\:w-48 {
+      width: calc(var(--spacing) * 48);
+    }
     .sm\:w-52 {
       width: calc(var(--spacing) * 52);
     }
@@ -2397,9 +2400,6 @@
     }
     .lg\:grid-cols-4 {
       grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-    .lg\:grid-cols-6 {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
     }
     .lg\:p-10 {
       padding: calc(var(--spacing) * 10);

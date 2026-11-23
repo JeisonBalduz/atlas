@@ -10,6 +10,7 @@ export const construirConfigCatalogos = (estadosMapa) => ({
   estatus: {
     titulo: 'Catálogo de Estatus',
     claveId: 'estatus_id',
+    filtros: { activo: true },
     campos: [
       { nombre: 'estatus', etiqueta: 'Nombre del estatus', tipo: 'text', requerido: true, maximo: 50 },
       { nombre: 'activo', etiqueta: 'Registro activo', tipo: 'checkbox', requerido: false },
@@ -18,6 +19,7 @@ export const construirConfigCatalogos = (estadosMapa) => ({
   dependencias: {
     titulo: 'Catálogo de Dependencias',
     claveId: 'dependencia_id',
+    filtros: { estado: true, activo: true },
     campos: [
       { nombre: 'dependencia', etiqueta: 'Nombre de la dependencia', tipo: 'text', requerido: true, maximo: 100 },
       { nombre: 'codigo', etiqueta: 'Código', tipo: 'text', requerido: true, maximo: 20 },
@@ -28,6 +30,7 @@ export const construirConfigCatalogos = (estadosMapa) => ({
   departamentos: {
     titulo: 'Catálogo de Departamentos',
     claveId: 'departamento_id',
+    filtros: { activo: true },
     campos: [
       { nombre: 'departamento', etiqueta: 'Nombre del departamento', tipo: 'text', requerido: true, maximo: 100 },
       { nombre: 'activo', etiqueta: 'Registro activo', tipo: 'checkbox', requerido: false },
@@ -36,6 +39,7 @@ export const construirConfigCatalogos = (estadosMapa) => ({
   cargo: {
     titulo: 'Catálogo de Cargos',
     claveId: 'cargo_id',
+    filtros: { activo: true },
     campos: [
       { nombre: 'cargo', etiqueta: 'Nombre del cargo', tipo: 'text', requerido: true, maximo: 50 },
       { nombre: 'activo', etiqueta: 'Registro activo', tipo: 'checkbox', requerido: false },
@@ -44,6 +48,7 @@ export const construirConfigCatalogos = (estadosMapa) => ({
   nivel_academicos: {
     titulo: 'Catálogo de Niveles Académicos',
     claveId: 'nivel_academico_id',
+    filtros: {},
     campos: [
       { nombre: 'nivel_academico', etiqueta: 'Nivel académico', tipo: 'text', requerido: true, maximo: 100 },
       { nombre: 'jerarquia', etiqueta: 'Jerarquía (número entero)', tipo: 'number', requerido: true },
@@ -52,8 +57,36 @@ export const construirConfigCatalogos = (estadosMapa) => ({
   carrera: {
     titulo: 'Catálogo de Carreras',
     claveId: 'carrera_id',
+    filtros: {},
     campos: [
       { nombre: 'carrera', etiqueta: 'Nombre de la carrera', tipo: 'text', requerido: true, maximo: 150 },
+    ],
+  },
+  estados: {
+    titulo: 'Catálogo de Estados',
+    claveId: 'estado_id',
+    filtros: {},
+    campos: [
+      { nombre: 'estado', etiqueta: 'Nombre del estado', tipo: 'text', requerido: true, maximo: 100 },
+    ],
+  },
+  municipios: {
+    titulo: 'Catálogo de Municipios',
+    claveId: 'municipio_id',
+    filtros: { estado: true },
+    campos: [
+      { nombre: 'municipio', etiqueta: 'Nombre del municipio', tipo: 'text', requerido: true, maximo: 100 },
+      { nombre: 'estado_id', etiqueta: 'Estado', tipo: 'select', opciones: estadosMapa, requerido: true },
+    ],
+  },
+  parroquias: {
+    titulo: 'Catálogo de Parroquias',
+    claveId: 'parroquia_id',
+    filtros: { estado: true, municipio: true },
+    campos: [
+      { nombre: 'parroquia', etiqueta: 'Nombre de la parroquia', tipo: 'text', requerido: true, maximo: 100 },
+      { nombre: 'estado_id', etiqueta: 'Estado', tipo: 'select', opciones: estadosMapa, requerido: false, soloFiltroModal: true },
+      { nombre: 'municipio_id', etiqueta: 'Municipio', tipo: 'select', opciones: {}, requerido: true },
     ],
   },
 });
@@ -69,12 +102,26 @@ export const construirColumnasCatalogo = (config, estadosMapa) => {
       };
     }
 
+    if (campo.nombre === 'municipio_id') {
+      return {
+        data: null,
+        title: 'Municipio',
+        render: (_valor, _tipo, fila) =>
+          escaparHtml(fila?.municipio?.municipio || 'Sin asignar'),
+      };
+    }
+
     if (campo.nombre === 'estado_id') {
       return {
-        data: 'estado_id',
+        data: null,
         title: 'Estado',
-        render: (valor, _tipo, fila) =>
-          escaparHtml(fila?.estado?.estado || estadosMapa[String(valor)] || 'Sin asignar'),
+        render: (_valor, _tipo, fila) =>
+          escaparHtml(
+            fila?.estado?.estado ||
+              fila?.municipio?.estado?.estado ||
+              estadosMapa[String(fila?.estado_id)] ||
+              'Sin asignar'
+          ),
       };
     }
 
@@ -117,7 +164,13 @@ export const renderTablaVaciaCatalogo = (columnas) => {
 };
 
 const renderCampoCatalogo = (campo, registro) => {
-  const valorActual = registro ? registro[campo.nombre] : campo.tipo === 'checkbox' ? true : '';
+  const valorActual = registro
+    ? campo.nombre === 'estado_id' && registro.estado_id === undefined
+      ? registro?.municipio?.estado_id ?? ''
+      : registro[campo.nombre]
+    : campo.tipo === 'checkbox'
+      ? true
+      : '';
 
   if (campo.tipo === 'checkbox') {
     return `

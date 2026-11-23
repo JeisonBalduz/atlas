@@ -1,12 +1,15 @@
 /**
  * catalogo.js
- * Controlador de los 6 catálogos base conectado a /api/catalogos/{tipo}.
+ * Controlador de los 9 catálogos base conectado a /api/catalogos/{tipo}.
  */
 
 import { ControladorModal } from '/js/class/ControladorModal.js';
 import { GestorDataTable } from '/js/class/GestorDataTable.js';
 import { Solicitud } from '/js/class/Solicitud.js';
-import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
+import {
+  actualizarOpcionesSelect,
+  inicializarSelectsPersonalizados,
+} from '/js/components/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast.js';
 import {
   construirColumnasCatalogo,
@@ -31,6 +34,8 @@ const leerPayloadFormulario = (formulario, campos) => {
   let valido = true;
 
   campos.forEach((campo) => {
+    if (campo.soloFiltroModal) return;
+
     const control = formulario.elements[campo.nombre];
     if (!control) return;
 
@@ -42,8 +47,8 @@ const leerPayloadFormulario = (formulario, campos) => {
     const valorTexto = String(control.value || '').trim();
     if (campo.requerido && !valorTexto) valido = false;
 
-    payload[campo.nombre] =
-      campo.tipo === 'number' || campo.nombre === 'estado_id' ? Number(valorTexto) : valorTexto;
+    const esNumerico = campo.tipo === 'number' || campo.nombre.endsWith('_id');
+    payload[campo.nombre] = esNumerico ? Number(valorTexto) : valorTexto;
   });
 
   return valido ? payload : null;
@@ -61,11 +66,21 @@ const actualizarPestanaActiva = (botones, activoBtn) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  inicializarSelectsPersonalizados();
+
   const contenedorTabla = document.getElementById('contenedor-tabla-catalogo');
   const tituloTabla = document.getElementById('titulo-tabla-catalogo');
   const envolturaTabla = document.getElementById('envoltura-tabla-catalogo');
   const botonesPestana = document.querySelectorAll('.pestana-catalogo');
   const btnNuevo = document.getElementById('btn-nuevo-catalogo');
+
+  const barraFiltros = document.getElementById('filtros-tabla-catalogo');
+  const envolturaFiltroEstado = document.getElementById('envoltura-filtro-estado');
+  const envolturaFiltroMunicipio = document.getElementById('envoltura-filtro-municipio');
+  const envolturaFiltroActivo = document.getElementById('envoltura-filtro-activo');
+  const filtroEstado = document.getElementById('filtro-catalogo-estado');
+  const filtroMunicipio = document.getElementById('filtro-catalogo-municipio');
+  const filtroActivo = document.getElementById('filtro-catalogo-activo');
 
   const estadosMapa = leerEstadosDesdeDom(contenedorTabla);
   const configCatalogos = construirConfigCatalogos(estadosMapa);
@@ -74,13 +89,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let catalogoActivo = 'estatus';
   let tablaActual = null;
+  let sincronizandoFiltros = false;
+
+  const actualizarMapaEstados = (listaEstados) => {
+    Object.keys(estadosMapa).forEach((clave) => delete estadosMapa[clave]);
+    listaEstados.forEach((item) => {
+      if (item?.estado_id && item?.estado) {
+        estadosMapa[String(item.estado_id)] = item.estado;
+      }
+    });
+
+    sincronizandoFiltros = true;
+    actualizarOpcionesSelect(
+      '#filtro-catalogo-estado',
+      { todos: 'Todos los estados', ...estadosMapa },
+      filtroEstado?.value || 'todos'
+    );
+    sincronizandoFiltros = false;
+  };
+
+  const cargarMunicipiosSelect = async (selector, estadoId, valorSeleccionado = '', incluirTodos = false) => {
+    const base = incluirTodos ? { todos: 'Todos los municipios' } : {};
+    if (!estadoId || estadoId === 'todos') {
+      sincronizandoFiltros = incluirTodos;
+      actualizarOpcionesSelect(selector, base, incluirTodos ? 'todos' : '');
+      sincronizandoFiltros = false;
+      return;
+    }
+
+    const res = await Solicitud.get(`/api/ubicacion/municipios/${estadoId}`, {
+      claveCancelacion: `municipios:${selector}`,
+    });
+    if (res.aborted) return;
+
+    const municipios = res.ok && res.data?.ok ? res.data.data || {} : {};
+    sincronizandoFiltros = incluirTodos;
+    actualizarOpcionesSelect(selector, { ...base, ...municipios }, valorSeleccionado);
+    sincronizandoFiltros = false;
+  };
+
+  const configurarVisibilidadFiltros = (config) => {
+    const filtros = config?.filtros || {};
+    const hayFiltros = Boolean(filtros.estado || filtros.municipio || filtros.activo);
+
+    barraFiltros?.classList.toggle('hidden', !hayFiltros);
+    envolturaFiltroEstado?.classList.toggle('hidden', !filtros.estado);
+    envolturaFiltroMunicipio?.classList.toggle('hidden', !filtros.municipio);
+    envolturaFiltroActivo?.classList.toggle('hidden', !filtros.activo);
+  };
+
+  const reiniciarFiltros = () => {
+    sincronizandoFiltros = true;
+    actualizarOpcionesSelect('#filtro-catalogo-estado', { todos: 'Todos los estados', ...estadosMapa }, 'todos');
+    actualizarOpcionesSelect('#filtro-catalogo-municipio', { todos: 'Todos los municipios' }, 'todos');
+    actualizarOpcionesSelect(
+      '#filtro-catalogo-activo',
+      { todos: 'Todos', 1: 'Solo activos', 0: 'Solo inactivos' },
+      'todos'
+    );
+    sincronizandoFiltros = false;
+  };
+
+  const obtenerParametrosFiltro = (config) => {
+    const params = {};
+    const filtros = config?.filtros || {};
+
+    if (filtros.estado && filtroEstado?.value && filtroEstado.value !== 'todos') {
+      params.estado_id = filtroEstado.value;
+    }
+    if (filtros.municipio && filtroMunicipio?.value && filtroMunicipio.value !== 'todos') {
+      params.municipio_id = filtroMunicipio.value;
+    }
+    if (filtros.activo && filtroActivo?.value && filtroActivo.value !== 'todos') {
+      params.activo = filtroActivo.value;
+    }
+
+    return params;
+  };
 
   const cargarCatalogo = async (claveCatalogo) => {
     const config = configCatalogos[claveCatalogo];
     if (!config) return;
     if (tituloTabla) tituloTabla.textContent = config.titulo;
 
+    configurarVisibilidadFiltros(config);
+    const params = obtenerParametrosFiltro(config);
+
     const res = await Solicitud.get(`/api/catalogos/${claveCatalogo}`, {
+      params,
       claveCancelacion: 'catalogo-lista',
     });
 
@@ -91,6 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const datos = Array.isArray(res.data.data) ? res.data.data : [];
+    if (claveCatalogo === 'estados' && Object.keys(params).length === 0) {
+      actualizarMapaEstados(datos);
+    }
+
     const columnas = construirColumnasCatalogo(config, estadosMapa);
 
     tablaActual?.destruir();
@@ -103,6 +203,41 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  const vincularSelectsModal = (dialogo, registroEditar) => {
+    const selectEstadoModal = dialogo.querySelector('#modal-catalogo-estado_id');
+    const selectMunicipioModal = dialogo.querySelector('#modal-catalogo-municipio_id');
+
+    if (catalogoActivo === 'parroquias' && selectEstadoModal && selectMunicipioModal) {
+      const estadoInicial = registroEditar
+        ? String(registroEditar?.municipio?.estado_id || '')
+        : filtroEstado?.value && filtroEstado.value !== 'todos'
+          ? filtroEstado.value
+          : '';
+
+      const municipioInicial = registroEditar
+        ? String(registroEditar.municipio_id || '')
+        : filtroMunicipio?.value && filtroMunicipio.value !== 'todos'
+          ? filtroMunicipio.value
+          : '';
+
+      if (estadoInicial) {
+        if (!registroEditar) {
+          actualizarOpcionesSelect('#modal-catalogo-estado_id', estadosMapa, estadoInicial);
+        }
+        cargarMunicipiosSelect('#modal-catalogo-municipio_id', estadoInicial, municipioInicial);
+      }
+
+      selectEstadoModal.addEventListener('change', () => {
+        cargarMunicipiosSelect('#modal-catalogo-municipio_id', selectEstadoModal.value, '');
+      });
+      return;
+    }
+
+    if (!registroEditar && selectEstadoModal && filtroEstado?.value && filtroEstado.value !== 'todos') {
+      actualizarOpcionesSelect('#modal-catalogo-estado_id', estadosMapa, filtroEstado.value);
+    }
+  };
+
   const abrirModalRegistro = (registroEditar = null) => {
     const config = configCatalogos[catalogoActivo];
     modalFormulario.abrir({
@@ -111,8 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
       contenidoHtml: renderFormularioCatalogo(config, registroEditar),
       textoConfirmar: registroEditar ? 'Actualizar' : 'Guardar',
       textoCargando: 'Guardando...',
-      alConfirmar: async (dialogo) => {
-        const formulario = dialogo.querySelector('#form-modal-catalogo');
+      alConfirmar: async (dlg) => {
+        const formulario = dlg.querySelector('#form-modal-catalogo');
         const payload = formulario ? leerPayloadFormulario(formulario, config.campos) : null;
         if (!payload) {
           mostrarToast('error', 'Completa todos los campos obligatorios.');
@@ -133,7 +268,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
       },
     });
+
     inicializarSelectsPersonalizados();
+    if (modalFormulario.dialogo) vincularSelectsModal(modalFormulario.dialogo, registroEditar);
   };
 
   const abrirModalEliminar = (registro) => {
@@ -170,10 +307,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (boton.dataset.accion === 'eliminar') abrirModalEliminar(registro);
   });
 
+  filtroEstado?.addEventListener('change', async () => {
+    if (sincronizandoFiltros) return;
+    if (catalogoActivo === 'parroquias') {
+      await cargarMunicipiosSelect('#filtro-catalogo-municipio', filtroEstado.value, 'todos', true);
+    }
+    cargarCatalogo(catalogoActivo);
+  });
+
+  filtroMunicipio?.addEventListener('change', () => {
+    if (sincronizandoFiltros) return;
+    cargarCatalogo(catalogoActivo);
+  });
+
+  filtroActivo?.addEventListener('change', () => {
+    if (sincronizandoFiltros) return;
+    cargarCatalogo(catalogoActivo);
+  });
+
   botonesPestana.forEach((boton) => {
     boton.addEventListener('click', () => {
       catalogoActivo = boton.dataset.catalogo;
       actualizarPestanaActiva(botonesPestana, boton);
+      reiniciarFiltros();
       cargarCatalogo(catalogoActivo);
     });
   });

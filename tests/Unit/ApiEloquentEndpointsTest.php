@@ -408,6 +408,82 @@ final class ApiEloquentEndpointsTest extends TestCase
         self::assertFalse((bool) CargoModel::query()->find((int) $nuevoCargoId)?->activo);
     }
 
+    public function testTablasMaestrasSoportaNueveCatalogosRelacionesYFiltros(): void
+    {
+        // Crear un segundo estado, municipio y parroquia para validar filtros y relaciones anidadas
+        $appEstadoStore = $this->crearMockEngine('POST', ['estado' => '  Carabobo  ']);
+        (new TablasMaestrasController($appEstadoStore, $this->config, $this->catalogos))->store('estados');
+        self::assertSame(201, $this->ultimoCodigo);
+        self::assertSame('Carabobo', $this->ultimoJson['data']['estado']);
+        $caraboboId = (int) $this->ultimoJson['data']['estado_id'];
+
+        $appMunStore = $this->crearMockEngine('POST', ['municipio' => 'Valencia', 'estado_id' => $caraboboId]);
+        (new TablasMaestrasController($appMunStore, $this->config, $this->catalogos))->store('municipios');
+        self::assertSame(201, $this->ultimoCodigo);
+        self::assertSame('Carabobo', $this->ultimoJson['data']['estado']['estado']);
+        $valenciaId = (int) $this->ultimoJson['data']['municipio_id'];
+
+        $appParStore = $this->crearMockEngine('POST', ['parroquia' => 'San José', 'municipio_id' => $valenciaId]);
+        (new TablasMaestrasController($appParStore, $this->config, $this->catalogos))->store('parroquias');
+        self::assertSame(201, $this->ultimoCodigo);
+        self::assertSame('Valencia', $this->ultimoJson['data']['municipio']['municipio']);
+        self::assertSame('Carabobo', $this->ultimoJson['data']['municipio']['estado']['estado']);
+        $sanJoseId = (int) $this->ultimoJson['data']['parroquia_id'];
+
+        // Validar rechazo 422 cuando una clave foránea no existe
+        $appMunInvalido = $this->crearMockEngine('POST', ['municipio' => 'Fantasma', 'estado_id' => 9999]);
+        (new TablasMaestrasController($appMunInvalido, $this->config, $this->catalogos))->store('municipios');
+        self::assertSame(422, $this->ultimoCodigo);
+
+        // Validar que los 9 catálogos responden 200
+        foreach (['departamentos', 'dependencias', 'estatus', 'nivel_academicos', 'carrera', 'cargo', 'estados', 'municipios', 'parroquias'] as $tipo) {
+            $appList = $this->crearMockEngine('GET');
+            (new TablasMaestrasController($appList, $this->config, $this->catalogos))->index($tipo);
+            self::assertSame(200, $this->ultimoCodigo, "Falló index para {$tipo}");
+            self::assertTrue($this->ultimoJson['ok']);
+            self::assertNotEmpty($this->ultimoJson['data'], "Sin datos para {$tipo}");
+        }
+
+        // Filtrado relacional: municipios por estado_id
+        $appMunFiltro = $this->crearMockEngine('GET', [], ['estado_id' => (string) $caraboboId]);
+        (new TablasMaestrasController($appMunFiltro, $this->config, $this->catalogos))->index('municipios');
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertCount(1, $this->ultimoJson['data']);
+        self::assertSame('Valencia', $this->ultimoJson['data'][0]['municipio']);
+        self::assertSame('Carabobo', $this->ultimoJson['data'][0]['estado']['estado']);
+
+        // Filtrado relacional: parroquias por estado_id (whereHas) y luego por municipio_id
+        $appParFiltroEstado = $this->crearMockEngine('GET', [], ['estado_id' => (string) $caraboboId]);
+        (new TablasMaestrasController($appParFiltroEstado, $this->config, $this->catalogos))->index('parroquias');
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertCount(1, $this->ultimoJson['data']);
+        self::assertSame('San José', $this->ultimoJson['data'][0]['parroquia']);
+
+        $appParFiltroMun = $this->crearMockEngine('GET', [], ['municipio_id' => '1']);
+        (new TablasMaestrasController($appParFiltroMun, $this->config, $this->catalogos))->index('parroquias');
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertCount(1, $this->ultimoJson['data']);
+        self::assertSame('Madre María', $this->ultimoJson['data'][0]['parroquia']);
+
+        // Integridad referencial: no permite borrar un estado con municipios (409)
+        $appDelEstadoConHijos = $this->crearMockEngine('DELETE');
+        (new TablasMaestrasController($appDelEstadoConHijos, $this->config, $this->catalogos))->destroy('estados', (string) $caraboboId);
+        self::assertSame(409, $this->ultimoCodigo);
+
+        // Borrado en orden hoja -> raíz funciona correctamente
+        $appDelPar = $this->crearMockEngine('DELETE');
+        (new TablasMaestrasController($appDelPar, $this->config, $this->catalogos))->destroy('parroquias', (string) $sanJoseId);
+        self::assertSame(200, $this->ultimoCodigo);
+
+        $appDelMun = $this->crearMockEngine('DELETE');
+        (new TablasMaestrasController($appDelMun, $this->config, $this->catalogos))->destroy('municipios', (string) $valenciaId);
+        self::assertSame(200, $this->ultimoCodigo);
+
+        $appDelEst = $this->crearMockEngine('DELETE');
+        (new TablasMaestrasController($appDelEst, $this->config, $this->catalogos))->destroy('estados', (string) $caraboboId);
+        self::assertSame(200, $this->ultimoCodigo);
+    }
+
     public function testControladoresDeVistasHidratanSelectsYPreseleccionDesdeEloquent(): void
     {
         $session = $this->createMock(Session::class);
