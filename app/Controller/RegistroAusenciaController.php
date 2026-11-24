@@ -41,6 +41,7 @@ class RegistroAusenciaController extends BaseController
             'tipos_reposo' => $this->catalogos->tiposReposo(),
             'tipos_institucion' => $this->catalogos->tiposInstitucionEmisora(),
             'tipos_documentos' => $this->catalogos->tiposDocumentos(),
+            'resumen_ausencias' => $this->ausenciasService->resumenConteos(),
         ]);
     }
 
@@ -92,7 +93,11 @@ class RegistroAusenciaController extends BaseController
                 ];
             }
 
-            $this->jsonOk($datos);
+            $this->app->json([
+                'ok' => true,
+                'data' => $datos,
+                'resumen' => $this->ausenciasService->resumenConteos(),
+            ], 200);
         } catch (Throwable) {
             $this->jsonError('No se pudieron consultar las ausencias justificadas.', 500);
         }
@@ -118,8 +123,8 @@ class RegistroAusenciaController extends BaseController
             $base = (array) $baseObj;
             $empId = (int) ($base['empleado_id'] ?? 0);
 
-            $departamento = (string) (DB::table('public.empleados')
-                ->leftJoin('public.departamentos', 'departamentos.departamento_id', '=', 'empleados.departamento_id')
+            $departamento = (string) (DB::table('empleados')
+                ->leftJoin('departamentos', 'departamentos.departamento_id', '=', 'empleados.departamento_id')
                 ->where('empleados.empleado_id', $empId)
                 ->value('departamentos.departamento') ?? '');
 
@@ -139,6 +144,8 @@ class RegistroAusenciaController extends BaseController
             if ($tipoTexto === 'Permiso') {
                 $permObj = $this->ausenciasService->listarDetallePermisos(['ausencia_id' => $ausenciaId, 'limite' => 1])[0] ?? null;
                 $perm = $permObj !== null ? (array) $permObj : [];
+                $tpPermisoRow = DB::table('detalle_permiso')->where('ausencia_id', $ausenciaId)->first(['tppermiso_id']);
+                $respuesta['tppermiso_id'] = $tpPermisoRow !== null ? (int) $tpPermisoRow->tppermiso_id : null;
                 $respuesta['tipo_catalogo'] = (string) ($perm['permiso'] ?? 'Permiso');
                 $respuesta['motivo'] = (string) ($perm['motivo'] ?? '');
                 $respuesta['remunerable'] = ((string) ($perm['remunerable_descripcion'] ?? 'No')) === 'Sí';
@@ -147,7 +154,9 @@ class RegistroAusenciaController extends BaseController
                 $repObj = $this->ausenciasService->listarDetalleReposos(['ausencia_id' => $ausenciaId, 'limite' => 1])[0] ?? null;
                 $rep = $repObj !== null ? (array) $repObj : [];
                 $dtReposoId = isset($rep['dtreposo_id']) ? (int) $rep['dtreposo_id'] : 0;
+                $tpReposoRow = DB::table('detalle_reposo')->where('ausencia_id', $ausenciaId)->first(['tpreposo_id']);
                 $respuesta['dtreposo_id'] = $dtReposoId > 0 ? $dtReposoId : null;
+                $respuesta['tpreposo_id'] = $tpReposoRow !== null ? (int) $tpReposoRow->tpreposo_id : null;
                 $respuesta['tipo_catalogo'] = (string) ($rep['tipo_reposo'] ?? 'Reposo médico');
                 $respuesta['institucion'] = (string) ($rep['institucion_emisora'] ?? 'No especificada');
                 $respuesta['doctor'] = (string) ($rep['doctor'] ?? 'No especificado');
@@ -194,6 +203,11 @@ class RegistroAusenciaController extends BaseController
         $fechaFin = trim((string) $input->get('fecha_fin'));
         $dias = (int) $input->get('dias_ausencia');
         $tipo = (int) $input->get('tipo_ausencia');
+
+        if ($fechaFin < $fechaInicio) {
+            $this->jsonError('La fecha fin no puede ser menor que la fecha de inicio.', 422);
+            return;
+        }
 
         if ($empleadoId <= 0 || $dias <= 0 || !in_array($tipo, [1, 2], true)) {
             $this->jsonError('Datos de ausencia inválidos.', 422);
@@ -271,7 +285,7 @@ class RegistroAusenciaController extends BaseController
                 }
 
                 $mensaje = 'Reposo médico registrado correctamente.';
-                if ($reintegroMsg !== '' && !str_contains(strtolower($reintegroMsg), 'no se encontraron')) {
+                if ($reintegroMsg !== '' && !str_contains(strtolower($reintegroMsg), 'no se encontr')) {
                     $mensaje .= ' ' . $reintegroMsg;
                 }
 
@@ -289,6 +303,89 @@ class RegistroAusenciaController extends BaseController
                 $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo registrar la ausencia justificada.',
                 $codigo >= 400 && $codigo < 600 ? $codigo : 500
             );
+        }
+    }
+
+    /**
+     * [PUT/POST] Edita fechas, días y motivo/descripción de una ausencia justificada.
+     */
+    public function update(string $id): void
+    {
+        $ausenciaId = $this->idPositivo($id, 'ausencia');
+        if ($ausenciaId === null) {
+            return;
+        }
+
+        $input = new LimpiarInputs();
+        $error = $input->validar(['fecha_inicio', 'fecha_fin', 'dias_ausencia']);
+        if ($error !== null) {
+            $this->jsonError($error, 422);
+            return;
+        }
+
+        $fechaInicio = trim((string) $input->get('fecha_inicio'));
+        $fechaFin = trim((string) $input->get('fecha_fin'));
+        $dias = (int) $input->get('dias_ausencia');
+
+        if ($fechaFin < $fechaInicio || $dias <= 0) {
+            $this->jsonError('La fecha fin debe ser mayor o igual a la fecha de inicio.', 422);
+            return;
+        }
+
+        try {
+            $detalle = [
+                'tppermiso_id' => $input->get('tppermiso_id'),
+                'motivo' => $input->get('motivo'),
+                'remunerable' => filter_var($input->get('remunerable', true), FILTER_VALIDATE_BOOLEAN),
+                'tpreposo_id' => $input->get('tpreposo_id'),
+                'descripcion' => $input->get('descripcion'),
+                'doctor' => $input->get('doctor'),
+            ];
+
+            $actualizada = $this->ausenciasService->actualizarAusencia(
+                $ausenciaId,
+                $fechaInicio,
+                $fechaFin,
+                $dias,
+                $detalle,
+                $this->vacacionesService
+            );
+
+            $this->jsonOk(['ausencia_id' => (int) $actualizada->ausencia_id], 'Ausencia justificada actualizada correctamente.');
+        } catch (Throwable $e) {
+            $codigo = (int) $e->getCode();
+            $this->jsonError($e->getMessage(), $codigo >= 400 && $codigo < 600 ? $codigo : 422);
+        }
+    }
+
+    /**
+     * [POST] Reanuda anticipadamente una ausencia/vacación cortada devolviendo los días no disfrutados.
+     */
+    public function reanudar(string $id): void
+    {
+        $ausenciaId = $this->idPositivo($id, 'ausencia');
+        if ($ausenciaId === null) {
+            return;
+        }
+
+        $input = new LimpiarInputs();
+        $error = $input->validar(['fecha_reincorporacion']);
+        if ($error !== null) {
+            $this->jsonError($error, 422);
+            return;
+        }
+
+        try {
+            $resultado = $this->ausenciasService->reanudarAusencia(
+                $ausenciaId,
+                trim((string) $input->get('fecha_reincorporacion')),
+                $this->vacacionesService
+            );
+
+            $this->jsonOk($resultado, $resultado['mensaje']);
+        } catch (Throwable $e) {
+            $codigo = (int) $e->getCode();
+            $this->jsonError($e->getMessage(), $codigo >= 400 && $codigo < 600 ? $codigo : 422);
         }
     }
 

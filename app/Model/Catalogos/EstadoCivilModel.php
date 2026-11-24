@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property int $estado_civil_id
  * @property string $estado_civil
+ * @property bool $activo
  */
 class EstadoCivilModel extends Model
 {
@@ -34,12 +35,14 @@ class EstadoCivilModel extends Model
     /** @var list<string> */
     protected $fillable = [
         'estado_civil',
+        'activo',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
         'estado_civil_id' => 'integer',
         'estado_civil' => 'string',
+        'activo' => 'boolean',
     ];
 
     /**

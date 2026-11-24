@@ -45,11 +45,24 @@
                 </p>
             </div>
 
-            <a href="/empleado/registros"
-                class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-marca-400 focus:ring-offset-2 focus:ring-offset-zinc-950">
-                <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
-                <span>Volver a Empleados</span>
-            </a>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto shrink-0">
+                <button type="button"
+                    id="btn-ver-familiares-empleado"
+                    data-empleado-id="{{ $empleado->empleado_id ?? '' }}"
+                    data-codigo-empleado="{{ $empleado->codigo_empleado ?? '' }}"
+                    data-cedula-empleado="{{ ($persona->nacionalidad ?? 'V') . '-' . ($persona->cedula ?? '') }}"
+                    data-nombre-empleado="{{ trim(($persona->primer_nombre ?? '') . ' ' . ($persona->segundo_nombre ?? '') . ' ' . ($persona->primer_apellido ?? '') . ' ' . ($persona->segundo_apellido ?? '')) }}"
+                    class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-marca px-4 py-2.5 text-sm font-medium text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-marca-500 focus:outline-none focus:ring-2 focus:ring-marca-400 focus:ring-offset-2 focus:ring-offset-zinc-950 cursor-pointer">
+                    <i data-lucide="heart-handshake" class="h-4 w-4" aria-hidden="true"></i>
+                    <span>Familiares</span>
+                </button>
+
+                <a href="/empleado/registros"
+                    class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-marca-400 focus:ring-offset-2 focus:ring-offset-zinc-950">
+                    <i data-lucide="arrow-left" class="h-4 w-4" aria-hidden="true"></i>
+                    <span>Volver a Empleados</span>
+                </a>
+            </div>
         </header>
 
         {{-- Card 2 (Bento Marca): Resumen de identificación del trabajador --}}
@@ -81,6 +94,9 @@
                 </span>
             </div>
         </aside>
+
+        @component('components.alerta_formulario')
+        @endcomponent
 
         {{-- Sección 1: Datos Personales (PersonasModel) --}}
         <section class="col-span-full md:col-span-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
@@ -482,6 +498,15 @@
             </footer>
         </section>
     </form>
+
+    {{-- Modal reutilizado de carga familiar (idéntico a registros_empleados) --}}
+    @component('components.modal_detalle', [
+        'id' => 'modal-familiares-empleado',
+        'titulo' => 'Carga familiar del trabajador',
+        'subtitulo' => 'Familiares registrados y acciones rápidas.',
+        'tamano' => 'lg',
+    ])
+    @endcomponent
 @endsection
 
 @push('scripts')

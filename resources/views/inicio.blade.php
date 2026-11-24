@@ -42,7 +42,11 @@
         </div>
     </header>
 
-    {{-- SUB-GRID DE MÉTRICAS SIMPLES (6 COLUMNAS — ESTADÍSTICAS PENDIENTES PARA DESPUÉS) --}}
+    {{-- SUB-GRID DE MÉTRICAS REALES DESDE POSTGRESQL (6 COLUMNAS) --}}
+    @php
+        $m = $metricas ?? [];
+        $activosLista = array_values(array_filter($usuarios_activos ?? [], static fn ($item) => !empty($item['activo'])));
+    @endphp
     <div class="col-span-full lg:col-span-6 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_15px_30px_rgba(0,0,0,0.05)] border border-zinc-100 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300 cascade-enter">
             <div class="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 mb-3 rounded-full bg-zinc-50 text-zinc-700">
@@ -50,7 +54,7 @@
             </div>
             <div>
                 <p class="mb-1 text-xs font-semibold tracking-wider uppercase text-zinc-500">Vacaciones</p>
-                <h4 class="text-2xl sm:text-3xl font-bold text-zinc-900">42</h4>
+                <h4 id="metrica-vacaciones" class="text-2xl sm:text-3xl font-bold text-zinc-900">{{ $m['vacaciones'] ?? 0 }}</h4>
             </div>
         </div>
 
@@ -60,7 +64,7 @@
             </div>
             <div>
                 <p class="mb-1 text-xs font-semibold tracking-wider uppercase text-zinc-500">Permisos</p>
-                <h4 class="text-2xl sm:text-3xl font-bold text-zinc-900">18</h4>
+                <h4 id="metrica-permisos" class="text-2xl sm:text-3xl font-bold text-zinc-900">{{ $m['permisos'] ?? 0 }}</h4>
             </div>
         </div>
 
@@ -70,7 +74,7 @@
             </div>
             <div>
                 <p class="mb-1 text-xs font-semibold tracking-wider uppercase text-zinc-500">Reposos</p>
-                <h4 class="text-2xl sm:text-3xl font-bold text-zinc-900">7</h4>
+                <h4 id="metrica-reposos" class="text-2xl sm:text-3xl font-bold text-zinc-900">{{ $m['reposos'] ?? 0 }}</h4>
             </div>
         </div>
 
@@ -80,7 +84,7 @@
             </div>
             <div>
                 <p class="mb-1 text-xs font-semibold tracking-wider uppercase text-zinc-500">Beneficios</p>
-                <h4 class="text-2xl sm:text-3xl font-bold text-zinc-900">156</h4>
+                <h4 id="metrica-beneficios" class="text-2xl sm:text-3xl font-bold text-zinc-900">{{ $m['beneficios'] ?? 0 }}</h4>
             </div>
         </div>
 
@@ -90,7 +94,7 @@
             </div>
             <div>
                 <p class="mb-1 text-xs font-semibold tracking-wider uppercase text-zinc-500">Expedientes</p>
-                <h4 class="text-2xl sm:text-3xl font-bold text-zinc-900">815</h4>
+                <h4 id="metrica-expedientes" class="text-2xl sm:text-3xl font-bold text-zinc-900">{{ $m['expedientes'] ?? 0 }}</h4>
             </div>
         </div>
 
@@ -100,18 +104,18 @@
             </div>
             <div>
                 <p class="mb-1 text-xs font-semibold tracking-wider uppercase text-zinc-500">Familiares</p>
-                <h4 class="text-2xl sm:text-3xl font-bold text-zinc-900">312</h4>
+                <h4 id="metrica-familiares" class="text-2xl sm:text-3xl font-bold text-zinc-900">{{ $m['familiares'] ?? 0 }}</h4>
             </div>
         </div>
     </div>
 
-    {{-- GRÁFICO DE ARCHIVOS CARGADOS (6 COLUMNAS — ESTADÍSTICAS PENDIENTES PARA DESPUÉS) --}}
+    {{-- GRÁFICO DE ARCHIVOS CARGADOS (6 COLUMNAS — HISTÓRICO REAL DE DOCUMENTOS) --}}
     <div class="col-span-full lg:col-span-6 bg-white rounded-3xl p-5 sm:p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] border border-zinc-100 flex flex-col justify-between hover:-translate-y-1 transition-all duration-300 cascade-enter relative overflow-hidden min-h-75">
         <div class="flex items-center justify-between w-full mb-4">
             <h3 class="text-base sm:text-lg font-bold tracking-tight text-zinc-900">Archivos Cargados</h3>
-            <span class="text-xs font-medium text-zinc-500">Histórico mensual</span>
+            <span class="text-xs font-medium text-zinc-500">Últimos 6 meses</span>
         </div>
-        <div id="chart" class="w-full z-10 overflow-hidden"></div>
+        <div id="chart" data-serie="{{ htmlspecialchars(json_encode($serie_archivos ?? ['etiquetas' => [], 'valores' => []], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}" class="w-full z-10 overflow-hidden"></div>
     </div>
 
     {{-- BIENVENIDA (8 COLUMNAS) --}}
@@ -132,7 +136,7 @@
         </div>
     </div>
 
-    {{-- NÓMINA ACTIVA TOTAL (4 COLUMNAS — ESTADÍSTICA PENDIENTE PARA DESPUÉS) --}}
+    {{-- NÓMINA ACTIVA TOTAL (4 COLUMNAS — DATO REAL DE BD) --}}
     <div class="col-span-full sm:col-span-6 lg:col-span-4 rounded-3xl bg-marca text-white p-6 sm:p-8 border border-marca shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 cascade-enter relative overflow-hidden"
         style="animation-delay: 0.6s;">
         <div class="absolute top-0 right-0 w-32 h-32 -translate-y-1/2 translate-x-1/4 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
@@ -141,26 +145,33 @@
                 <i data-lucide="users" class="w-6 h-6"></i>
             </div>
             <p class="mb-1 text-xs font-semibold tracking-wider uppercase text-marca-200">Nómina Activa Total</p>
-            <h3 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white">842</h3>
+            <h3 id="metrica-nomina-activa" class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white">{{ $m['nomina_activa'] ?? 0 }}</h3>
             <p class="mt-4 text-xs font-medium text-marca-100">Personal activo registrado</p>
         </div>
     </div>
 
-    {{-- USUARIOS ACTIVOS (3 COLUMNAS — ESTADÍSTICA PENDIENTE PARA DESPUÉS) --}}
+    {{-- CUENTAS ACTIVAS (3 COLUMNAS — DATO REAL DE BD) --}}
     <div class="col-span-full sm:col-span-6 lg:col-span-3 rounded-3xl bg-white border border-zinc-100 shadow-[0_15px_30px_rgba(0,0,0,0.05)] p-6 flex flex-col items-center justify-center text-center hover:-translate-y-1 transition-transform duration-300 cascade-enter">
-        <p class="mb-2 text-xs font-semibold tracking-wider uppercase text-zinc-500">En línea</p>
-        <h3 class="mb-4 text-4xl sm:text-5xl font-bold tracking-tight text-zinc-900">24</h3>
-        <div class="flex -space-x-2 sm:-space-x-3">
-            <span class="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 text-xs font-bold border-2 border-white rounded-full bg-marca-50 text-marca">AT</span>
-            <span class="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 text-xs font-bold border-2 border-white rounded-full bg-sky-50 text-sky-800">TH</span>
-            <span class="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 text-xs font-bold border-2 border-white rounded-full bg-green-50 text-green-800">IN</span>
-            <div class="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 text-xs font-bold border-2 border-white rounded-full bg-zinc-100 text-zinc-600">
-                +21
-            </div>
+        <p class="mb-2 text-xs font-semibold tracking-wider uppercase text-zinc-500">Cuentas Activas</p>
+        <h3 id="metrica-usuarios-activos" class="mb-4 text-4xl sm:text-5xl font-bold tracking-tight text-zinc-900">{{ $m['usuarios_activos'] ?? 0 }}</h3>
+        <div id="inicio-avatares-usuarios" class="flex -space-x-2 sm:-space-x-3">
+            @foreach (array_slice($activosLista, 0, 3) as $idx => $ua)
+                @php
+                    $coloresAvatar = ['bg-marca-50 text-marca', 'bg-sky-50 text-sky-800', 'bg-green-50 text-green-800'];
+                @endphp
+                <span class="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 text-xs font-bold border-2 border-white rounded-full {{ $coloresAvatar[$idx % 3] }}">
+                    {{ strtoupper(substr($ua['nombre_mostrar'] ?? 'U', 0, 2)) }}
+                </span>
+            @endforeach
+            @if (($m['usuarios_activos'] ?? 0) > 3)
+                <div class="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 text-xs font-bold border-2 border-white rounded-full bg-zinc-100 text-zinc-600">
+                    +{{ ($m['usuarios_activos'] ?? 0) - 3 }}
+                </div>
+            @endif
         </div>
     </div>
 
-    {{-- ASISTENCIA (3 COLUMNAS — ESTADÍSTICA PENDIENTE PARA DESPUÉS) --}}
+    {{-- ASISTENCIA DE HOY (3 COLUMNAS — DATO REAL DE BD) --}}
     <div class="col-span-full sm:col-span-6 lg:col-span-3 rounded-3xl bg-marca text-white p-6 sm:p-8 border border-marca shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300 cascade-enter relative overflow-hidden"
         style="animation-delay: 0.8s;">
         <div class="relative z-10">
@@ -168,10 +179,12 @@
                 <i data-lucide="calendar-check-2" class="w-6 h-6"></i>
             </div>
             <p class="mb-1 text-xs font-semibold tracking-wider uppercase text-marca-200">Asistencia de Hoy</p>
-            <h3 class="text-4xl sm:text-5xl font-bold tracking-tight text-white">96<span class="text-2xl sm:text-3xl text-marca-200">%</span></h3>
+            <h3 class="text-4xl sm:text-5xl font-bold tracking-tight text-white">
+                <span id="metrica-asistencia-porcentaje">{{ $m['porcentaje_asistencia_hoy'] ?? 0 }}</span><span class="text-2xl sm:text-3xl text-marca-200">%</span>
+            </h3>
             <div class="pt-4 mt-4 border-t border-white/10">
-                <p class="mb-1 text-sm font-medium text-marca-100">808 / 842 presentes</p>
-                <p class="text-xs text-marca-200">3 ausencias reportadas hoy</p>
+                <p id="metrica-asistencia-detalle" class="mb-1 text-sm font-medium text-marca-100">{{ $m['presentes_hoy'] ?? 0 }} / {{ $m['nomina_activa'] ?? 0 }} presentes</p>
+                <p id="metrica-ausencias-hoy" class="text-xs text-marca-200">{{ $m['ausencias_hoy'] ?? 0 }} ausencias activas hoy</p>
             </div>
         </div>
     </div>

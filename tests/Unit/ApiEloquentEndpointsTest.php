@@ -302,11 +302,29 @@ final class ApiEloquentEndpointsTest extends TestCase
         self::assertSame(200, $this->ultimoCodigo);
         self::assertSame(99, (int) FamiliaresModel::query()->find($famId)?->folio);
 
+        // Si el familiar tiene un registro asociado en otra tabla (ej. detalle_discapacidad), debe bloquear con 409
+        $disc = DetalleDiscapacidadModel::query()->create([
+            'persona_id' => $persId,
+            'grado_discapacidad_id' => 1,
+            'numero_carnet' => 'CONAPDIS-FAM-01',
+            'entidad_emisora' => 'CONAPDIS',
+            'fecha_emision_carnet' => '2024-01-10',
+            'fecha_vencimiento_carnet' => '2029-01-10',
+        ]);
+
+        $appDelBloqueado = $this->crearMockEngine('DELETE');
+        (new RegistrosFamiliaresController($appDelBloqueado, $this->config, $this->catalogos))->destroy((string) $famId);
+        self::assertSame(409, $this->ultimoCodigo);
+        self::assertInstanceOf(FamiliaresModel::class, FamiliaresModel::query()->find($famId));
+        self::assertInstanceOf(PersonasModel::class, PersonasModel::query()->find($persId));
+
+        // Al no tener registros externos relacionados, permite eliminar la carga familiar limpiamente
+        $disc->delete();
         $appDel = $this->crearMockEngine('DELETE');
         (new RegistrosFamiliaresController($appDel, $this->config, $this->catalogos))->destroy((string) $famId);
         self::assertSame(200, $this->ultimoCodigo);
         self::assertNull(FamiliaresModel::query()->find($famId));
-        self::assertInstanceOf(PersonasModel::class, PersonasModel::query()->find($persId));
+        self::assertNull(PersonasModel::query()->find($persId));
     }
 
     public function testDocumentosApiListarPorEmpleadoOrdenaHistorialMasViejoAMasNuevo(): void
@@ -435,14 +453,38 @@ final class ApiEloquentEndpointsTest extends TestCase
         (new TablasMaestrasController($appMunInvalido, $this->config, $this->catalogos))->store('municipios');
         self::assertSame(422, $this->ultimoCodigo);
 
-        // Validar que los 9 catálogos responden 200
-        foreach (['departamentos', 'dependencias', 'estatus', 'nivel_academicos', 'carrera', 'cargo', 'estados', 'municipios', 'parroquias'] as $tipo) {
+        // Validar que los 12 catálogos (incluyendo estado_civil, tipo_permisos y tipo_reposos) responden 200
+        foreach ([
+            'departamentos',
+            'dependencias',
+            'estatus',
+            'nivel_academicos',
+            'carrera',
+            'cargo',
+            'estado_civil',
+            'tipo_permisos',
+            'tipo_reposos',
+            'estados',
+            'municipios',
+            'parroquias',
+        ] as $tipo) {
             $appList = $this->crearMockEngine('GET');
             (new TablasMaestrasController($appList, $this->config, $this->catalogos))->index($tipo);
             self::assertSame(200, $this->ultimoCodigo, "Falló index para {$tipo}");
             self::assertTrue($this->ultimoJson['ok']);
             self::assertNotEmpty($this->ultimoJson['data'], "Sin datos para {$tipo}");
         }
+
+        // Validar ciclo completo Desactivar -> Activar en Tabla Maestra
+        $appDelEc = $this->crearMockEngine('DELETE');
+        (new TablasMaestrasController($appDelEc, $this->config, $this->catalogos))->destroy('estado_civil', '1');
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertFalse((bool) EstadoCivilModel::query()->find(1)?->activo);
+
+        $appActEc = $this->crearMockEngine('POST');
+        (new TablasMaestrasController($appActEc, $this->config, $this->catalogos))->activar('estado_civil', '1');
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertTrue((bool) EstadoCivilModel::query()->find(1)?->activo);
 
         // Filtrado relacional: municipios por estado_id
         $appMunFiltro = $this->crearMockEngine('GET', [], ['estado_id' => (string) $caraboboId]);
@@ -662,6 +704,17 @@ final class ApiEloquentEndpointsTest extends TestCase
         $schema->create('estado_civil', static function (Blueprint $t): void {
             $t->increments('estado_civil_id');
             $t->string('estado_civil');
+            $t->boolean('activo')->default(true);
+        });
+        $schema->create('tipo_permisos', static function (Blueprint $t): void {
+            $t->increments('tppermiso_id');
+            $t->string('permiso');
+            $t->boolean('activo')->default(true);
+        });
+        $schema->create('tipo_reposos', static function (Blueprint $t): void {
+            $t->increments('tpreposo_id');
+            $t->string('reposo');
+            $t->boolean('activo')->default(true);
         });
         $schema->create('estatus', static function (Blueprint $t): void {
             $t->increments('estatus_id');
@@ -797,8 +850,10 @@ final class ApiEloquentEndpointsTest extends TestCase
         MunicipiosModel::query()->create(['estado_id' => 1, 'municipio' => 'Girardot']);
         ParroquiasModel::query()->create(['municipio_id' => 1, 'parroquia' => 'Madre María']);
 
-        EstadoCivilModel::query()->create(['estado_civil' => 'Soltero(a)']);
-        EstadoCivilModel::query()->create(['estado_civil' => 'Casado(a)']);
+        EstadoCivilModel::query()->create(['estado_civil' => 'Soltero(a)', 'activo' => true]);
+        EstadoCivilModel::query()->create(['estado_civil' => 'Casado(a)', 'activo' => true]);
+        \App\Model\Asistencia\TipoPermisosModel::query()->create(['permiso' => 'Matrimonio', 'activo' => true]);
+        \App\Model\Asistencia\TipoRepososModel::query()->create(['reposo' => 'Enfermedad Común', 'activo' => true]);
 
         EstatusModel::query()->create(['estatus' => 'Empleado', 'activo' => true]);
         EstatusModel::query()->create(['estatus' => 'Estudiante', 'activo' => false]);

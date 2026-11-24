@@ -31,7 +31,7 @@
         </div>
 
         <div class="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
-            <span class="text-xs font-medium text-zinc-400">9 Tabla Maestras institucionales conectados</span>
+            <span class="text-xs font-medium text-zinc-400">12 Tablas Maestras institucionales conectadas</span>
             <button
                 type="button"
                 id="btn-nuevo-catalogo"
@@ -88,6 +88,18 @@
             <button type="button" role="tab" data-catalogo="parroquias" aria-selected="false"
                 class="pestana-catalogo rounded-xl bg-white px-3 py-2.5 text-sm font-medium text-zinc-500 transition-all hover:bg-slate-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 cursor-pointer">
                 Parroquias
+            </button>
+            <button type="button" role="tab" data-catalogo="estado_civil" aria-selected="false"
+                class="pestana-catalogo rounded-xl bg-white px-3 py-2.5 text-sm font-medium text-zinc-500 transition-all hover:bg-slate-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 cursor-pointer">
+                Estado Civil
+            </button>
+            <button type="button" role="tab" data-catalogo="tipo_permisos" aria-selected="false"
+                class="pestana-catalogo rounded-xl bg-white px-3 py-2.5 text-sm font-medium text-zinc-500 transition-all hover:bg-slate-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 cursor-pointer">
+                Tipos de Permiso
+            </button>
+            <button type="button" role="tab" data-catalogo="tipo_reposos" aria-selected="false"
+                class="pestana-catalogo rounded-xl bg-white px-3 py-2.5 text-sm font-medium text-zinc-500 transition-all hover:bg-slate-100 hover:text-zinc-900 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 cursor-pointer">
+                Tipos de Reposo
             </button>
         </div>
     </nav>

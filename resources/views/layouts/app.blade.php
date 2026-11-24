@@ -10,6 +10,7 @@
     @endif
     <script defer src="/lib/js/lucideIcons/lucide.min.js"></script>
     {{-- Estilos globales de la aplicacion --}}
+    {{-- <link rel="stylesheet" href="/lib/vanilla-calendar-pro/core.css"> --}}
     <link rel="stylesheet" href="/css/app.css">
     <link rel="stylesheet" href="/css/output.css">
     {{-- FAVICON --}}

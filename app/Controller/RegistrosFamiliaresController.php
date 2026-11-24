@@ -218,10 +218,71 @@ class RegistrosFamiliaresController extends BaseController
             return;
         }
 
-        $familiar->getConnection()->transaction(static function () use ($familiar): void {
-            $familiar->delete();
-        });
+        $personaId = (int) $familiar->persona_id;
+        $relacionesExternas = $this->verificarRelacionesPersonaExternas($familiar, $personaId);
+        if ($relacionesExternas !== []) {
+            $this->jsonError(
+                'No se puede eliminar el familiar porque posee registros asociados en: ' . implode(', ', $relacionesExternas) . '.',
+                409
+            );
+            return;
+        }
 
-        $this->jsonOk(['familia_id' => $familiaId], 'Carga familiar eliminada correctamente.');
+        try {
+            $conn = $familiar->getConnection();
+            $conn->transaction(static function () use ($familiar, $personaId): void {
+                $familiar->delete();
+
+                $otrosVinculos = FamiliaresModel::query()
+                    ->where('persona_id', $personaId)
+                    ->exists();
+
+                if (!$otrosVinculos) {
+                    PersonasModel::query()->where('persona_id', $personaId)->delete();
+                }
+            });
+
+            $this->jsonOk(['familia_id' => $familiaId], 'Carga familiar eliminada correctamente.');
+        } catch (Throwable) {
+            $this->jsonError('No se puede eliminar el familiar porque tiene registros vinculados en el sistema.', 409);
+        }
+    }
+
+    /**
+     * Verifica si `persona_id` está referenciado en otras tablas del esquema distintas de `familiares`.
+     *
+     * @return list<string>
+     */
+    private function verificarRelacionesPersonaExternas(FamiliaresModel $familiar, int $personaId): array
+    {
+        if ($personaId <= 0) {
+            return [];
+        }
+
+        $conn = $familiar->getConnection();
+        $tablasAVerificar = [
+            'documentos' => 'Expediente documental',
+            'detalle_beneficio' => 'Beneficios asignados',
+            'detalle_hcm' => 'Póliza HCM',
+            'detalle_discapacidad' => 'Registro de discapacidad',
+            'empleados' => 'Ficha de empleado titular',
+            'talla_personas' => 'Dotación de tallas',
+            'telefono_personas' => 'Teléfonos registrados',
+            'postulacion' => 'Postulaciones',
+            'tramite' => 'Trámites administrativos',
+        ];
+
+        $vinculosDetectados = [];
+        foreach ($tablasAVerificar as $tabla => $etiqueta) {
+            try {
+                if ($conn->table($tabla)->where('persona_id', $personaId)->exists()) {
+                    $vinculosDetectados[] = $etiqueta;
+                }
+            } catch (Throwable) {
+                // En caso de tabla opcional no presente en entorno de pruebas SQLite, se ignora sin romper
+            }
+        }
+
+        return $vinculosDetectados;
     }
 }

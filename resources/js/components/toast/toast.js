@@ -8,11 +8,11 @@ export const removeToast = (id) => {
     toastEl.classList.add('closing');
     toastEl.classList.remove('toast-anim-in');
     toastEl.classList.add('toast-anim-out');
-    setTimeout(() => toastEl.remove(), 250);
+    setTimeout(() => toastEl.remove(), 220);
   }
 };
 
-export const mostrarToast = (type, message, position = 'top-center', duration = 4000) => {
+export const mostrarToast = (type, message, position = 'top-center', duration = 4500) => {
   injectToastStyles();
   const container = createContainer(position);
   const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
@@ -20,18 +20,19 @@ export const mostrarToast = (type, message, position = 'top-center', duration = 
 
   const toastEl = document.createElement('div');
   toastEl.id = id;
+  toastEl.setAttribute('role', type === 'error' ? 'alert' : 'status');
   toastEl.style.cssText =
-    'pointer-events: auto; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); font-size: 12px; font-weight: 500; font-family: ui-sans-serif, system-ui, sans-serif; color: #1f2937; box-sizing: border-box;';
+    'pointer-events: auto; width: 100%; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 16px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 15px 30px rgba(0,0,0,0.08); font-size: 14px; line-height: 1.45; font-weight: 500; font-family: "Inter", system-ui, -apple-system, sans-serif; color: #18181b; box-sizing: border-box; -webkit-font-smoothing: antialiased;';
   toastEl.className = 'toast-anim-in';
 
   toastEl.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 14px; min-width: 0;">
-      <div style="position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" class="toast-icon-wrap">
+    <div style="display: flex; align-items: flex-start; gap: 12px; min-width: 0; flex: 1;">
+      <div style="position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;" class="toast-icon-wrap">
         ${iconHtml}
       </div>
-      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1f2937;" class="toast-text"></span>
+      <span style="white-space: normal; overflow-wrap: break-word; word-break: break-word; color: #18181b; flex: 1;" class="toast-text"></span>
     </div>
-    <button type="button" data-toast-close style="background: none; border: none; color: #9ca3af; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: color 0.2s;">
+    <button type="button" data-toast-close aria-label="Cerrar notificación" style="background: none; border: none; color: #71717a; cursor: pointer; padding: 4px; margin-top: 1px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; transition: color 0.2s;">
       <svg style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.5px;" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
     </button>
   `;
@@ -48,7 +49,7 @@ export const mostrarToast = (type, message, position = 'top-center', duration = 
   return id;
 };
 
-export const updateToast = (id, newType, newMessage, duration = 4000) => {
+export const updateToast = (id, newType, newMessage, duration = 4500) => {
   const toastEl = document.getElementById(id);
   if (!toastEl) return;
 

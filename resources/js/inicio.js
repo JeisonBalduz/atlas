@@ -3,42 +3,86 @@ import { crearBadge } from '/js/components/badge/crearBadge.js';
 import { Modal } from '/js/components/modal/Modal.js';
 import { formatearFecha } from '/js/utils/formatearFecha.js';
 
-const inicializarGraficoEstadistico = () => {
+let graficoArchivos = null;
+
+const renderizarGraficoEstadistico = (serieDatos) => {
   const nodoChart = document.querySelector('#chart');
   if (!nodoChart || typeof window.ApexCharts === 'undefined') return;
 
-  const series = {
-    prices: [
-      142.5, 144.1, 143.8, 146.2, 148.0, 147.3, 149.9, 152.4, 151.0, 153.75,
-      155.2, 154.9, 157.8, 160.1, 159.4, 162.0, 164.5, 163.2, 166.8, 168.9,
-    ],
-    dates: [
-      '13 Nov 2025', '14 Nov 2025', '15 Nov 2025', '16 Nov 2025', '17 Nov 2025',
-      '20 Nov 2025', '21 Nov 2025', '22 Nov 2025', '23 Nov 2025', '24 Nov 2025',
-      '27 Nov 2025', '28 Nov 2025', '29 Nov 2025', '30 Nov 2025', '01 Dec 2025',
-      '04 Dec 2025', '05 Dec 2025', '06 Dec 2025', '07 Dec 2025', '08 Dec 2025',
-    ],
-  };
+  let etiquetas = Array.isArray(serieDatos?.etiquetas) ? serieDatos.etiquetas : [];
+  let valores = Array.isArray(serieDatos?.valores) ? serieDatos.valores : [];
 
-  const chart = new window.ApexCharts(nodoChart, {
-    series: [{ name: 'Archivos', data: series.prices }],
-    chart: { type: 'area', height: 350, fontFamily: 'Inter, sans-serif', zoom: { enabled: false } },
-    grid: { show: false },
+  if (!etiquetas.length && nodoChart.dataset.serie) {
+    try {
+      const inicial = JSON.parse(nodoChart.dataset.serie);
+      etiquetas = Array.isArray(inicial?.etiquetas) ? inicial.etiquetas : [];
+      valores = Array.isArray(inicial?.valores) ? inicial.valores : [];
+    } catch {
+      etiquetas = [];
+      valores = [];
+    }
+  }
+
+  if (graficoArchivos) {
+    graficoArchivos.updateOptions({ xaxis: { categories: etiquetas } });
+    graficoArchivos.updateSeries([{ name: 'Documentos cargados', data: valores }]);
+    return;
+  }
+
+  graficoArchivos = new window.ApexCharts(nodoChart, {
+    series: [{ name: 'Documentos cargados', data: valores }],
+    chart: {
+      type: 'area',
+      height: 290,
+      fontFamily: 'Inter, sans-serif',
+      toolbar: { show: false },
+      zoom: { enabled: false },
+    },
+    grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
     dataLabels: { enabled: false },
     colors: ['#052659'],
-    stroke: { curve: 'straight' },
-    title: { text: '', align: 'left' },
-    labels: series.dates,
+    stroke: { curve: 'smooth', width: 2.5 },
+    fill: {
+      type: 'gradient',
+      gradient: { shadeIntensity: 1, opacityFrom: 0.25, opacityTo: 0.02 },
+    },
     xaxis: {
-      type: 'datetime',
-      labels: { show: false },
+      categories: etiquetas,
       axisBorder: { show: false },
       axisTicks: { show: false },
+      labels: { style: { colors: '#71717a', fontSize: '11px' } },
     },
-    yaxis: { labels: { show: false } },
+    yaxis: {
+      min: 0,
+      forceNiceScale: true,
+      labels: {
+        formatter: (v) => String(Math.round(v)),
+        style: { colors: '#71717a', fontSize: '11px' },
+      },
+    },
   });
 
-  chart.render();
+  graficoArchivos.render();
+};
+
+const actualizarMetricasDom = (m) => {
+  if (!m) return;
+  const asignar = (id, valor) => {
+    const el = document.getElementById(id);
+    if (el && valor !== undefined) el.textContent = String(valor);
+  };
+
+  asignar('metrica-vacaciones', m.vacaciones);
+  asignar('metrica-permisos', m.permisos);
+  asignar('metrica-reposos', m.reposos);
+  asignar('metrica-beneficios', m.beneficios);
+  asignar('metrica-expedientes', m.expedientes);
+  asignar('metrica-familiares', m.familiares);
+  asignar('metrica-nomina-activa', m.nomina_activa);
+  asignar('metrica-usuarios-activos', m.usuarios_activos);
+  asignar('metrica-asistencia-porcentaje', m.porcentaje_asistencia_hoy);
+  asignar('metrica-asistencia-detalle', `${m.presentes_hoy ?? 0} / ${m.nomina_activa ?? 0} presentes`);
+  asignar('metrica-ausencias-hoy', `${m.ausencias_hoy ?? 0} ausencias activas hoy`);
 };
 
 const obtenerIniciales = (nombre) => {
@@ -84,7 +128,7 @@ const renderItemActividad = (item) => `
 `;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  inicializarGraficoEstadistico();
+  renderizarGraficoEstadistico(null);
 
   const cuerpoUsuarios = document.getElementById('inicio-tabla-usuarios');
   const listaActividad = document.getElementById('inicio-lista-actividad');
@@ -96,8 +140,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const res = await Solicitud.get('/api/inicio/datos');
   if (!res.ok || !res.data?.ok) return;
 
+  const metricas = res.data.data?.metricas;
+  const serieArchivos = res.data.data?.serie_archivos;
   const usuarios = Array.isArray(res.data.data?.usuarios) ? res.data.data.usuarios : [];
   const actividades = Array.isArray(res.data.data?.actividades) ? res.data.data.actividades : [];
+
+  actualizarMetricasDom(metricas);
+  if (serieArchivos) renderizarGraficoEstadistico(serieArchivos);
 
   if (cuerpoUsuarios) {
     cuerpoUsuarios.innerHTML = usuarios.length

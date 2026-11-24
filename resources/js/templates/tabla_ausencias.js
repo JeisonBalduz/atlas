@@ -1,5 +1,6 @@
 import { crearBadge } from '/js/components/badge/crearBadge.js';
 import { crearBotonAccion } from '/js/components/botones/crearBotonAccion.js';
+import { crearGrupoBotones } from '/js/components/botones/crearGrupoBotones.js';
 import { formatearFecha } from '/js/utils/formatearFecha.js';
 
 export const columnasTablaAusencias = () => [
@@ -47,6 +48,30 @@ export const columnasTablaAusencias = () => [
     searchable: false,
     className: 'text-right',
     render: (_d, _t, fila) =>
-      crearBotonAccion({ accion: 'mostrar', id: fila.ausencia_id, etiqueta: 'Ver', icono: 'eye', variante: 'marca' }),
+      crearGrupoBotones([
+        crearBotonAccion({
+          accion: 'mostrar',
+          id: fila.ausencia_id,
+          etiqueta: 'Ver',
+          icono: 'eye',
+          variante: 'marca',
+        }),
+        crearBotonAccion({
+          accion: 'editar',
+          id: fila.ausencia_id,
+          etiqueta: 'Editar',
+          icono: 'pencil',
+          variante: 'zinc',
+        }),
+        crearBotonAccion({
+          accion: 'reanudar',
+          id: fila.ausencia_id,
+          etiqueta: 'Reanudar',
+          titulo: 'Reanudar labores y devolver días no disfrutados',
+          icono: 'rotate-ccw',
+          variante: 'green',
+          deshabilitado: Number(fila.dias_ausencia || 0) <= 0,
+        }),
+      ]),
   },
 ];

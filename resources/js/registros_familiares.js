@@ -46,10 +46,20 @@ const confirmarEliminarFamiliar = ({ modalEliminar, registro, recargarTabla }) =
     }),
     textoConfirmar: 'Eliminar registro',
     textoCargando: 'Eliminando...',
-    alConfirmar: async () => {
+    alConfirmar: async (dlg) => {
       const res = await Solicitud.delete(`/api/familiares/${registro.familia_id}`);
       if (!res.ok || !res.data?.ok) {
-        mostrarToast('error', res.message || 'No se pudo eliminar el registro familiar.');
+        const msg = res.message || 'No se pudo eliminar el registro familiar.';
+        const cuerpo = dlg.querySelector('[data-modal-cuerpo]');
+        if (cuerpo) {
+          cuerpo.innerHTML = crearAlertaConfirmacion({
+            variante: 'red',
+            icono: 'shield-alert',
+            mensajeHtml: `<strong>Eliminación bloqueada:</strong> ${msg}`,
+          });
+          window.lucide?.createIcons();
+        }
+        mostrarToast('error', msg);
         return false;
       }
 

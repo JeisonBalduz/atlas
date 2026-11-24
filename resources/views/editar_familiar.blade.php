@@ -35,6 +35,9 @@
         </a>
     </header>
 
+    @component('components.alerta_formulario')
+    @endcomponent
+
     {{-- Card 2 (Bento Marca): Tarjeta resumen del empleado titular --}}
     <section class="col-span-full md:col-span-4 rounded-3xl border border-marca bg-marca p-6 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between space-y-5">
         <header class="flex items-start justify-between gap-3">

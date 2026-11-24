@@ -6,11 +6,11 @@ declare(strict_types=1);
  * Application web routes (vistas BladeOne y descargas protegidas).
  *
  * @var \flight\net\Router $router
- * @var \flight\Engine<object> $app
+ * @var \flight\Engine $app
  * @var \App\Utils\Config $config
  */
 
-use App\Controller\TablasMaestrasController;
+use App\Controller\AsistenciaController;
 use App\Controller\EditarEmpleadoController;
 use App\Controller\EditarFamiliarController;
 use App\Controller\InicioController;
@@ -21,7 +21,10 @@ use App\Controller\RegistroBeneficiosController;
 use App\Controller\RegistrosEmpleadosController;
 use App\Controller\RegistrosFamiliaresController;
 use App\Controller\RegistroVacacionesController;
+use App\Controller\RolesPermisosController;
 use App\Controller\SesionController;
+use App\Controller\TablasMaestrasController;
+use App\Controller\UsuariosController;
 use App\Middleware\SesionMiddleware;
 
 // Ruta de bienvenida
@@ -72,12 +75,23 @@ $router->get('/vacaciones', [RegistroVacacionesController::class, 'render'])
 $router->get('/ausencia', [RegistroAusenciaController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
+// Ruta para control diario de asistencia (entrada y salida)
+$router->get('/asistencia', [AsistenciaController::class, 'render'])
+    ->addMiddleware(SesionMiddleware::class);
+
 // Ruta para asignar un beneficio a un trabajador o familiar
 $router->get('/beneficios', [RegistroBeneficiosController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
 // Ruta de catálogos del sistema
 $router->get('/tablasmaestras', [TablasMaestrasController::class, 'render'])
+    ->addMiddleware(SesionMiddleware::class);
+
+// Rutas de Seguridad: Usuarios, Roles y Permisos
+$router->get('/usuarios', [UsuariosController::class, 'render'])
+    ->addMiddleware(SesionMiddleware::class);
+
+$router->get('/roles-permisos', [RolesPermisosController::class, 'render'])
     ->addMiddleware(SesionMiddleware::class);
 
 // Descarga / vista previa segura de documentos en DocumentosInces

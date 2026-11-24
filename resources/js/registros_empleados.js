@@ -1,16 +1,19 @@
 import { GestorDataTable } from '/js/class/GestorDataTable.js';
 import { Solicitud } from '/js/class/Solicitud.js';
-import { crearAlertaConfirmacion } from '/js/components/alerta/alerta.js';
+import {
+  crearAlertaConfirmacion,
+  notificarErrorFormulario,
+  notificarExitoFormulario,
+} from '/js/components/alerta/alerta.js';
+
+import { abrirModalFamiliaresEmpleado } from '/js/components/modal/abrirModalFamiliaresEmpleado.js';
 import { Modal } from '/js/components/modal/Modal.js';
 import {
   crearMarkupSelectPersonalizado,
   inicializarSelectsPersonalizados,
 } from '/js/components/select/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast/toast.js';
-import {
-  columnasTablaEmpleados,
-  renderTablaFamiliaresEmpleado,
-} from '/js/templates/tabla_empleados.js';
+import { columnasTablaEmpleados } from '/js/templates/tabla_empleados.js';
 
 const actualizarContadores = (resumen) => {
   if (!resumen) return;
@@ -23,34 +26,6 @@ const actualizarContadores = (resumen) => {
   if (activosEl && resumen.activos !== undefined) activosEl.textContent = String(resumen.activos);
   if (inactivosEl && resumen.inactivos !== undefined) inactivosEl.textContent = String(resumen.inactivos);
 };
-
-const renderCargaFamiliares = () => `
-  <div class="flex flex-col items-center justify-center gap-3 py-12 text-center" role="status" aria-live="polite">
-    <div class="flex h-11 w-11 items-center justify-center rounded-full bg-marca-50 text-marca">
-      <i data-lucide="loader-2" class="h-5 w-5 animate-spin" aria-hidden="true"></i>
-    </div>
-    <div class="space-y-1">
-      <p class="text-sm font-medium text-zinc-900">Consultando carga familiar...</p>
-      <p class="text-xs text-zinc-500">Obteniendo familiares vinculados desde la base de datos.</p>
-    </div>
-  </div>
-`;
-
-const renderErrorFamiliares = (mensaje) => `
-  <div class="flex flex-col items-center justify-center gap-4 py-10 text-center">
-    <div class="flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-red-600">
-      <i data-lucide="alert-circle" class="h-5 w-5" aria-hidden="true"></i>
-    </div>
-    <div class="space-y-1">
-      <p class="text-sm font-semibold text-zinc-900">No se pudo cargar la información</p>
-      <p class="text-xs text-zinc-500">${mensaje}</p>
-    </div>
-    <button type="button" data-reintentar-familiares class="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-zinc-800 cursor-pointer">
-      <i data-lucide="refresh-cw" class="h-3.5 w-3.5" aria-hidden="true"></i>
-      <span>Reintentar</span>
-    </button>
-  </div>
-`;
 
 const renderFormularioDiscapacidad = (catalogos) => {
   const hoy = new Date().toISOString().slice(0, 10);
@@ -145,20 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const verFamiliares = async (empleado) => {
     ultimaFilaFamiliares = empleado;
-
-    modalFamiliares.abrir({
-      titulo: `Carga familiar · ${empleado.nombre_completo || 'Trabajador'}`,
-      subtitulo: `${empleado.codigo_empleado || ''} · ${empleado.cedula || ''}${empleado.cargo ? ` · ${empleado.cargo}` : ''}`,
-      contenidoHtml: renderCargaFamiliares(),
-    });
-
-    const res = await Solicitud.get(`/api/empleados/${empleado.empleado_id}/familiares`);
-    if (!res.ok || !res.data?.ok) {
-      modalFamiliares.establecerContenido(renderErrorFamiliares(res.message || 'No se pudo consultar la carga familiar.'));
-      return;
-    }
-
-    modalFamiliares.establecerContenido(renderTablaFamiliaresEmpleado(res.data, empleado.empleado_id));
+    await abrirModalFamiliaresEmpleado(modalFamiliares, empleado);
   };
 
   const confirmarCambioEstado = (empleado, activar) => {
@@ -205,23 +167,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const grado = form?.elements?.grado_discapacidad_id?.value;
         const carnet = form?.elements?.numero_carnet?.value?.trim();
         const entidad = form?.elements?.entidad_emisora?.value?.trim();
+        const emision = form?.elements?.fecha_emision_carnet?.value?.trim();
+        const vencimiento = form?.elements?.fecha_vencimiento_carnet?.value?.trim();
 
         if (!grado || !carnet || !entidad) {
-          mostrarToast('error', 'Completa el grado de discapacidad, número de carnet y entidad emisora.');
+          notificarErrorFormulario(form, 'Completa el grado de discapacidad, número de carnet y entidad emisora.');
+          return false;
+        }
+        if (emision && vencimiento && vencimiento < emision) {
+          notificarErrorFormulario(form, 'La fecha de vencimiento del carnet no puede ser menor que la fecha de emisión.');
           return false;
         }
 
         const res = await Solicitud.post(`/api/empleados/${empleado.empleado_id}/discapacidad`, new FormData(form));
         if (!res.ok || !res.data?.ok) {
-          mostrarToast('error', res.message || 'No se pudo asignar la discapacidad.');
+          notificarErrorFormulario(form, res.message || 'No se pudo asignar la discapacidad.');
           return false;
         }
 
-        mostrarToast('success', res.data.message || 'Discapacidad asignada correctamente.');
+        notificarExitoFormulario(form, res.data.message || 'Discapacidad asignada correctamente.');
         tabla?.recargar(true);
         return true;
       },
     });
+
+    if (modalDiscapacidad.dialogo) {
+      // inicializarRangoFechas('#disc-emision', '#disc-vencimiento');
+    }
   };
 
   tabla = new GestorDataTable('#tabla-empleados', {

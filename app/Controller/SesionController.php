@@ -68,9 +68,9 @@ final class SesionController implements RenderInterfaces
             return;
         }
 
-        $claveUsuario = $this->usuarioModel->obtenerClaveUsuario($usuario);
+        $claveUsuario = (string) ($this->usuarioModel->obtenerClaveUsuario($usuario) ?? '');
         // 3. Validamos la contraseña usando el array plano obtenido
-        if (!ManejadorClave::verificar($clave, $claveUsuario)) {
+        if ($claveUsuario === '' || !ManejadorClave::verificar($clave, $claveUsuario)) {
             $this->app->json([
                 'ok' => false,
                 'message' => 'La contraseña es incorrecta'
@@ -99,6 +99,14 @@ final class SesionController implements RenderInterfaces
             ], 422); // 422 Unprocessable Entity
             return;
         }
+
+        if (strtolower((string) ($usuarioDatos['estatus'] ?? '')) !== 'activo') {
+            $this->app->json([
+                'ok' => false,
+                'message' => 'Esta cuenta de usuario se encuentra desactivada. Contacta al administrador.'
+            ], 403);
+            return;
+        }
         // Gestión del inicio de sesión y manejo seguro del estado de la aplicación
         try {
             AutentecionSesion::autenticacion($usuarioDatos);
@@ -119,7 +127,8 @@ final class SesionController implements RenderInterfaces
         }
     }
 
-    public function cerrarSesion(){
+    public function cerrarSesion(): void
+    {
         AutentecionSesion::cerrarSesion();
     }
 

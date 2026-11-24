@@ -65,20 +65,23 @@ final class CatalogosService
     /**
      * @return array<int|string, string>
      */
-    public function estadosCiviles(): array
+    public function estadosCiviles(bool $soloActivos = true): array
     {
-        if (isset($this->memo['estados_civiles'])) {
+        $clave = 'estados_civiles_' . ($soloActivos ? '1' : '0');
+        if (isset($this->memo[$clave])) {
             /** @var array<int|string, string> */
-            return $this->memo['estados_civiles'];
+            return $this->memo[$clave];
+        }
+
+        $query = EstadoCivilModel::query()->orderBy('estado_civil');
+        if ($soloActivos) {
+            $query->where('activo', true);
         }
 
         /** @var array<int|string, string> $datos */
-        $datos = EstadoCivilModel::query()
-            ->orderBy('estado_civil')
-            ->pluck('estado_civil', 'estado_civil_id')
-            ->all();
+        $datos = $query->pluck('estado_civil', 'estado_civil_id')->all();
 
-        return $this->memo['estados_civiles'] = $datos;
+        return $this->memo[$clave] = $datos;
     }
 
     /**
@@ -387,39 +390,45 @@ final class CatalogosService
     /**
      * @return array<int|string, string>
      */
-    public function tiposPermiso(): array
+    public function tiposPermiso(bool $soloActivos = true): array
     {
-        if (isset($this->memo['tipos_permiso'])) {
+        $clave = 'tipos_permiso_' . ($soloActivos ? '1' : '0');
+        if (isset($this->memo[$clave])) {
             /** @var array<int|string, string> */
-            return $this->memo['tipos_permiso'];
+            return $this->memo[$clave];
+        }
+
+        $query = TipoPermisosModel::query()->orderBy('permiso');
+        if ($soloActivos) {
+            $query->where('activo', true);
         }
 
         /** @var array<int|string, string> $datos */
-        $datos = TipoPermisosModel::query()
-            ->orderBy('permiso')
-            ->pluck('permiso', 'tppermiso_id')
-            ->all();
+        $datos = $query->pluck('permiso', 'tppermiso_id')->all();
 
-        return $this->memo['tipos_permiso'] = $datos;
+        return $this->memo[$clave] = $datos;
     }
 
     /**
      * @return array<int|string, string>
      */
-    public function tiposReposo(): array
+    public function tiposReposo(bool $soloActivos = true): array
     {
-        if (isset($this->memo['tipos_reposo'])) {
+        $clave = 'tipos_reposo_' . ($soloActivos ? '1' : '0');
+        if (isset($this->memo[$clave])) {
             /** @var array<int|string, string> */
-            return $this->memo['tipos_reposo'];
+            return $this->memo[$clave];
+        }
+
+        $query = TipoRepososModel::query()->orderBy('reposo');
+        if ($soloActivos) {
+            $query->where('activo', true);
         }
 
         /** @var array<int|string, string> $datos */
-        $datos = TipoRepososModel::query()
-            ->orderBy('reposo')
-            ->pluck('reposo', 'tpreposo_id')
-            ->all();
+        $datos = $query->pluck('reposo', 'tpreposo_id')->all();
 
-        return $this->memo['tipos_reposo'] = $datos;
+        return $this->memo[$clave] = $datos;
     }
 
     /**

@@ -1,55 +1,85 @@
-import { Solicitud } from '/js/class/Solicitud.js';
-import { InputValidador } from '/js/class/validator/InputValidador.js';
-import { inicializarSelectsPersonalizados } from '/js/components/select/selectPersonalizado.js';
-import { mostrarToast } from '/js/components/toast/toast.js';
+import { Solicitud } from "/js/class/Solicitud.js";
+import { InputValidador } from "/js/class/validator/InputValidador.js";
+import {
+  notificarErrorFormulario,
+  notificarExitoFormulario,
+} from "/js/components/alerta/alerta.js";
+// import { //inicializarCalendariosContenedor } from '/js/components/calendario/calendario.js';
+import { inicializarSelectsPersonalizados } from "/js/components/select/selectPersonalizado.js";
 
 const configurarValidaciones = () => {
-  InputValidador.soloLetras('#primer_nombre, #segundo_nombre, #primer_apellido, #segundo_apellido', {
-    minimo: 2,
-    limite: 100,
+  InputValidador.soloLetras(
+    "#primer_nombre, #segundo_nombre, #primer_apellido, #segundo_apellido",
+    {
+      minimo: 2,
+      limite: 100,
+      requerido: true,
+    },
+  );
+  InputValidador.soloNumeros("#cedula", {
+    minimo: 6,
+    limite: 9,
     requerido: true,
   });
-  InputValidador.soloNumeros('#cedula', { minimo: 6, limite: 9, requerido: true });
-  InputValidador.soloNumeros('#tomo, #folio', { minimo: 1, limite: 6, requerido: true });
-  InputValidador.requerido('#formulario-editar-familiar select, #fecha_nacimiento');
-  InputValidador.archivo('.atlas-doc-fam-input', { tamanoMaximoMB: 5 });
+  InputValidador.soloNumeros("#tomo, #folio", {
+    minimo: 1,
+    limite: 6,
+    requerido: true,
+  });
+  InputValidador.requerido(
+    "#formulario-editar-familiar select, #fecha_nacimiento",
+  );
+  InputValidador.archivo(".atlas-doc-fam-input", { tamanoMaximoMB: 5 });
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   inicializarSelectsPersonalizados();
+  //inicializarCalendariosContenedor();
   configurarValidaciones();
 
-  const formulario = document.getElementById('formulario-editar-familiar');
+  const formulario = document.getElementById("formulario-editar-familiar");
   const familiaId = formulario?.dataset?.familiaId;
   let enviando = false;
 
-  formulario?.addEventListener('submit', async (evento) => {
+  formulario?.addEventListener("submit", async (evento) => {
     evento.preventDefault();
     if (enviando) return;
 
     if (!familiaId) {
-      mostrarToast('error', 'No se encontró el identificador del familiar a actualizar.');
+      notificarErrorFormulario(
+        formulario,
+        "No se encontró el identificador del familiar a actualizar.",
+      );
       return;
     }
 
     const btnSubmit = formulario.querySelector('button[type="submit"]');
-    const textoSpan = btnSubmit?.querySelector('span');
-    const textoOriginal = textoSpan?.textContent || 'Actualizar Familiar';
+    const textoSpan = btnSubmit?.querySelector("span");
+    const textoOriginal = textoSpan?.textContent || "Actualizar Familiar";
 
     enviando = true;
     if (btnSubmit) btnSubmit.disabled = true;
-    if (textoSpan) textoSpan.textContent = 'Guardando...';
+    if (textoSpan) textoSpan.textContent = "Guardando...";
 
     try {
-      const res = await Solicitud.post(`/api/familiares/${familiaId}`, new FormData(formulario));
+      const res = await Solicitud.post(
+        `/api/familiares/${familiaId}`,
+        new FormData(formulario),
+      );
       if (!res.ok || !res.data?.ok) {
-        mostrarToast('error', res.message || 'No se pudo actualizar el familiar.');
+        notificarErrorFormulario(
+          formulario,
+          res.message || "No se pudo actualizar el familiar.",
+        );
         return;
       }
 
-      mostrarToast('success', res.data.message || 'Familiar actualizado correctamente.');
+      notificarExitoFormulario(
+        formulario,
+        res.data.message || "Familiar actualizado correctamente.",
+      );
       setTimeout(() => {
-        window.location.href = '/empleado/registros/familiar';
+        window.location.href = "/empleado/registros/familiar";
       }, 650);
     } finally {
       enviando = false;

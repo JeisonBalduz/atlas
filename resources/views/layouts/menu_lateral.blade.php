@@ -182,13 +182,8 @@
                     <div class="relative flex flex-col gap-1 py-2 ml-6">
                         <div class="absolute left-0 border-l-2 top-2 bottom-2 border-zinc-700"></div>
                         <a href="/vacaciones"
-                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Asignar
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Gestionar
                             vacaciones</a>
-                        <a href="#" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Suspender
-                            vacaciones</a>
-                        {{-- <a href="#"
-                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Vacaciones
-                        </a> --}}
                     </div>
                 </div>
             </div>
@@ -212,12 +207,8 @@
                     <div class="relative flex flex-col gap-1 py-2 ml-6">
                         <div class="absolute left-0 border-l-2 top-2 bottom-2 border-zinc-700"></div>
                         <a href="/ausencia"
-                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Asignar
-                            ausencia</a>
-                        <a href="#"
-                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Permisos</a>
-                        <a href="#"
-                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Reposos</a>
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Permisos y
+                            reposos</a>
                     </div>
                 </div>
             </div>
@@ -238,7 +229,7 @@
             </button>
         </div>
 
-        <!-- Usuarios (Restaurado) -->
+        <!-- Usuarios (Conectado a rutas reales) -->
         <div class="menu-item-container" data-menu="usuarios">
             <button
                 class="cursor-pointer menu-btn w-full h-12 flex items-center justify-between rounded-2xl text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all px-3.5 group relative">
@@ -255,13 +246,12 @@
                 <div class="overflow-hidden">
                     <div class="relative flex flex-col gap-1 py-2 ml-6">
                         <div class="absolute left-0 border-l-2 top-2 bottom-2 border-zinc-700"></div>
-                        <a href="#" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Registrar
+                        <a href="/usuarios"
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Gestionar
                             Usuarios</a>
-                        <a href="#" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Ver
-                            usuario</a>
-                        <a href="#" class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Roles</a>
-                        <a href="#"
-                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Permisos</a>
+                        <a href="/roles-permisos"
+                            class="py-2 pl-5 text-sm transition-colors text-zinc-400 hover:text-white">Roles y
+                            Permisos</a>
                     </div>
                 </div>
             </div>

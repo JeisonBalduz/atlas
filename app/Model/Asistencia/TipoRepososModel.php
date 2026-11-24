@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property int $tpreposo_id
  * @property string $reposo
+ * @property bool $activo
  */
 class TipoRepososModel extends Model
 {
@@ -33,12 +34,14 @@ class TipoRepososModel extends Model
     /** @var list<string> */
     protected $fillable = [
         'reposo',
+        'activo',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
         'tpreposo_id' => 'integer',
         'reposo' => 'string',
+        'activo' => 'boolean',
     ];
 
     /**

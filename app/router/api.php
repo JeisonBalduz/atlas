@@ -10,6 +10,7 @@ declare(strict_types=1);
  * @var \App\Utils\Config $config
  */
 
+use App\Controller\AsistenciaController;
 use App\Controller\EditarEmpleadoController;
 use App\Controller\EditarFamiliarController;
 use App\Controller\InicioController;
@@ -20,8 +21,10 @@ use App\Controller\RegistroBeneficiosController;
 use App\Controller\RegistrosEmpleadosController;
 use App\Controller\RegistrosFamiliaresController;
 use App\Controller\RegistroVacacionesController;
+use App\Controller\RolesPermisosController;
 use App\Controller\SesionController;
 use App\Controller\TablasMaestrasController;
+use App\Controller\UsuariosController;
 use App\Middleware\SesionMiddleware;
 use flight\net\Router;
 
@@ -30,7 +33,7 @@ $router->post('/api/autenticacion', [SesionController::class, 'autentecacion']);
 
 // Endpoints protegidos por sesión
 $router->group('/api', function (Router $router): void {
-    // --- Inicio (usuarios y actividad real sin estadísticas) ---
+    // --- Inicio (métricas reales, usuarios y actividad reciente) ---
     $router->get('/inicio/datos', [InicioController::class, 'datos']);
 
     // --- Trabajadores ---
@@ -62,6 +65,8 @@ $router->group('/api', function (Router $router): void {
     $router->get('/ausencias', [RegistroAusenciaController::class, 'listar']);
     $router->get('/ausencias/@id:[0-9]+', [RegistroAusenciaController::class, 'show']);
     $router->post('/ausencias', [RegistroAusenciaController::class, 'store']);
+    $router->put('/ausencias/@id:[0-9]+', [RegistroAusenciaController::class, 'update']);
+    $router->post('/ausencias/@id:[0-9]+/reanudar', [RegistroAusenciaController::class, 'reanudar']);
     $router->post('/ausencias/reposos/@id:[0-9]+/validar', [RegistroAusenciaController::class, 'validarReposo']);
 
     // --- Vacaciones ---
@@ -69,12 +74,33 @@ $router->group('/api', function (Router $router): void {
     $router->get('/vacaciones/saldo/@empleadoId:[0-9]+', [RegistroVacacionesController::class, 'saldo']);
     $router->get('/vacaciones/@id:[0-9]+', [RegistroVacacionesController::class, 'show']);
     $router->post('/vacaciones', [RegistroVacacionesController::class, 'store']);
+    $router->put('/vacaciones/@id:[0-9]+', [RegistroVacacionesController::class, 'update']);
     $router->post('/vacaciones/@id:[0-9]+/estatus', [RegistroVacacionesController::class, 'cambiarEstatus']);
+
+    // --- Asistencia Diaria (Entrada / Salida y bloqueo por reposo) ---
+    $router->get('/asistencia', [AsistenciaController::class, 'listar']);
+    $router->get('/asistencia/empleado/@empleadoId:[0-9]+', [AsistenciaController::class, 'estadoEmpleado']);
+    $router->post('/asistencia/entrada', [AsistenciaController::class, 'entrada']);
+    $router->post('/asistencia/salida', [AsistenciaController::class, 'salida']);
 
     // --- Beneficios Socioeconómicos ---
     $router->get('/beneficios', [RegistroBeneficiosController::class, 'listar']);
+    $router->get('/beneficios/estado-documental', [RegistroBeneficiosController::class, 'estadoDocumental']);
     $router->post('/beneficios', [RegistroBeneficiosController::class, 'store']);
     $router->post('/beneficios/@id:[0-9]+/aprobar', [RegistroBeneficiosController::class, 'aprobar']);
+
+    // --- Seguridad: Usuarios, Roles y Permisos ---
+    $router->get('/usuarios', [UsuariosController::class, 'listar']);
+    $router->post('/usuarios', [UsuariosController::class, 'store']);
+    $router->put('/usuarios/@id:[0-9]+', [UsuariosController::class, 'update']);
+    $router->post('/usuarios/@id:[0-9]+/estatus', [UsuariosController::class, 'cambiarEstatus']);
+    $router->get('/usuarios/@id:[0-9]+/permisos', [UsuariosController::class, 'permisos']);
+    $router->put('/usuarios/@id:[0-9]+/permisos', [UsuariosController::class, 'actualizarPermisos']);
+
+    $router->get('/roles', [RolesPermisosController::class, 'listar']);
+    $router->post('/roles', [RolesPermisosController::class, 'store']);
+    $router->put('/roles/@id:[0-9]+', [RolesPermisosController::class, 'update']);
+    $router->put('/roles/@id:[0-9]+/permisos', [RolesPermisosController::class, 'actualizarPermisos']);
 
     // --- Gestión Documental (DocumentosInces, vigencia y reemplazo) ---
     $router->post('/documentos', [RegistrosEmpleadosController::class, 'subirDocumento']);
@@ -88,9 +114,10 @@ $router->group('/api', function (Router $router): void {
     $router->get('/select/empleados', [RegistrosEmpleadosController::class, 'buscarParaSelect']);
     $router->get('/select/personas', [RegistroBeneficiosController::class, 'buscarPersonasParaSelect']);
 
-    // --- Catálogos ---
+    // --- Catálogos / Tablas Maestras ---
     $router->get('/catalogos/@tipo', [TablasMaestrasController::class, 'index']);
     $router->post('/catalogos/@tipo', [TablasMaestrasController::class, 'store']);
     $router->put('/catalogos/@tipo/@id:[0-9]+', [TablasMaestrasController::class, 'update']);
+    $router->post('/catalogos/@tipo/@id:[0-9]+/activar', [TablasMaestrasController::class, 'activar']);
     $router->delete('/catalogos/@tipo/@id:[0-9]+', [TablasMaestrasController::class, 'destroy']);
 }, [SesionMiddleware::class]);

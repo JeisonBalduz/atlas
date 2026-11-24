@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property int $tppermiso_id
  * @property string $permiso
+ * @property bool $activo
  */
 class TipoPermisosModel extends Model
 {
@@ -33,12 +34,14 @@ class TipoPermisosModel extends Model
     /** @var list<string> */
     protected $fillable = [
         'permiso',
+        'activo',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
         'tppermiso_id' => 'integer',
         'permiso' => 'string',
+        'activo' => 'boolean',
     ];
 
     /**

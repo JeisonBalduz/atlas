@@ -1,6 +1,10 @@
 import { GestorDataTable } from '/js/class/GestorDataTable.js';
 import { Solicitud } from '/js/class/Solicitud.js';
-import { crearAlertaConfirmacion } from '/js/components/alerta/alerta.js';
+import {
+  crearAlertaConfirmacion,
+  notificarErrorFormulario,
+  notificarExitoFormulario,
+} from '/js/components/alerta/alerta.js';
 import { crearCheck } from '/js/components/check/crearCheck.js';
 import { Modal } from '/js/components/modal/Modal.js';
 import {
@@ -302,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formulario = dlg.querySelector('#form-modal-catalogo');
         const payload = formulario ? leerPayloadFormulario(formulario, config.campos) : null;
         if (!payload) {
-          mostrarToast('error', 'Completa todos los campos obligatorios.');
+          notificarErrorFormulario(formulario, 'Completa todos los campos obligatorios del catálogo.');
           return false;
         }
 
@@ -311,11 +315,11 @@ document.addEventListener('DOMContentLoaded', () => {
           : await Solicitud.post(`/api/catalogos/${catalogoActivo}`, payload);
 
         if (!res.ok || !res.data?.ok) {
-          mostrarToast('error', res.message || 'No se pudo guardar el registro.');
+          notificarErrorFormulario(formulario, res.message || 'No se pudo guardar el registro.');
           return false;
         }
 
-        mostrarToast('success', res.data.message || 'Registro guardado correctamente.');
+        notificarExitoFormulario(formulario, res.data.message || 'Registro guardado correctamente.');
         cargarCatalogo(catalogoActivo);
         return true;
       },
@@ -324,24 +328,36 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalFormulario.dialogo) vincularSelectsModal(modalFormulario.dialogo, registroEditar);
   };
 
-  const abrirModalEliminar = (registro) => {
+  const abrirModalEstadoCatalogo = (registro, activar) => {
     const config = configCatalogos[catalogoActivo];
+    const id = registro[config.claveId];
+    const campoPrincipal = config.campos[0]?.nombre;
+    const etiquetaItem = campoPrincipal && registro[campoPrincipal] ? registro[campoPrincipal] : `#${id}`;
+
     modalEliminar.abrir({
-      titulo: 'Desactivar registro',
+      titulo: activar ? 'Confirmar activación de registro' : 'Confirmar desactivación de registro',
       subtitulo: config.titulo,
       contenidoHtml: crearAlertaConfirmacion({
-        variante: 'red',
-        mensajeHtml: `¿Deseas desactivar el registro seleccionado del catálogo <strong>${config.titulo}</strong>? Dejará de mostrarse en los selectores de formularios.`,
+        variante: activar ? 'green' : 'red',
+        icono: activar ? 'check-circle' : 'ban',
+        mensajeHtml: activar
+          ? `¿Estás seguro de que deseas activar <strong>${etiquetaItem}</strong> en <strong>${config.titulo}</strong>? Volverá a aparecer en los selectores de formularios.`
+          : `¿Deseas desactivar <strong>${etiquetaItem}</strong> en <strong>${config.titulo}</strong>? Dejará de mostrarse en los selectores de formularios, pero se mantendrá en el historial.`,
       }),
-      textoConfirmar: 'Confirmar',
+      textoConfirmar: activar ? 'Activar registro' : 'Desactivar registro',
+      varianteConfirmar: activar ? 'green' : 'red',
       textoCargando: 'Procesando...',
       alConfirmar: async () => {
-        const res = await Solicitud.delete(`/api/catalogos/${catalogoActivo}/${registro[config.claveId]}`);
+        const res = activar
+          ? await Solicitud.post(`/api/catalogos/${catalogoActivo}/${id}/activar`, {})
+          : await Solicitud.delete(`/api/catalogos/${catalogoActivo}/${id}`);
+
         if (!res.ok || !res.data?.ok) {
-          mostrarToast('error', res.message || 'No se pudo desactivar el registro.');
+          mostrarToast('error', res.message || 'No se pudo actualizar el estado del registro.');
           return false;
         }
-        mostrarToast('success', res.data.message || 'Registro desactivado.');
+
+        mostrarToast('success', res.data.message || (activar ? 'Registro activado correctamente.' : 'Registro desactivado correctamente.'));
         cargarCatalogo(catalogoActivo);
         return true;
       },
@@ -355,7 +371,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!registro) return;
 
     if (boton.dataset.accion === 'editar') abrirModalRegistro(registro);
-    if (boton.dataset.accion === 'eliminar') abrirModalEliminar(registro);
+    if (boton.dataset.accion === 'activar') abrirModalEstadoCatalogo(registro, true);
+    if (boton.dataset.accion === 'eliminar') abrirModalEstadoCatalogo(registro, false);
   });
 
   filtroEstado?.addEventListener('change', async () => {

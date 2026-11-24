@@ -7,13 +7,14 @@ namespace App\Controller;
 use App\Http\LimpiarInputs;
 use App\Model\Vacaciones\SolicitudVacacionesModel;
 use App\Services\CatalogosService;
+use App\Services\ContextoSesion;
 use App\Services\VacacionesService;
 use App\Utils\Config;
 use flight\Engine;
 use Throwable;
 
 /**
- * Controlador de solicitudes, saldo e historial de vacaciones conectado a PostgreSQL.
+ * Controlador de solicitudes, saldo, edición, suspensión y aprobaciones de vacaciones conectado a PostgreSQL.
  */
 class RegistroVacacionesController extends BaseController
 {
@@ -31,14 +32,19 @@ class RegistroVacacionesController extends BaseController
 
     public function render(): void
     {
+        $rolActual = strtolower(trim((string) (ContextoSesion::role() ?? '')));
+        $esAdmin = $rolActual === 'administrador';
+
         $this->renderVista('registro_vacaciones', [
             'empleados' => [],
             'total_empleados_activos' => $this->catalogos->contarEmpleadosActivos(),
+            'resumen_vacaciones' => $this->vacacionesService->resumenConteos(),
+            'es_administrador' => $esAdmin,
         ]);
     }
 
     /**
-     * [GET] Lista las solicitudes reales desde `public.vw_solicitudes_vacaciones`.
+     * [GET] Lista las solicitudes reales desde `public.vw_solicitudes_vacaciones` junto con métricas reales.
      */
     public function listar(): void
     {
@@ -71,7 +77,11 @@ class RegistroVacacionesController extends BaseController
                 ];
             }
 
-            $this->jsonOk($datos);
+            $this->app->json([
+                'ok' => true,
+                'data' => $datos,
+                'resumen' => $this->vacacionesService->resumenConteos(),
+            ], 200);
         } catch (Throwable) {
             $this->jsonError('No se pudieron consultar las solicitudes de vacaciones.', 500);
         }
@@ -182,25 +192,32 @@ class RegistroVacacionesController extends BaseController
     }
 
     /**
-     * [POST] Registra una solicitud de vacaciones usando `fn_registrar_solicitud_vacaciones`.
+     * [POST] Registra una solicitud de vacaciones validando rango, días hábiles INCES y saldo acumulado.
      */
     public function store(): void
     {
         $input = new LimpiarInputs();
-        $error = $input->validar(['empleado_id', 'dias_solicitados', 'fecha_inicio', 'fecha_final']);
+        $error = $input->validar(['empleado_id', 'fecha_inicio', 'fecha_final']);
         if ($error !== null) {
             $this->jsonError($error, 422);
             return;
         }
 
         $empleadoId = (int) $input->get('empleado_id');
-        $dias = (int) $input->get('dias_solicitados');
         $fechaInicio = trim((string) $input->get('fecha_inicio'));
         $fechaFinal = trim((string) $input->get('fecha_final'));
         $gerencia = filter_var($input->get('gerencia', false), FILTER_VALIDATE_BOOLEAN);
 
+        if ($fechaFinal < $fechaInicio) {
+            $this->jsonError('La fecha final no puede ser menor que la fecha de inicio.', 422);
+            return;
+        }
+
+        $diasHabiles = $this->vacacionesService->calcularDiasHabilesInces($fechaInicio, $fechaFinal);
+        $dias = $diasHabiles > 0 ? $diasHabiles : (int) $input->get('dias_solicitados', 0);
+
         if ($empleadoId <= 0 || $dias <= 0) {
-            $this->jsonError('Empleado o cantidad de días inválida.', 422);
+            $this->jsonError('El rango seleccionado no contiene días hábiles laborables según la normativa INCES.', 422);
             return;
         }
 
@@ -217,8 +234,9 @@ class RegistroVacacionesController extends BaseController
             if (
                 str_contains(strtolower($desc), 'insuficientes')
                 || str_contains(strtolower($desc), 'no posee')
+                || str_contains(strtolower($desc), 'no tiene suficientes')
                 || str_contains(strtolower($desc), 'error')
-                || $resultado['disponibles'] < $dias && !str_contains(strtolower($desc), 'exitos') && !str_contains(strtolower($desc), 'registrad')
+                || ($resultado['disponibles'] < $dias && !str_contains(strtolower($desc), 'éxito') && !str_contains(strtolower($desc), 'registrad'))
             ) {
                 $this->jsonError($desc !== '' ? $desc : 'El trabajador no dispone de días suficientes.', 422);
                 return;
@@ -231,7 +249,64 @@ class RegistroVacacionesController extends BaseController
     }
 
     /**
-     * [POST] Actualiza el estatus de la solicitud disparando `tg_procesar_descuento_vacaciones` en PostgreSQL.
+     * [PUT/POST] Edita fechas y días hábiles de una solicitud de vacaciones.
+     */
+    public function update(string $id): void
+    {
+        $solicitudId = $this->idPositivo($id, 'solicitud');
+        if ($solicitudId === null) {
+            return;
+        }
+
+        $solicitud = SolicitudVacacionesModel::query()->find($solicitudId);
+        if (!$solicitud instanceof SolicitudVacacionesModel) {
+            $this->jsonError('Solicitud de vacaciones no encontrada.', 404);
+            return;
+        }
+
+        $input = new LimpiarInputs();
+        $error = $input->validar(['fecha_inicio', 'fecha_final']);
+        if ($error !== null) {
+            $this->jsonError($error, 422);
+            return;
+        }
+
+        $fechaInicio = trim((string) $input->get('fecha_inicio'));
+        $fechaFinal = trim((string) $input->get('fecha_final'));
+        $gerencia = filter_var($input->get('gerencia', $solicitud->gerencia), FILTER_VALIDATE_BOOLEAN);
+
+        if ($fechaFinal < $fechaInicio) {
+            $this->jsonError('La fecha final no puede ser menor que la fecha de inicio.', 422);
+            return;
+        }
+
+        $dias = $this->vacacionesService->calcularDiasHabilesInces($fechaInicio, $fechaFinal);
+        if ($dias <= 0) {
+            $this->jsonError('El nuevo rango de fechas debe contener al menos un (1) día hábil laborable.', 422);
+            return;
+        }
+
+        try {
+            $actualizada = $this->vacacionesService->actualizarSolicitud(
+                $solicitud,
+                $fechaInicio,
+                $fechaFinal,
+                $dias,
+                $gerencia
+            );
+
+            $this->jsonOk([
+                'solicitud_vacaciones_id' => (int) $actualizada->solicitud_vacaciones_id,
+                'dias_solicitado' => (int) $actualizada->dias_solicitado,
+            ], 'Solicitud de vacaciones actualizada correctamente.');
+        } catch (Throwable $e) {
+            $codigo = (int) $e->getCode();
+            $this->jsonError($e->getMessage(), $codigo >= 400 && $codigo < 600 ? $codigo : 422);
+        }
+    }
+
+    /**
+     * [POST] Actualiza el estatus de la solicitud (RRHH, Gerencia, Suspensión con devolución de días).
      */
     public function cambiarEstatus(string $id): void
     {
@@ -253,16 +328,26 @@ class RegistroVacacionesController extends BaseController
             return;
         }
 
+        $diasDisfrutados = max(0, (int) $input->get('dias_disfrutados', 0));
+        $observacion = trim((string) $input->get('observacion', ''));
+
         try {
-            $solicitud->estatus = $nuevoEstatus;
-            $solicitud->save();
+            $this->vacacionesService->procesarCambioEstatus($solicitud, $nuevoEstatus, $diasDisfrutados, $observacion);
+
+            $mensaje = match ($nuevoEstatus) {
+                2 => 'Solicitud aprobada por Recursos Humanos correctamente.',
+                4 => 'Solicitud aprobada por Gerencia correctamente.',
+                6 => 'Vacación suspendida y días pendientes reintegrados al saldo del trabajador.',
+                default => 'Estatus de la solicitud actualizado correctamente.',
+            };
 
             $this->jsonOk([
                 'solicitud_vacaciones_id' => $solicitudId,
                 'estatus' => $nuevoEstatus,
-            ], 'Estatus de la solicitud actualizado correctamente.');
+            ], $mensaje);
         } catch (Throwable $e) {
-            $this->jsonError('No se pudo actualizar el estatus: ' . $e->getMessage(), 422);
+            $codigo = (int) $e->getCode();
+            $this->jsonError($e->getMessage(), $codigo >= 400 && $codigo < 600 ? $codigo : 422);
         }
     }
 }

@@ -1,17 +1,37 @@
 import { GestorDataTable } from '/js/class/GestorDataTable.js';
 import { Solicitud } from '/js/class/Solicitud.js';
+import {
+  limpiarAlertaFormulario,
+  notificarErrorFormulario,
+  notificarExitoFormulario,
+} from '/js/components/alerta/alerta.js';
 import { crearBadge } from '/js/components/badge/crearBadge.js';
+// import { inicializarRangoFechas } from '/js/components/calendario/calendario.js';
 import { crearListaDetalle, Modal } from '/js/components/modal/Modal.js';
-import { inicializarSelectsPersonalizados } from '/js/components/select/selectPersonalizado.js';
+import {
+  crearMarkupSelectPersonalizado,
+  inicializarSelectsPersonalizados,
+} from '/js/components/select/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast/toast.js';
 import { columnasTablaBeneficios } from '/js/templates/tabla_beneficios.js';
 import { formatearFecha } from '/js/utils/formatearFecha.js';
+
+const leerReglasBeneficios = (formulario) => {
+  if (!formulario?.dataset?.reglas) return {};
+  try {
+    return JSON.parse(formulario.dataset.reglas) || {};
+  } catch {
+    return {};
+  }
+};
 
 const renderDetalleBeneficio = (registro) => {
   const esPendiente = registro.estatus === 'Pendiente';
   return crearListaDetalle([
     { etiqueta: 'Cédula', valorHtml: `<span class="font-semibold">${registro.cedula || '—'}</span>` },
     { etiqueta: 'Rol / Parentesco', valorHtml: registro.rol_parentesco || 'Beneficiario' },
+    { etiqueta: 'Base contractual', valorHtml: registro.clausula || 'Contrato Colectivo' },
+    { etiqueta: 'Periodicidad', valorHtml: registro.periodicidad || 'Según cláusula' },
     { etiqueta: 'Estatus actual', valorHtml: crearBadge(registro.estatus, esPendiente ? 'yellow' : 'green') },
     { etiqueta: 'Fecha de solicitud', valorHtml: formatearFecha(registro.fecha_solicitud) },
     {
@@ -24,8 +44,105 @@ const renderDetalleBeneficio = (registro) => {
 
 document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
+
   const modalDetalle = new Modal('#modal-detalle-beneficio');
   const filtroEstatus = document.getElementById('filtro-estatus-beneficio');
+  const formulario = document.getElementById('formulario-beneficios');
+  const reglasPorBeneficio = leerReglasBeneficios(formulario);
+
+  const selectPersona = document.getElementById('persona_id');
+  const selectBeneficio = document.getElementById('beneficio_id');
+  const inputSolicitud = document.getElementById('fecha_solicitud');
+  const inputAprobada = document.getElementById('fecha_aprobada');
+  const inputArchivo = document.getElementById('archivo_soporte');
+
+  const panelRegla = document.getElementById('panel-regla-beneficio');
+  const nodoClausula = document.getElementById('regla-clausula');
+  const nodoBadgeDoc = document.getElementById('regla-badge-doc');
+  const nodoPeriodicidad = document.getElementById('regla-periodicidad');
+  const nodoNota = document.getElementById('regla-nota');
+  const bloqueDoc = document.getElementById('bloque-documento-beneficio');
+  const nodoDocVigente = document.getElementById('estado-doc-vigente');
+  const contenedorTipoDoc = document.getElementById('contenedor-select-tipo-doc');
+
+  let tieneDocumentoVigentePrevio = false;
+
+  // inicializarRangoFechas(inputSolicitud, inputAprobada);
+
+  const consultarVigenciaPrevio = async () => {
+    tieneDocumentoVigentePrevio = false;
+    if (!nodoDocVigente) return;
+    nodoDocVigente.classList.add('hidden');
+    nodoDocVigente.innerHTML = '';
+
+    const personaId = Number(selectPersona?.value || 0);
+    const beneficioId = Number(selectBeneficio?.value || 0);
+    const regla = reglasPorBeneficio[String(beneficioId)];
+
+    if (!personaId || !beneficioId || !regla?.requiere_documento) return;
+
+    const res = await Solicitud.get('/api/beneficios/estado-documental', {
+      params: { persona_id: personaId, beneficio_id: beneficioId },
+      claveCancelacion: 'doc-beneficio',
+    });
+
+    if (res.aborted || !res.ok || !res.data?.ok) return;
+    const info = res.data.data || {};
+    tieneDocumentoVigentePrevio = Boolean(info.tiene_vigente);
+
+    if (tieneDocumentoVigentePrevio && Array.isArray(info.documentos_vigentes) && info.documentos_vigentes[0]) {
+      const doc = info.documentos_vigentes[0];
+      nodoDocVigente.innerHTML = `Documento <strong>Vigente</strong> ya cargado en expediente (${doc.nombre_original}). Puedes conservarlo o subir una nueva versión.`;
+      nodoDocVigente.classList.remove('hidden');
+    }
+  };
+
+  const actualizarPanelRegla = () => {
+    const beneficioId = String(selectBeneficio?.value || '');
+    const regla = reglasPorBeneficio[beneficioId];
+
+    if (!regla || !panelRegla) {
+      panelRegla?.classList.add('hidden');
+      return;
+    }
+
+    if (nodoClausula) nodoClausula.textContent = regla.clausula || 'Contrato Colectivo';
+    if (nodoPeriodicidad) nodoPeriodicidad.textContent = `Periodicidad: ${regla.etiqueta_periodicidad}`;
+    if (nodoNota) nodoNota.textContent = regla.nota || '';
+    if (nodoBadgeDoc) {
+      nodoBadgeDoc.innerHTML = regla.requiere_documento
+        ? crearBadge('Documento obligatorio', 'yellow')
+        : crearBadge('Sin documento requerido', 'green');
+    }
+
+    if (regla.requiere_documento && Array.isArray(regla.documentos) && regla.documentos.length > 0) {
+      bloqueDoc?.classList.remove('hidden');
+      if (contenedorTipoDoc) {
+        const opcionesDoc = {};
+        regla.documentos.forEach((d) => {
+          opcionesDoc[String(d.id)] = d.nombre;
+        });
+        contenedorTipoDoc.innerHTML = crearMarkupSelectPersonalizado({
+          id: 'tipo_documento_id',
+          nombre: 'tipo_documento_id',
+          etiqueta: 'Tipo de soporte exigido',
+          opciones: opcionesDoc,
+          valorSeleccionado: String(regla.documentos[0].id),
+        });
+        inicializarSelectsPersonalizados(contenedorTipoDoc);
+      }
+      consultarVigenciaPrevio();
+    } else {
+      bloqueDoc?.classList.add('hidden');
+      if (contenedorTipoDoc) contenedorTipoDoc.innerHTML = '';
+      if (inputArchivo) inputArchivo.value = '';
+    }
+
+    panelRegla.classList.remove('hidden');
+  };
+
+  selectBeneficio?.addEventListener('change', actualizarPanelRegla);
+  selectPersona?.addEventListener('change', consultarVigenciaPrevio);
 
   const aprobarBeneficio = async (registro) => {
     const res = await Solicitud.post(`/api/beneficios/${registro.dtbeneficio_id}/aprobar`);
@@ -71,6 +188,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const lista = Array.isArray(res.data.data) ? res.data.data : [];
+    const resumenOtorgados = document.getElementById('resumen-beneficios-otorgados');
+    if (resumenOtorgados) {
+      resumenOtorgados.textContent = `${lista.length} asignaciones registradas en BD`;
+    }
+
     tabla.actualizarDatos(lista);
     if (filtroEstatus?.value && filtroEstatus.value !== 'todos') {
       tabla.filtrarColumna(6, filtroEstatus.value);
@@ -81,20 +203,34 @@ document.addEventListener('DOMContentLoaded', () => {
     tabla.filtrarColumna(6, evento.target.value);
   });
 
-  const formulario = document.getElementById('formulario-beneficios');
   let enviando = false;
 
   formulario?.addEventListener('submit', async (evento) => {
     evento.preventDefault();
     if (enviando) return;
 
-    const personaId = Number(document.getElementById('persona_id')?.value || 0);
-    const beneficioId = Number(document.getElementById('beneficio_id')?.value || 0);
-    const fechaSolicitud = document.getElementById('fecha_solicitud')?.value || '';
-    const fechaAprobada = document.getElementById('fecha_aprobada')?.value || '';
+    const personaId = Number(selectPersona?.value || 0);
+    const beneficioId = Number(selectBeneficio?.value || 0);
+    const fechaSolicitud = inputSolicitud?.value || '';
+    const fechaAprobada = inputAprobada?.value || '';
+    const regla = reglasPorBeneficio[String(beneficioId)];
 
     if (!personaId || !beneficioId || !fechaSolicitud) {
-      mostrarToast('error', 'Selecciona beneficiario, tipo de beneficio y fecha de solicitud.');
+      notificarErrorFormulario(formulario, 'Selecciona beneficiario, tipo de beneficio y fecha de solicitud.');
+      return;
+    }
+
+    if (fechaAprobada && fechaAprobada < fechaSolicitud) {
+      notificarErrorFormulario(formulario, 'La fecha de aprobación no puede ser menor que la fecha de solicitud.');
+      return;
+    }
+
+    const tieneArchivoAdjunto = Boolean(inputArchivo?.files && inputArchivo.files.length > 0);
+    if (regla?.requiere_documento && !tieneArchivoAdjunto && !tieneDocumentoVigentePrevio) {
+      notificarErrorFormulario(
+        formulario,
+        `Según ${regla.clausula}, este beneficio exige adjuntar el soporte documental obligatorio.`
+      );
       return;
     }
 
@@ -103,20 +239,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnSubmit) btnSubmit.disabled = true;
 
     try {
-      const res = await Solicitud.post('/api/beneficios', {
-        persona_id: personaId,
-        beneficio_id: beneficioId,
-        fecha_solicitud: fechaSolicitud,
-        fecha_aprobada: fechaAprobada || null,
-      });
+      const formData = new FormData(formulario);
+      const res = await Solicitud.post('/api/beneficios', formData);
 
       if (!res.ok || !res.data?.ok) {
-        mostrarToast('error', res.message || 'No se pudo asignar el beneficio.');
+        notificarErrorFormulario(formulario, res.message || 'No se pudo asignar el beneficio.');
         return;
       }
 
-      mostrarToast('success', res.data.message || 'Beneficio asignado correctamente.');
+      notificarExitoFormulario(formulario, res.data.message || 'Beneficio asignado correctamente.');
       formulario.reset();
+      limpiarAlertaFormulario(formulario);
+      panelRegla?.classList.add('hidden');
+      tieneDocumentoVigentePrevio = false;
       await cargarBeneficios();
     } finally {
       enviando = false;

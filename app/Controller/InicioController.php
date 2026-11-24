@@ -8,12 +8,13 @@ use App\Services\EmpleadosService;
 use App\Services\UsuariosService;
 use App\Services\VacacionesService;
 use App\Utils\Config;
+use DateTimeImmutable;
 use flight\Engine;
 use Illuminate\Database\Capsule\Manager as DB;
 use Throwable;
 
 /**
- * Controlador de la vista principal de inicio conectada a las tablas reales (excepto estadísticas).
+ * Controlador de la vista principal de inicio conectada al 100% a las tablas reales de PostgreSQL.
  */
 final class InicioController extends BaseController
 {
@@ -38,13 +39,15 @@ final class InicioController extends BaseController
     {
         $resumen = $this->consultarDatosReales();
         $this->renderVista('inicio', [
+            'metricas' => $resumen['metricas'],
+            'serie_archivos' => $resumen['serie_archivos'],
             'usuarios_activos' => array_slice($resumen['usuarios'], 0, 6),
             'actividades_recientes' => array_slice($resumen['actividades'], 0, 4),
         ]);
     }
 
     /**
-     * [GET] Devuelve usuarios reales y actividad reciente para `inicio.js`.
+     * [GET] Devuelve métricas reales, serie histórica de documentos, usuarios y actividad reciente para `inicio.js`.
      */
     public function datos(): void
     {
@@ -52,16 +55,63 @@ final class InicioController extends BaseController
     }
 
     /**
-     * @return array{usuarios: list<array<string, mixed>>, actividades: list<array<string, string>>}
+     * @return array{
+     *   metricas: array<string, int>,
+     *   serie_archivos: array{etiquetas: list<string>, valores: list<int>},
+     *   usuarios: list<array<string, mixed>>,
+     *   actividades: list<array<string, string>>
+     * }
      */
     private function consultarDatosReales(): array
     {
+        $hoy = date('Y-m-d');
+        $metricas = [
+            'vacaciones' => 0,
+            'permisos' => 0,
+            'reposos' => 0,
+            'beneficios' => 0,
+            'expedientes' => 0,
+            'familiares' => 0,
+            'nomina_activa' => 0,
+            'usuarios_activos' => 0,
+            'presentes_hoy' => 0,
+            'porcentaje_asistencia_hoy' => 0,
+            'ausencias_hoy' => 0,
+        ];
+        $serieArchivos = $this->construirSerieMensualVacia();
         $usuarios = [];
         $actividades = [];
 
         try {
-            $departamentosPorEmpleado = DB::table('public.empleados')
-                ->leftJoin('public.departamentos', 'departamentos.departamento_id', '=', 'empleados.departamento_id')
+            $nominaActiva = (int) DB::table('empleados')->where('estatus_actual', 1)->count();
+            $presentesHoy = (int) DB::table('detalle_asistencia')
+                ->where('fecha', $hoy)
+                ->distinct()
+                ->count('empleado_id');
+
+            $metricas = [
+                'vacaciones' => (int) DB::table('solicitud_vacaciones')->count(),
+                'permisos' => (int) DB::table('ausencia_justificada')->where('tipo_ausencia', 1)->count(),
+                'reposos' => (int) DB::table('ausencia_justificada')->where('tipo_ausencia', 2)->count(),
+                'beneficios' => (int) DB::table('detalle_beneficio')->count(),
+                'expedientes' => (int) DB::table('documentos')->where('estatus_documento', 'Vigente')->count(),
+                'familiares' => (int) DB::table('familiares')->count(),
+                'nomina_activa' => $nominaActiva,
+                'usuarios_activos' => (int) DB::table('usuarios')->where('estatus', 1)->count(),
+                'presentes_hoy' => $presentesHoy,
+                'porcentaje_asistencia_hoy' => $nominaActiva > 0
+                    ? min(100, (int) round(($presentesHoy / $nominaActiva) * 100))
+                    : 0,
+                'ausencias_hoy' => (int) DB::table('ausencia_justificada')
+                    ->where('fecha_inicio', '<=', $hoy)
+                    ->where('fecha_fin', '>=', $hoy)
+                    ->count(),
+            ];
+
+            $serieArchivos = $this->consultarSerieArchivosReales();
+
+            $departamentosPorEmpleado = DB::table('empleados')
+                ->leftJoin('departamentos', 'departamentos.departamento_id', '=', 'empleados.departamento_id')
                 ->pluck('departamentos.departamento', 'empleados.empleado_id')
                 ->all();
 
@@ -82,7 +132,7 @@ final class InicioController extends BaseController
                 ];
             }
 
-            $auditorias = DB::table('public.auditoria')
+            $auditorias = DB::table('auditoria')
                 ->orderByDesc('auditoria_id')
                 ->limit(6)
                 ->get(['accion_realizada', 'descripcion', 'tabla_afectada', 'fecha_creacion']);
@@ -125,12 +175,77 @@ final class InicioController extends BaseController
                 }
             }
         } catch (Throwable) {
-            // En entornos de prueba sin vistas PostgreSQL mantiene arreglo vacío sin romper render()
+            // En entornos de prueba sin vistas PostgreSQL mantiene valores reales en cero sin romper render()
         }
 
         return [
+            'metricas' => $metricas,
+            'serie_archivos' => $serieArchivos,
             'usuarios' => $usuarios,
             'actividades' => $actividades,
         ];
+    }
+
+    /**
+     * @return array{etiquetas: list<string>, valores: list<int>}
+     */
+    private function construirSerieMensualVacia(): array
+    {
+        $mesesNombres = [
+            1 => 'Ene', 2 => 'Feb', 3 => 'Mar', 4 => 'Abr',
+            5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Ago',
+            9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dic',
+        ];
+        $base = new DateTimeImmutable('first day of this month');
+        $etiquetas = [];
+        $valores = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $mesFecha = $base->modify("-{$i} months");
+            $mesNum = (int) $mesFecha->format('n');
+            $etiquetas[] = $mesesNombres[$mesNum] . ' ' . $mesFecha->format('Y');
+            $valores[] = 0;
+        }
+
+        return ['etiquetas' => $etiquetas, 'valores' => $valores];
+    }
+
+    /**
+     * @return array{etiquetas: list<string>, valores: list<int>}
+     */
+    private function consultarSerieArchivosReales(): array
+    {
+        $mesesNombres = [
+            1 => 'Ene', 2 => 'Feb', 3 => 'Mar', 4 => 'Abr',
+            5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Ago',
+            9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dic',
+        ];
+
+        $base = new DateTimeImmutable('first day of this month');
+        $inicioRango = $base->modify('-5 months')->format('Y-m-01');
+
+        $conteosPorClave = [];
+        $fechas = DB::table('documentos')
+            ->where('fecha_subida', '>=', $inicioRango)
+            ->pluck('fecha_subida');
+
+        foreach ($fechas as $fechaRaw) {
+            $clave = substr((string) $fechaRaw, 0, 7);
+            if ($clave !== '') {
+                $conteosPorClave[$clave] = ($conteosPorClave[$clave] ?? 0) + 1;
+            }
+        }
+
+        $etiquetas = [];
+        $valores = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $mesFecha = $base->modify("-{$i} months");
+            $clave = $mesFecha->format('Y-m');
+            $mesNum = (int) $mesFecha->format('n');
+            $etiquetas[] = $mesesNombres[$mesNum] . ' ' . $mesFecha->format('Y');
+            $valores[] = (int) ($conteosPorClave[$clave] ?? 0);
+        }
+
+        return ['etiquetas' => $etiquetas, 'valores' => $valores];
     }
 }

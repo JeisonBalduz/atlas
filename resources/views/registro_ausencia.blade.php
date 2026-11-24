@@ -1,22 +1,25 @@
-@extends('layouts.app') {{-- CARGAR PAGINA PRINCIPAL --}}
+@extends('layouts.app')
 
-@section('titulo', 'Registro de Ausencias') {{-- TÍTULO DE LA PÁGINA --}}
+@section('titulo', 'Registro de Ausencias')
 
 @push('styles')
     @include('components.datatables_assets')
 @endpush
 
-@section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 xl:px-12 2xl:px-16 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
+@section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 xl:px-12 2xl:px-16 pb-12 pt-6 bg-slate-50')
 
-@section('menu_lateral'){{-- CARGAR HTML EN ESTE APARTADO --}}
-    @include('layouts.menu_lateral'){{-- CARGAR menu_lateral  --}} 
+@section('menu_lateral')
+    @include('layouts.menu_lateral')
 @endsection
 
-@section('header'){{-- CARGAR HTML EN ESTE APARTADO --}}
-    @include('layouts.header'){{-- CARGAR HEADER  --}} 
+@section('header')
+    @include('layouts.header')
 @endsection
 
-@section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
+@section('contenido')
+@php
+    $resAus = $resumen_ausencias ?? ['permisos_total' => 0, 'reposos_total' => 0, 'reposos_vigentes_hoy' => 0];
+@endphp
 <div class="w-full max-w-none mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 atlas-vista-entrada">
 
     {{-- Card 1 (Bento Hero Oscura): Cabecera del módulo de ausencias justificadas --}}
@@ -24,14 +27,14 @@
         <div class="space-y-2">
             <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-zinc-300">
                 <i data-lucide="clipboard-check" class="h-3.5 w-3.5" aria-hidden="true"></i>
-                <span>Control de Asistencia</span>
+                <span>Control de Ausencias · Cláusulas 14 y 61</span>
             </span>
             <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">Registro de Ausencias Justificadas</h1>
-            <p class="text-sm text-zinc-400">Gestiona permisos administrativos y reposos médicos con cálculo automático de días y trazabilidad por institución emisora.</p>
+            <p class="text-sm text-zinc-400">Gestiona permisos administrativos y reposos médicos con reintegro automático vacacional y reanudación anticipada.</p>
         </div>
     </header>
 
-    {{-- Card 2 (Bento Marca): Modalidades de permiso --}}
+    {{-- Card 2 (Bento Marca): Tipos de Permiso y conteo real en BD --}}
     <article class="col-span-full sm:col-span-6 lg:col-span-3 rounded-3xl border border-marca bg-marca p-6 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between">
         <div class="flex items-center justify-between">
             <span class="text-xs font-semibold uppercase tracking-wider text-marca-200">Tipos de Permiso</span>
@@ -41,11 +44,13 @@
         </div>
         <div class="mt-4">
             <p class="text-4xl font-bold tracking-tight text-white">{{ count($tipos_permiso ?? []) }}</p>
-            <p class="mt-2 text-xs font-medium text-marca-100">Causales administrativas</p>
+            <p id="resumen-permisos-registrados" class="mt-2 text-xs font-medium text-marca-100">
+                {{ $resAus['permisos_total'] ?? 0 }} permisos registrados en BD
+            </p>
         </div>
     </article>
 
-    {{-- Card 3 (Bento Blanca con Acento): Reposos e instituciones --}}
+    {{-- Card 3 (Bento Blanca con Acento): Reposos Médicos reales en BD --}}
     <article class="col-span-full sm:col-span-6 lg:col-span-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between">
         <div class="flex items-center justify-between">
             <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">Reposos Médicos</span>
@@ -54,8 +59,10 @@
             </div>
         </div>
         <div class="mt-4">
-            <p class="text-4xl font-bold tracking-tight text-zinc-900">{{ count($tipos_reposo ?? []) }}</p>
-            <p class="mt-2 text-xs font-medium text-zinc-500">{{ count($tipos_institucion ?? []) }} instituciones emisoras registradas</p>
+            <p id="resumen-reposos-registrados" class="text-4xl font-bold tracking-tight text-zinc-900">{{ $resAus['reposos_total'] ?? 0 }}</p>
+            <p id="resumen-reposos-vigentes" class="mt-2 text-xs font-medium text-zinc-500">
+                {{ $resAus['reposos_vigentes_hoy'] ?? 0 }} activos hoy · {{ count($tipos_reposo ?? []) }} tipos habilitados
+            </p>
         </div>
     </article>
 
@@ -67,7 +74,9 @@
         </header>
 
         <form id="formulario-ausencia" class="space-y-5" novalidate>
-            {{-- Selector de tipo de ausencia (1 = Permiso, 2 = Reposo) --}}
+            @component('components.alerta_formulario')
+            @endcomponent
+
             <fieldset class="space-y-2">
                 <legend class="text-sm font-medium text-zinc-900">Tipo de ausencia</legend>
                 <div class="grid grid-cols-2 gap-3">
@@ -213,7 +222,6 @@
         'subtitulo' => 'Filtra rápidamente entre permisos y reposos médicos.',
     ])
         @slot('filtros')
-            {{-- Filtro rápido por tipo de ausencia --}}
             <div class="inline-flex rounded-xl border border-slate-200 bg-white p-1" role="group" aria-label="Filtrar por tipo">
                 <button type="button" data-filtro-tipo="todos" class="btn-filtro-ausencia rounded-lg bg-marca px-3 py-1.5 text-xs font-medium text-white transition-all cursor-pointer">Todos</button>
                 <button type="button" data-filtro-tipo="Permiso" class="btn-filtro-ausencia rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 transition-all hover:text-zinc-900 cursor-pointer">Permiso</button>
@@ -221,7 +229,7 @@
             </div>
         @endslot
 
-        <table id="tabla-ausencias" class="w-full text-sm text-left">
+        <table id="tabla-ausencias" data-total-tipos-reposo="{{ count($tipos_reposo ?? []) }}" class="w-full text-sm text-left">
             <thead class="text-xs font-semibold uppercase tracking-wider text-zinc-500 bg-slate-50">
                 <tr>
                     <th>Cédula</th>
@@ -239,7 +247,7 @@
     @endcomponent
 </div>
 
-{{-- Modal de detalle de ausencia --}}
+{{-- Modal de detalle / convalidación de ausencia --}}
 @component('components.modal_detalle', [
     'id' => 'modal-detalle-ausencia',
     'titulo' => 'Detalle de ausencia justificada',
@@ -247,8 +255,20 @@
     'tamano' => 'md',
 ])
 @endcomponent
+
+{{-- Modal reutilizable para editar o reanudar ausencias --}}
+@component('components.modal', [
+    'id' => 'modal-accion-ausencia',
+    'titulo' => 'Gestionar ausencia justificada',
+    'subtitulo' => 'Edita o reanuda anticipadamente la ausencia seleccionada.',
+    'tamano' => 'md',
+    'textoCancelar' => 'Cancelar',
+    'textoConfirmar' => 'Guardar cambios',
+    'varianteConfirmar' => 'marca',
+])
+@endcomponent
 @endsection
 
-@push('scripts') {{-- CARGAR SCRIPTS DE JS --}}
+@push('scripts')
     <script type="module" src="/js/registro_ausencia.js"></script>
 @endpush

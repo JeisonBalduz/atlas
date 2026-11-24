@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Http\LimpiarInputs;
+use App\Model\Asistencia\TipoPermisosModel;
+use App\Model\Asistencia\TipoRepososModel;
 use App\Model\Catalogos\CargoModel;
 use App\Model\Catalogos\CarreraModel;
 use App\Model\Catalogos\DepartamentosModel;
@@ -41,8 +43,10 @@ class TablasMaestrasController extends BaseController
         'estados' => ['modelo' => EstadosModel::class, 'campo' => 'estado', 'limite' => 100, 'tiene_activo' => true],
         'municipios' => ['modelo' => MunicipiosModel::class, 'campo' => 'municipio', 'limite' => 100, 'tiene_activo' => true],
         'parroquias' => ['modelo' => ParroquiasModel::class, 'campo' => 'parroquia', 'limite' => 100, 'tiene_activo' => true],
+        'estado_civil' => ['modelo' => EstadoCivilModel::class, 'campo' => 'estado_civil', 'limite' => 50, 'tiene_activo' => true],
+        'tipo_permisos' => ['modelo' => TipoPermisosModel::class, 'campo' => 'permiso', 'limite' => 100, 'tiene_activo' => true],
+        'tipo_reposos' => ['modelo' => TipoRepososModel::class, 'campo' => 'reposo', 'limite' => 100, 'tiene_activo' => true],
         'tipo_documentos' => ['modelo' => TipoDocumentosModel::class, 'campo' => 'tipo_documentos', 'limite' => 150, 'tiene_activo' => false],
-        'estado_civil' => ['modelo' => EstadoCivilModel::class, 'campo' => 'estado_civil', 'limite' => 50, 'tiene_activo' => false],
         'tipo_parentesco' => ['modelo' => TipoParentescoModel::class, 'campo' => 'parentesco', 'limite' => 50, 'tiene_activo' => false],
     ];
 
@@ -206,6 +210,38 @@ class TablasMaestrasController extends BaseController
         }
     }
 
+    public function activar(string $tipo, string $id): void
+    {
+        $definicion = self::CATALOGOS[$tipo] ?? null;
+        if ($definicion === null || !$definicion['tiene_activo']) {
+            $this->jsonError('Catálogo no reconocido o sin soporte de activación.', 404);
+            return;
+        }
+
+        if (!ctype_digit($id) || (int) $id <= 0) {
+            $this->jsonError('Identificador inválido.', 400);
+            return;
+        }
+
+        /** @var class-string<Model> $modelo */
+        $modelo = $definicion['modelo'];
+        $registro = $modelo::query()->find((int) $id);
+        if (!$registro instanceof Model) {
+            $this->jsonError('Registro de catálogo no encontrado.', 404);
+            return;
+        }
+
+        try {
+            $registro->setAttribute('activo', true);
+            $registro->save();
+            $this->cargarRelaciones($tipo, $registro);
+
+            $this->jsonOk($registro->toArray(), 'Registro de catálogo activado correctamente.');
+        } catch (Throwable) {
+            $this->jsonError('No se pudo activar el registro del catálogo.', 500);
+        }
+    }
+
     private function limpiarQuery(): LimpiarInputs
     {
         $postOriginal = $_POST;
@@ -259,7 +295,8 @@ class TablasMaestrasController extends BaseController
 
         $busqueda = trim((string) ($input->get('buscar') ?? $input->get('q', '')));
         if ($busqueda !== '') {
-            $op = $query->getConnection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
+            $conn = $query->getConnection();
+            $op = $conn instanceof \Illuminate\Database\Connection && $conn->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
             $patron = '%' . $busqueda . '%';
             $campo = $definicion['campo'];
 

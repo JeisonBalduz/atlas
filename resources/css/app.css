@@ -386,3 +386,44 @@
     min-width: 0;
   }
 }
+
+/* ==========================================================================
+   3. Personalización Vanilla Calendar Pro v3 (Paleta Atlas Marca #052659)
+   ========================================================================== */
+[data-vc-theme="light"].vc {
+  --vc-bg: #ffffff;
+  --vc-color: #18181b;
+  --vc-header-color: #18181b;
+  --vc-title-color: #18181b;
+  --vc-title-color-hover: #052659;
+  --vc-week-day-color: #71717a;
+  --vc-week-day-off-color: #dc2626;
+  --vc-date-bg: #ffffff;
+  --vc-date-color: #18181b;
+  --vc-date-bg-hover: #f1f5f9;
+  --vc-date-today-bg: #eff6ff;
+  --vc-date-today-color: #052659;
+  --vc-date-selected-bg: #052659;
+  --vc-date-selected-color: #ffffff;
+  --vc-date-weekend-selected-bg: #052659;
+  --vc-date-weekend-selected-color: #ffffff;
+  --vc-date-range-middle-bg: rgba(5, 38, 89, 0.12);
+  --vc-date-range-middle-color: #052659;
+  --vc-months-years-bg-selected: #052659;
+  --vc-months-years-color-selected: #ffffff;
+  --vc-months-years-bg-hover: #f1f5f9;
+  --vc-date-disabled-color: #cbd5e1;
+  --vc-date-weekend-disabled-color: #cbd5e1;
+  --vc-focus-outline-color: #052659;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1rem 1.125rem;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08) !important;
+  z-index: 9995;
+  font-family: "Inter", sans-serif;
+}
+
+[data-vc-theme="light"].vc [data-vc-date-btn] {
+  font-weight: 500;
+  border-radius: 0.625rem;
+}

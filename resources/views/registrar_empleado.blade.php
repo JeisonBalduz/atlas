@@ -38,6 +38,9 @@
 @section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
     <form id="form-registro" data-tipos-documentos="{{ json_encode($tipos_documentos ?? [], JSON_UNESCAPED_UNICODE) }}" class="mx-auto max-w-4xl scroll-mt-6 space-y-6" novalidate>
 
+        @component('components.alerta_formulario')
+        @endcomponent
+
         {{-- Card 1: Indicador de progreso (se genera desde los data-step) --}}
         <nav aria-label="Progreso del registro"
             class="rounded-xl border border-slate-200 bg-white px-6 pb-10 pt-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] sm:px-8">

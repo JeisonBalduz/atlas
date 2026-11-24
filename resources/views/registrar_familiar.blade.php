@@ -31,6 +31,9 @@
         </a>
     </header>
 
+    @component('components.alerta_formulario')
+    @endcomponent
+
     {{-- Bloque 1: Selección del empleado titular y tarjeta resumen --}}
     <section class="col-span-full md:col-span-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
         <header>

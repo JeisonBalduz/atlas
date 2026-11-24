@@ -10,6 +10,7 @@
  <?php endif; ?>
  <script defer src="/lib/js/lucideIcons/lucide.min.js"></script>
  <?php /* Estilos globales de la aplicacion */ ?>
+ <?php /* <link rel="stylesheet" href="/lib/vanilla-calendar-pro/core.css"> */ ?>
  <link rel="stylesheet" href="/css/app.css">
  <link rel="stylesheet" href="/css/output.css">
  <?php /* FAVICON */ ?>

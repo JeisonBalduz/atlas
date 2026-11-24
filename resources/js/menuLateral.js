@@ -8,21 +8,12 @@ const menusData = {
   ],
   tablasmaestras: null,
   beneficios: [{ label: 'Asignar beneficio', url: '/beneficios' }],
-  vacaciones: [
-    { label: 'Asignar vacaciones', url: '/vacaciones' },
-    { label: 'Suspender vacaciones', url: '#' },
-  ],
-  ausencias: [
-    { label: 'Asignar ausencia', url: '/ausencia' },
-    { label: 'Permisos', url: '#' },
-    { label: 'Reposos', url: '#' },
-  ],
+  vacaciones: [{ label: 'Gestionar vacaciones', url: '/vacaciones' }],
+  ausencias: [{ label: 'Permisos y reposos', url: '/ausencia' }],
   asistencias: null,
   usuarios: [
-    { label: 'Registrar Usuarios', url: '#' },
-    { label: 'Ver usuario', url: '#' },
-    { label: 'Roles', url: '#' },
-    { label: 'Permisos', url: '#' },
+    { label: 'Gestionar Usuarios', url: '/usuarios' },
+    { label: 'Roles y Permisos', url: '/roles-permisos' },
   ],
   archivo: [
     { label: 'Ficha técnica', url: '#' },
