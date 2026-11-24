@@ -41,6 +41,12 @@
 .atlas-vista-entrada > *:nth-child(4) { animation-delay: 125ms; }
 .atlas-vista-entrada > *:nth-child(5) { animation-delay: 155ms; }
 
+/* Garantiza que cualquier card o contenedor con un select desplegado quede por encima de sus hermanos */
+:is(section, article, header, aside, fieldset):has(.custom-select-dropdown:not(.hidden)) {
+  position: relative;
+  z-index: 60;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .atlas-vista-entrada,
   .atlas-vista-entrada > *,

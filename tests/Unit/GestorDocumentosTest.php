@@ -281,7 +281,7 @@ final class GestorDocumentosTest extends TestCase
         $rutaNueva = $this->gestor->rutaAbsoluta($docV2);
         $docV1Actualizado = DocumentosModel::query()->find($docV1->documentos_id);
 
-        self::assertSame('Histórico', $docV1Actualizado?->estatus_documento);
+        self::assertSame('No vigente', $docV1Actualizado?->estatus_documento);
         self::assertSame('Vigente', $docV2->estatus_documento);
         self::assertNotSame($docV1->documentos_id, $docV2->documentos_id);
         self::assertSame(2, $docV2->tipo_documento_id);
@@ -295,6 +295,18 @@ final class GestorDocumentosTest extends TestCase
         self::assertCount(2, $historial);
         self::assertSame('v1.pdf', $historial[0]->nombre_original);
         self::assertSame('v2.png', $historial[1]->nombre_original);
+    }
+
+    public function testSubirMismoTipoDocumentoCambiaAnteriorANoVigente(): void
+    {
+        $pdf1 = $this->crearPdfValido('cedula_1.pdf');
+        $pdf2 = $this->crearPdfValido('cedula_2.pdf');
+
+        $primero = $this->gestor->subir($this->archivoLocal($pdf1, 'cedula_1.pdf'), 1, 1, null, false);
+        $segundo = $this->gestor->subir($this->archivoLocal($pdf2, 'cedula_2.pdf'), 1, 1, null, false);
+
+        self::assertSame('No vigente', DocumentosModel::query()->find($primero->documentos_id)?->estatus_documento);
+        self::assertSame('Vigente', DocumentosModel::query()->find($segundo->documentos_id)?->estatus_documento);
     }
 
     public function testRutaAbsolutaBloqueaPathTraversal(): void

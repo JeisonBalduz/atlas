@@ -13,7 +13,7 @@
 @endsection
 
 @section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
-<form id="formulario-registrar-familiar" enctype="multipart/form-data" class="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-6" novalidate>
+<form id="formulario-registrar-familiar" enctype="multipart/form-data" data-recaudos-parentesco="{{ json_encode($recaudos_por_parentesco ?? [], JSON_UNESCAPED_UNICODE) }}" class="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-6" novalidate>
 
     {{-- Cabecera con enlace de retorno --}}
     <header class="col-span-full flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -237,8 +237,6 @@
         </footer>
     </section>
 </form>
-
-<script id="recaudos-parentesco-json" type="application/json">{!! json_encode($recaudos_por_parentesco ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
 @endsection
 
 @push('scripts') {{-- CARGAR SCRIPTS DE JS --}}

@@ -16,10 +16,8 @@ use App\Model\Personas\EmpleadosModel;
 use App\Model\Personas\FamiliaresModel;
 use App\Model\Personas\PersonasModel;
 use App\Services\CatalogosService;
-use App\Services\ContextoSesion;
 use App\Services\DataTableEloquent;
 use App\Services\GestorDocumentos;
-use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use DateTimeImmutable;
 use finfo;
@@ -30,22 +28,17 @@ use Throwable;
 /**
  * Controlador general para el listado, consultas, DataTables, baja lógica y documentos de empleados.
  */
-class RegistrosEmpleadosController implements RenderInterfaces
+class RegistrosEmpleadosController extends BaseController
 {
-    /**
-     * @param Engine<object> $app
-     */
     public function __construct(
-        private Engine $app,
-        private Config $config,
+        Engine $app,
+        Config $config,
         private CatalogosService $catalogos,
         private ?GestorDocumentos $gestorDocumentos = null,
     ) {
+        parent::__construct($app, $config);
     }
 
-    /**
-     * [GET] Renderiza la vista principal del directorio de empleados.
-     */
     public function render(): void
     {
         $totales = EmpleadosModel::query()
@@ -57,11 +50,8 @@ class RegistrosEmpleadosController implements RenderInterfaces
         $activos = (int) ($totales->activos ?? 0);
         $inactivos = max(0, $total - $activos);
 
-        $this->app->render('registros_empleados', [
-            'env' => $this->config->env(),
-            'debug' => $this->config->isDebug(),
-            'usuario' => (object) ContextoSesion::todo(),
-            'estatus_catalogo' => $this->catalogos->estatus(false),
+        $this->renderVista('registros_empleados', [
+            'estatus_catalogo' => $this->catalogos->estatus(true),
             'dependencias' => $this->catalogos->dependencias(true),
             'departamentos' => $this->catalogos->departamentos(true),
             'tipos_documentos' => $this->catalogos->tiposDocumentos(),
@@ -75,46 +65,26 @@ class RegistrosEmpleadosController implements RenderInterfaces
         ]);
     }
 
-    /**
-     * [GET] Devuelve los tipos y grados de discapacidad para el modal de asignación.
-     */
     public function catalogosDiscapacidad(): void
     {
-        $this->app->json([
-            'ok' => true,
-            'data' => [
-                'tipos' => $this->catalogos->tiposDiscapacidad(),
-                'grados' => $this->catalogos->gradosDiscapacidad(),
-            ],
-        ], 200);
+        $this->jsonOk([
+            'tipos' => $this->catalogos->tiposDiscapacidad(),
+            'grados' => $this->catalogos->gradosDiscapacidad(),
+        ]);
     }
 
-    /**
-     * [GET] Búsqueda paginada de trabajadores activos para selects remotos.
-     */
     public function buscarParaSelect(): void
     {
         $query = $this->app->request()->query;
         $busqueda = trim((string) ($query['q'] ?? ''));
         $limite = is_numeric($query['limit'] ?? null) ? (int) $query['limit'] : 30;
 
-        $this->app->json([
-            'ok' => true,
-            'data' => $this->catalogos->buscarEmpleadosActivosParaSelect($busqueda, $limite),
-        ], 200);
+        $this->jsonOk($this->catalogos->buscarEmpleadosActivosParaSelect($busqueda, $limite));
     }
 
-    /**
-     * [POST|GET] Listado Server-Side para DataTables 3.1.5 usando DataTableEloquent.
-     */
     public function datatable(): void
     {
-        $input = new LimpiarInputs();
-        $entrada = $input->todo();
-        if ($entrada === []) {
-            $request = $this->app->request();
-            $entrada = $request->method === 'GET' ? $request->query->getData() : $request->data->getData();
-        }
+        $entrada = $this->entradaDataTable();
 
         try {
             $query = EmpleadosModel::query()
@@ -261,13 +231,10 @@ class RegistrosEmpleadosController implements RenderInterfaces
         }
     }
 
-    /**
-     * [GET] Detalle de un trabajador con sus relaciones.
-     */
     public function show(string $id): void
     {
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de empleado inválido.'], 400);
+        $empleadoId = $this->idPositivo($id, 'empleado');
+        if ($empleadoId === null) {
             return;
         }
 
@@ -285,10 +252,10 @@ class RegistrosEmpleadosController implements RenderInterfaces
                 'carrera',
             ])
             ->withCount('familiares')
-            ->find((int) $id);
+            ->find($empleadoId);
 
         if (!$empleado instanceof EmpleadosModel || !$empleado->persona instanceof PersonasModel) {
-            $this->app->json(['ok' => false, 'message' => 'Trabajador no encontrado.'], 404);
+            $this->jsonError('Trabajador no encontrado.', 404);
             return;
         }
 
@@ -296,72 +263,66 @@ class RegistrosEmpleadosController implements RenderInterfaces
         $telPrincipal = $persona->telefonos->firstWhere('emergencia', false);
         $telEmergencia = $persona->telefonos->firstWhere('emergencia', true);
 
-        $this->app->json([
-            'ok' => true,
-            'data' => [
-                'empleado_id' => (int) $empleado->empleado_id,
-                'persona_id' => (int) $empleado->persona_id,
-                'codigo_empleado' => $empleado->codigo_empleado,
-                'nombre_completo' => CatalogosService::nombreCompletoPersona($persona),
-                'correo' => $empleado->correo,
-                'estatus_actual' => (int) $empleado->estatus_actual,
-                'dependencia_id' => (int) $empleado->dependencia_id,
-                'dependencia' => (string) ($empleado->dependencia?->dependencia ?? ''),
-                'departamento_id' => (int) $empleado->departamento_id,
-                'departamento' => (string) ($empleado->departamento?->departamento ?? ''),
-                'cargo_id' => (int) $empleado->cargo_id,
-                'cargo' => (string) ($empleado->cargo?->cargo ?? ''),
-                'estatus_id' => (int) $empleado->estatus_id,
-                'estatus' => (string) ($empleado->estatus?->estatus ?? ''),
-                'nivel_academico_id' => (int) $empleado->nivel_academico_id,
-                'nivel_academico' => (string) ($empleado->nivelAcademico?->nivel_academico ?? ''),
-                'carrera_id' => $empleado->carrera_id !== null ? (int) $empleado->carrera_id : null,
-                'carrera' => (string) ($empleado->carrera?->carrera ?? ''),
-                'total_familiares' => (int) ($empleado->getAttribute('familiares_count') ?? 0),
-                'persona' => [
-                    'primer_nombre' => $persona->primer_nombre,
-                    'segundo_nombre' => $persona->segundo_nombre,
-                    'primer_apellido' => $persona->primer_apellido,
-                    'segundo_apellido' => $persona->segundo_apellido,
-                    'nacionalidad' => $persona->nacionalidad,
-                    'cedula' => (int) $persona->cedula,
-                    'genero' => $persona->genero,
-                    'fecha_nacimiento' => $persona->fecha_nacimiento?->format('Y-m-d'),
-                    'estado_civil_id' => $persona->estado_civil_id !== null ? (int) $persona->estado_civil_id : null,
-                ],
-                'direccion' => $empleado->direccion ? [
-                    'parroquia_id' => (int) $empleado->direccion->parroquia_id,
-                    'vivienda' => $empleado->direccion->vivienda,
-                    'calle' => $empleado->direccion->calle,
-                    'nombre_urb' => $empleado->direccion->nombre_urb,
-                    'piso_edificio' => $empleado->direccion->piso_edificio,
-                    'numero_vivienda' => $empleado->direccion->numero_vivienda,
-                    'descripcion' => $empleado->direccion->descripcion,
-                ] : null,
-                'telefonos' => [
-                    'principal' => $telPrincipal?->numero_telefono,
-                    'emergencia' => $telEmergencia?->numero_telefono,
-                ],
+        $this->jsonOk([
+            'empleado_id' => (int) $empleado->empleado_id,
+            'persona_id' => (int) $empleado->persona_id,
+            'codigo_empleado' => $empleado->codigo_empleado,
+            'nombre_completo' => CatalogosService::nombreCompletoPersona($persona),
+            'correo' => $empleado->correo,
+            'estatus_actual' => (int) $empleado->estatus_actual,
+            'dependencia_id' => (int) $empleado->dependencia_id,
+            'dependencia' => (string) ($empleado->dependencia?->dependencia ?? ''),
+            'departamento_id' => (int) $empleado->departamento_id,
+            'departamento' => (string) ($empleado->departamento?->departamento ?? ''),
+            'cargo_id' => (int) $empleado->cargo_id,
+            'cargo' => (string) ($empleado->cargo?->cargo ?? ''),
+            'estatus_id' => (int) $empleado->estatus_id,
+            'estatus' => (string) ($empleado->estatus?->estatus ?? ''),
+            'nivel_academico_id' => (int) $empleado->nivel_academico_id,
+            'nivel_academico' => (string) ($empleado->nivelAcademico?->nivel_academico ?? ''),
+            'carrera_id' => $empleado->carrera_id !== null ? (int) $empleado->carrera_id : null,
+            'carrera' => (string) ($empleado->carrera?->carrera ?? ''),
+            'total_familiares' => (int) ($empleado->getAttribute('familiares_count') ?? 0),
+            'persona' => [
+                'primer_nombre' => $persona->primer_nombre,
+                'segundo_nombre' => $persona->segundo_nombre,
+                'primer_apellido' => $persona->primer_apellido,
+                'segundo_apellido' => $persona->segundo_apellido,
+                'nacionalidad' => $persona->nacionalidad,
+                'cedula' => (int) $persona->cedula,
+                'genero' => $persona->genero,
+                'fecha_nacimiento' => $persona->fecha_nacimiento?->format('Y-m-d'),
+                'estado_civil_id' => $persona->estado_civil_id !== null ? (int) $persona->estado_civil_id : null,
             ],
-        ], 200);
+            'direccion' => $empleado->direccion ? [
+                'parroquia_id' => (int) $empleado->direccion->parroquia_id,
+                'vivienda' => $empleado->direccion->vivienda,
+                'calle' => $empleado->direccion->calle,
+                'nombre_urb' => $empleado->direccion->nombre_urb,
+                'piso_edificio' => $empleado->direccion->piso_edificio,
+                'numero_vivienda' => $empleado->direccion->numero_vivienda,
+                'descripcion' => $empleado->direccion->descripcion,
+            ] : null,
+            'telefonos' => [
+                'principal' => $telPrincipal?->numero_telefono,
+                'emergencia' => $telEmergencia?->numero_telefono,
+            ],
+        ]);
     }
 
-    /**
-     * [GET] Lista los familiares asociados al trabajador para la modal.
-     */
     public function familiares(string $id): void
     {
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de empleado inválido.'], 400);
+        $empleadoId = $this->idPositivo($id, 'empleado');
+        if ($empleadoId === null) {
             return;
         }
 
         $empleado = EmpleadosModel::query()
             ->with(['persona', 'cargo', 'departamento', 'familiares.persona', 'familiares.tipoParentesco'])
-            ->find((int) $id);
+            ->find($empleadoId);
 
         if (!$empleado instanceof EmpleadosModel) {
-            $this->app->json(['ok' => false, 'message' => 'Trabajador no encontrado.'], 404);
+            $this->jsonError('Trabajador no encontrado.', 404);
             return;
         }
 
@@ -418,35 +379,25 @@ class RegistrosEmpleadosController implements RenderInterfaces
         ], 200);
     }
 
-    /**
-     * [DELETE] Baja lógica del trabajador (`estatus_actual = 0`).
-     */
     public function destroy(string $id): void
     {
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de empleado inválido.'], 400);
+        $empleadoId = $this->idPositivo($id, 'empleado');
+        if ($empleadoId === null) {
             return;
         }
 
-        $empleado = EmpleadosModel::query()->find((int) $id);
+        $empleado = EmpleadosModel::query()->find($empleadoId);
         if (!$empleado instanceof EmpleadosModel) {
-            $this->app->json(['ok' => false, 'message' => 'Trabajador no encontrado.'], 404);
+            $this->jsonError('Trabajador no encontrado.', 404);
             return;
         }
 
         $empleado->estatus_actual = 0;
         $empleado->save();
 
-        $this->app->json([
-            'ok' => true,
-            'message' => 'Trabajador desactivado correctamente.',
-            'data' => ['empleado_id' => (int) $empleado->empleado_id, 'estatus_actual' => 0],
-        ], 200);
+        $this->jsonOk(['empleado_id' => $empleadoId, 'estatus_actual' => 0], 'Trabajador desactivado correctamente.');
     }
 
-    /**
-     * [POST|PUT] Activa nuevamente a un trabajador desactivado (`estatus_actual = 1`).
-     */
     public function activar(?string $id = null): void
     {
         $input = new LimpiarInputs();
@@ -454,44 +405,37 @@ class RegistrosEmpleadosController implements RenderInterfaces
         if ($id === null) {
             $error = $input->validar(['empleado_id']);
             if ($error !== null) {
-                $this->app->json(['ok' => false, 'message' => $error], 422);
+                $this->jsonError($error, 422);
                 return;
             }
             if (!$input->validarNumericos('empleado_id')) {
-                $this->app->json(['ok' => false, 'message' => 'Identificador de empleado inválido.'], 400);
+                $this->jsonError('Identificador de empleado inválido.', 400);
                 return;
             }
             $id = (string) $input->get('empleado_id');
         }
 
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de empleado inválido.'], 400);
+        $empleadoId = $this->idPositivo($id, 'empleado');
+        if ($empleadoId === null) {
             return;
         }
 
-        $empleado = EmpleadosModel::query()->find((int) $id);
+        $empleado = EmpleadosModel::query()->find($empleadoId);
         if (!$empleado instanceof EmpleadosModel) {
-            $this->app->json(['ok' => false, 'message' => 'Trabajador no encontrado.'], 404);
+            $this->jsonError('Trabajador no encontrado.', 404);
             return;
         }
 
         $empleado->estatus_actual = 1;
         $empleado->save();
 
-        $this->app->json([
-            'ok' => true,
-            'message' => 'Trabajador activado correctamente.',
-            'data' => ['empleado_id' => (int) $empleado->empleado_id, 'estatus_actual' => 1],
-        ], 200);
+        $this->jsonOk(['empleado_id' => $empleadoId, 'estatus_actual' => 1], 'Trabajador activado correctamente.');
     }
 
-    /**
-     * [GET] Lista los documentos personales y familiares de un trabajador ordenados del más viejo al más nuevo.
-     */
     public function listarDocumentos(string $id): void
     {
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de empleado inválido.'], 400);
+        $empleadoId = $this->idPositivo($id, 'empleado');
+        if ($empleadoId === null) {
             return;
         }
 
@@ -501,10 +445,10 @@ class RegistrosEmpleadosController implements RenderInterfaces
                 'familiares.persona.documentos.tipoDocumento',
                 'familiares.tipoParentesco',
             ])
-            ->find((int) $id);
+            ->find($empleadoId);
 
         if (!$empleado instanceof EmpleadosModel || !$empleado->persona instanceof PersonasModel) {
-            $this->app->json(['ok' => false, 'message' => 'Trabajador no encontrado.'], 404);
+            $this->jsonError('Trabajador no encontrado.', 404);
             return;
         }
 
@@ -530,26 +474,23 @@ class RegistrosEmpleadosController implements RenderInterfaces
 
         $this->app->json([
             'ok' => true,
-            'empleado_id' => (int) $empleado->empleado_id,
+            'empleado_id' => $empleadoId,
             'personales' => $personales,
             'familiares' => $familiaresDocs,
         ], 200);
     }
 
-    /**
-     * [POST] Sube un documento para un trabajador o familiar usando LimpiarInputs.
-     */
     public function subirDocumento(): void
     {
         if ($this->gestorDocumentos === null) {
-            $this->app->json(['ok' => false, 'message' => 'Servicio documental no disponible.'], 500);
+            $this->jsonError('Servicio documental no disponible.', 500);
             return;
         }
 
         $input = new LimpiarInputs();
         $error = $input->validar(['tipo_documento_id', 'empleado_id']);
         if ($error !== null) {
-            $this->app->json(['ok' => false, 'message' => $error], 422);
+            $this->jsonError($error, 422);
             return;
         }
 
@@ -561,35 +502,28 @@ class RegistrosEmpleadosController implements RenderInterfaces
         $archivos = $this->app->request()->files->getData();
         $entradaArchivo = $archivos['archivo'] ?? null;
         if (!is_array($entradaArchivo)) {
-            $this->app->json(['ok' => false, 'message' => 'Debe adjuntar un archivo en el campo "archivo".'], 422);
+            $this->jsonError('Debe adjuntar un archivo en el campo "archivo".', 422);
             return;
         }
 
         try {
             $documento = $this->gestorDocumentos->subir($entradaArchivo, $tipoDocumentoId, $empleadoId, $familiaId);
-            $this->app->json([
-                'ok' => true,
-                'message' => 'Documento cargado correctamente.',
-                'data' => self::formatearDocumento($documento),
-            ], 201);
+            $this->jsonOk(self::formatearDocumento($documento), 'Documento cargado como Vigente.', 201);
         } catch (Throwable $e) {
             $codigo = (int) $e->getCode();
-            $this->app->json(['ok' => false, 'message' => $e->getMessage()], $codigo >= 400 && $codigo < 600 ? $codigo : 500);
+            $this->jsonError($e->getMessage(), $codigo >= 400 && $codigo < 600 ? $codigo : 500);
         }
     }
 
-    /**
-     * [POST] Registra una nueva versión del documento conservando el historial anterior.
-     */
     public function reemplazarDocumento(string $id): void
     {
         if ($this->gestorDocumentos === null) {
-            $this->app->json(['ok' => false, 'message' => 'Servicio documental no disponible.'], 500);
+            $this->jsonError('Servicio documental no disponible.', 500);
             return;
         }
 
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de documento inválido.'], 400);
+        $docId = $this->idPositivo($id, 'documento');
+        if ($docId === null) {
             return;
         }
 
@@ -598,7 +532,7 @@ class RegistrosEmpleadosController implements RenderInterfaces
         $entradaArchivo = $archivos['archivo'] ?? null;
 
         if (!is_array($entradaArchivo)) {
-            $this->app->json(['ok' => false, 'message' => 'Debe adjuntar el nuevo archivo en el campo "archivo".'], 422);
+            $this->jsonError('Debe adjuntar el nuevo archivo en el campo "archivo".', 422);
             return;
         }
 
@@ -610,21 +544,14 @@ class RegistrosEmpleadosController implements RenderInterfaces
         $familiaId = is_numeric($famRaw) && (int) $famRaw > 0 ? (int) $famRaw : null;
 
         try {
-            $documento = $this->gestorDocumentos->reemplazar((int) $id, $entradaArchivo, $nuevoTipoId, $empleadoId, $familiaId);
-            $this->app->json([
-                'ok' => true,
-                'message' => 'Documento reemplazado correctamente.',
-                'data' => self::formatearDocumento($documento),
-            ], 200);
+            $documento = $this->gestorDocumentos->reemplazar($docId, $entradaArchivo, $nuevoTipoId, $empleadoId, $familiaId);
+            $this->jsonOk(self::formatearDocumento($documento), 'Documento actualizado; versión anterior pasada a No vigente.');
         } catch (Throwable $e) {
             $codigo = (int) $e->getCode();
-            $this->app->json(['ok' => false, 'message' => $e->getMessage()], $codigo >= 400 && $codigo < 600 ? $codigo : 500);
+            $this->jsonError($e->getMessage(), $codigo >= 400 && $codigo < 600 ? $codigo : 500);
         }
     }
 
-    /**
-     * [GET] Sirve un documento protegido por sesión desde DocumentosInces.
-     */
     public function descargarDocumento(string $id): void
     {
         if ($this->gestorDocumentos === null) {
@@ -663,19 +590,16 @@ class RegistrosEmpleadosController implements RenderInterfaces
         }
     }
 
-    /**
-     * [POST] Registra o asigna un detalle de discapacidad a un trabajador (y opcionalmente su carnet CONAPDIS).
-     */
     public function asignarDiscapacidad(string $id): void
     {
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de empleado inválido.'], 400);
+        $empleadoId = $this->idPositivo($id, 'empleado');
+        if ($empleadoId === null) {
             return;
         }
 
-        $empleado = EmpleadosModel::query()->with('persona')->find((int) $id);
+        $empleado = EmpleadosModel::query()->with('persona')->find($empleadoId);
         if (!$empleado instanceof EmpleadosModel || !$empleado->persona instanceof PersonasModel) {
-            $this->app->json(['ok' => false, 'message' => 'Trabajador no encontrado.'], 404);
+            $this->jsonError('Trabajador no encontrado.', 404);
             return;
         }
 
@@ -684,7 +608,7 @@ class RegistrosEmpleadosController implements RenderInterfaces
         $gradoId = is_numeric($gradoRaw) && (int) $gradoRaw > 0 ? (int) $gradoRaw : null;
         $tipoNombre = trim((string) $input->get('tipo_discapacidad', ''));
         $numeroCarnet = trim((string) $input->get('numero_carnet', ''));
-        $entidadEmisora = trim((string) $input->get('entidad_emisora', 'CONAPDIS'));
+        $entidadEmisora = trim((string) $input->get('entidad_emisora', 'CONAPDIS')) ?: 'CONAPDIS';
         $descripcion = trim((string) $input->get('descripcion', ''));
         $emisionRaw = trim((string) $input->get('fecha_emision_carnet', ''));
         $vencimientoRaw = trim((string) $input->get('fecha_vencimiento_carnet', ''));
@@ -694,15 +618,12 @@ class RegistrosEmpleadosController implements RenderInterfaces
             : date('Y-m-d', strtotime('+5 years'));
 
         if ($gradoId === null || !GradoDiscapacidadModel::query()->whereKey($gradoId)->exists()) {
-            $this->app->json(['ok' => false, 'message' => 'Debe seleccionar un grado de discapacidad válido.'], 422);
+            $this->jsonError('Debe seleccionar un grado de discapacidad válido.', 422);
             return;
         }
         if ($numeroCarnet === '') {
-            $this->app->json(['ok' => false, 'message' => 'El número de carnet CONAPDIS es obligatorio.'], 422);
+            $this->jsonError('El número de carnet CONAPDIS es obligatorio.', 422);
             return;
-        }
-        if ($entidadEmisora === '') {
-            $entidadEmisora = 'CONAPDIS';
         }
 
         try {
@@ -724,25 +645,21 @@ class RegistrosEmpleadosController implements RenderInterfaces
                 && is_array($archivo)
                 && ($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
             ) {
-                $doc = $this->gestorDocumentos->subir($archivo, 10, (int) $empleado->empleado_id);
+                $doc = $this->gestorDocumentos->subir($archivo, 10, $empleadoId);
                 $documentoId = (int) $doc->documentos_id;
             }
 
-            $this->app->json([
-                'ok' => true,
-                'message' => 'Discapacidad asignada correctamente al trabajador.',
-                'data' => [
-                    'dt_discapacidad_id' => (int) $detalle->dt_discapacidad_id,
-                    'persona_id' => (int) $empleado->persona_id,
-                    'documento_id' => $documentoId,
-                ],
-            ], 201);
+            $this->jsonOk([
+                'dt_discapacidad_id' => (int) $detalle->dt_discapacidad_id,
+                'persona_id' => (int) $empleado->persona_id,
+                'documento_id' => $documentoId,
+            ], 'Discapacidad asignada correctamente al trabajador.', 201);
         } catch (Throwable $e) {
             $codigo = (int) $e->getCode();
-            $this->app->json([
-                'ok' => false,
-                'message' => $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo registrar la discapacidad del trabajador.',
-            ], $codigo >= 400 && $codigo < 600 ? $codigo : 500);
+            $this->jsonError(
+                $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo registrar la discapacidad del trabajador.',
+                $codigo >= 400 && $codigo < 600 ? $codigo : 500
+            );
         }
     }
 

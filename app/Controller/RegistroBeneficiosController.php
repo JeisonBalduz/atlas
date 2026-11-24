@@ -4,36 +4,33 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Http\LimpiarInputs;
+use App\Services\BeneficiosService;
 use App\Services\CatalogosService;
-use App\Services\ContextoSesion;
-use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use flight\Engine;
+use Throwable;
 
 /**
- * Controlador para la vista de registro y seguimiento de beneficios.
+ * Controlador de asignación y aprobación de beneficios socioeconómicos conectado a BD real.
  */
-class RegistroBeneficiosController implements RenderInterfaces
+class RegistroBeneficiosController extends BaseController
 {
-    /**
-     * @param Engine<object> $app
-     */
+    private BeneficiosService $beneficiosService;
+
     public function __construct(
-        private Engine $app,
-        private Config $config,
+        Engine $app,
+        Config $config,
         private CatalogosService $catalogos,
+        ?BeneficiosService $beneficiosService = null,
     ) {
+        parent::__construct($app, $config);
+        $this->beneficiosService = $beneficiosService ?? new BeneficiosService();
     }
 
-    /**
-     * [GET] Renderiza la vista de asignación de beneficios.
-     */
     public function render(): void
     {
-        $this->app->render('registro_beneficios', [
-            'env' => $this->config->env(),
-            'debug' => $this->config->isDebug(),
-            'usuario' => (object) ContextoSesion::todo(),
+        $this->renderVista('registro_beneficios', [
             'personas' => [],
             'total_beneficiarios' => $this->catalogos->contarPersonasElegibles(),
             'tipos_beneficio' => $this->catalogos->tiposBeneficio(),
@@ -41,18 +38,70 @@ class RegistroBeneficiosController implements RenderInterfaces
         ]);
     }
 
-    /**
-     * [GET] Búsqueda paginada de personas (titulares y familiares) para selects remotos.
-     */
     public function buscarPersonasParaSelect(): void
     {
         $query = $this->app->request()->query;
         $busqueda = trim((string) ($query['q'] ?? ''));
         $limite = is_numeric($query['limit'] ?? null) ? (int) $query['limit'] : 30;
 
-        $this->app->json([
-            'ok' => true,
-            'data' => $this->catalogos->buscarPersonasParaSelect($busqueda, $limite),
-        ], 200);
+        $this->jsonOk($this->catalogos->buscarPersonasParaSelect($busqueda, $limite));
+    }
+
+    public function listar(): void
+    {
+        try {
+            $this->jsonOk($this->beneficiosService->listar());
+        } catch (Throwable) {
+            $this->jsonError('No se pudieron consultar los beneficios asignados.', 500);
+        }
+    }
+
+    public function store(): void
+    {
+        $input = new LimpiarInputs();
+        $error = $input->validar(['persona_id', 'beneficio_id', 'fecha_solicitud']);
+        if ($error !== null) {
+            $this->jsonError($error, 422);
+            return;
+        }
+
+        try {
+            $aprobadaRaw = $input->get('fecha_aprobada');
+            $fechaAprobada = is_string($aprobadaRaw) && trim($aprobadaRaw) !== '' ? trim($aprobadaRaw) : null;
+
+            $registro = $this->beneficiosService->registrar(
+                (int) $input->get('persona_id'),
+                (int) $input->get('beneficio_id'),
+                trim((string) $input->get('fecha_solicitud')),
+                $fechaAprobada
+            );
+
+            $this->jsonOk(['dtbeneficio_id' => (int) $registro->dtbeneficio_id], 'Beneficio asignado correctamente.', 201);
+        } catch (Throwable $e) {
+            $codigo = (int) $e->getCode();
+            $this->jsonError(
+                $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo asignar el beneficio.',
+                $codigo >= 400 && $codigo < 600 ? $codigo : 500
+            );
+        }
+    }
+
+    public function aprobar(string $id): void
+    {
+        $dtId = $this->idPositivo($id, 'beneficio');
+        if ($dtId === null) {
+            return;
+        }
+
+        try {
+            $registro = $this->beneficiosService->aprobar($dtId);
+            $this->jsonOk([
+                'dtbeneficio_id' => (int) $registro->dtbeneficio_id,
+                'fecha_aprobada' => $registro->fecha_aprobada?->format('Y-m-d'),
+            ], 'Beneficio aprobado correctamente.');
+        } catch (Throwable $e) {
+            $codigo = (int) $e->getCode();
+            $this->jsonError($e->getMessage(), $codigo >= 400 && $codigo < 600 ? $codigo : 500);
+        }
     }
 }

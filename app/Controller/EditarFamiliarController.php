@@ -5,14 +5,11 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Http\LimpiarInputs;
-use App\Model\Personas\DocumentosModel;
 use App\Model\Personas\EmpleadosModel;
 use App\Model\Personas\FamiliaresModel;
 use App\Model\Personas\PersonasModel;
 use App\Services\CatalogosService;
-use App\Services\ContextoSesion;
 use App\Services\GestorDocumentos;
-use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use flight\Engine;
 use Throwable;
@@ -20,22 +17,17 @@ use Throwable;
 /**
  * Controlador general para la vista y actualización de carga familiar.
  */
-class EditarFamiliarController implements RenderInterfaces
+class EditarFamiliarController extends BaseController
 {
-    /**
-     * @param Engine<object> $app
-     */
     public function __construct(
-        private Engine $app,
-        private Config $config,
+        Engine $app,
+        Config $config,
         private CatalogosService $catalogos,
         private ?GestorDocumentos $gestorDocumentos = null,
     ) {
+        parent::__construct($app, $config);
     }
 
-    /**
-     * [GET] Renderiza el formulario de edición de familiar con datos y catálogos desde Eloquent.
-     */
     public function render(?string $id = null): void
     {
         $idRaw = $id ?? ($this->app->request()->query['id'] ?? null);
@@ -44,15 +36,9 @@ class EditarFamiliarController implements RenderInterfaces
             return;
         }
 
-        $familiaId = (int) $idRaw;
         $familiar = FamiliaresModel::query()
-            ->with([
-                'persona',
-                'empleado.persona',
-                'empleado.cargo',
-                'empleado.departamento',
-            ])
-            ->find($familiaId);
+            ->with(['persona', 'empleado.persona', 'empleado.cargo', 'empleado.departamento'])
+            ->find((int) $idRaw);
 
         if (!$familiar instanceof FamiliaresModel || !$familiar->persona instanceof PersonasModel) {
             $this->app->halt(404, 'Familiar no encontrado');
@@ -72,10 +58,7 @@ class EditarFamiliarController implements RenderInterfaces
 
         $generoActual = (string) ($familiar->persona->genero !== '' ? $familiar->persona->genero : ($familiar->genero ?? ''));
 
-        $this->app->render('editar_familiar', [
-            'env' => $this->config->env(),
-            'debug' => $this->config->isDebug(),
-            'usuario' => (object) ContextoSesion::todo(),
+        $this->renderVista('editar_familiar', [
             'familiar' => $familiar,
             'persona' => $familiar->persona,
             'titular' => (object) [
@@ -95,31 +78,27 @@ class EditarFamiliarController implements RenderInterfaces
         ]);
     }
 
-    /**
-     * [PUT|POST] Actualiza un familiar usando LimpiarInputs con nacionalidad y cédula separadas.
-     */
     public function update(string $id): void
     {
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de familiar inválido.'], 400);
+        $familiaId = $this->idPositivo($id, 'familiar');
+        if ($familiaId === null) {
             return;
         }
 
-        $familiar = FamiliaresModel::query()->with('persona')->find((int) $id);
+        $familiar = FamiliaresModel::query()->with('persona')->find($familiaId);
         if (!$familiar instanceof FamiliaresModel || !$familiar->persona instanceof PersonasModel) {
-            $this->app->json(['ok' => false, 'message' => 'Familiar no encontrado.'], 404);
+            $this->jsonError('Familiar no encontrado.', 404);
             return;
         }
 
         $input = new LimpiarInputs();
         $personaActual = $familiar->persona;
 
-        // Nacionalidad y cédula separadas
         $nacionalidad = substr(strtoupper((string) $input->get('nacionalidad', $personaActual->nacionalidad)), 0, 1);
         $cedula = (int) $input->get('cedula', (string) $personaActual->cedula);
 
         if (!in_array($nacionalidad, ['V', 'E'], true) || $cedula <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Nacionalidad o cédula del familiar inválida.'], 422);
+            $this->jsonError('Nacionalidad o cédula del familiar inválida.', 422);
             return;
         }
 
@@ -130,7 +109,7 @@ class EditarFamiliarController implements RenderInterfaces
             ->exists();
 
         if ($duplicada) {
-            $this->app->json(['ok' => false, 'message' => 'Ya existe otra persona con esa nacionalidad y cédula.'], 422);
+            $this->jsonError('Ya existe otra persona con esa nacionalidad y cédula.', 422);
             return;
         }
 
@@ -188,31 +167,14 @@ class EditarFamiliarController implements RenderInterfaces
                 $familiar->save();
 
                 $procesados = [];
-                if ($this->gestorDocumentos !== null && $documentosPorTipo !== []) {
+                if ($this->gestorDocumentos !== null) {
                     foreach ($documentosPorTipo as $tipoDocId => $archivoDoc) {
-                        $vigente = DocumentosModel::query()
-                            ->where('persona_id', (int) $personaActual->persona_id)
-                            ->where('tipo_documento_id', (int) $tipoDocId)
-                            ->where('estatus_documento', 'Vigente')
-                            ->orderByDesc('documentos_id')
-                            ->first();
-
-                        if ($vigente instanceof DocumentosModel) {
-                            $nuevo = $this->gestorDocumentos->reemplazar(
-                                (int) $vigente->documentos_id,
-                                $archivoDoc,
-                                (int) $tipoDocId,
-                                (int) $familiar->empleado_id,
-                                (int) $familiar->familia_id
-                            );
-                        } else {
-                            $nuevo = $this->gestorDocumentos->subir(
-                                $archivoDoc,
-                                (int) $tipoDocId,
-                                (int) $familiar->empleado_id,
-                                (int) $familiar->familia_id
-                            );
-                        }
+                        $nuevo = $this->gestorDocumentos->subir(
+                            $archivoDoc,
+                            (int) $tipoDocId,
+                            (int) $familiar->empleado_id,
+                            (int) $familiar->familia_id
+                        );
                         $procesados[] = (int) $nuevo->documentos_id;
                     }
                 }
@@ -220,20 +182,16 @@ class EditarFamiliarController implements RenderInterfaces
                 return $procesados;
             });
 
-            $this->app->json([
-                'ok' => true,
-                'message' => 'Familiar actualizado correctamente.',
-                'data' => [
-                    'familia_id' => (int) $familiar->familia_id,
-                    'documentos_ids' => $documentosIds,
-                ],
-            ], 200);
+            $this->jsonOk([
+                'familia_id' => (int) $familiar->familia_id,
+                'documentos_ids' => $documentosIds,
+            ], 'Familiar actualizado correctamente.');
         } catch (Throwable $e) {
             $codigo = (int) $e->getCode();
-            $this->app->json([
-                'ok' => false,
-                'message' => $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo actualizar el familiar.',
-            ], $codigo >= 400 && $codigo < 600 ? $codigo : 500);
+            $this->jsonError(
+                $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo actualizar el familiar.',
+                $codigo >= 400 && $codigo < 600 ? $codigo : 500
+            );
         }
     }
 }

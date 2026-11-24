@@ -1,31 +1,23 @@
-/**
- * registrar_familiar.js
- * Formulario de registro de carga familiar conectado a POST /api/familiares
- * y GET /api/empleados/{id}.
- */
-
 import { Solicitud } from '/js/class/Solicitud.js';
 import { InputUI } from '/js/class/validator/InputUI.js';
 import { InputValidador } from '/js/class/validator/InputValidador.js';
-import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
-import { mostrarToast } from '/js/components/toast.js';
-import { escaparHtml, leerJsonDeScript } from '/js/utils/dom.js';
+import { crearBadge } from '/js/components/badge/crearBadge.js';
+import { inicializarSelectsPersonalizados } from '/js/components/select/selectPersonalizado.js';
+import { mostrarToast } from '/js/components/toast/toast.js';
 
 const renderTarjetaRecaudoFamiliar = (rec) => {
-  const badge = rec.obligatorio
-    ? '<span class="inline-flex items-center rounded-md bg-yellow-400/20 px-2 py-0.5 text-[11px] font-semibold text-yellow-900 whitespace-nowrap">Obligatorio</span>'
-    : '<span class="inline-flex items-center rounded-md bg-slate-200/70 px-2 py-0.5 text-[11px] font-semibold text-zinc-700 whitespace-nowrap">Opcional</span>';
+  const badge = crearBadge(rec.obligatorio ? 'Obligatorio' : 'Opcional', rec.obligatorio ? 'yellow' : 'neutro');
 
   const controlHtml = rec.es_titular
     ? '<p class="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800">Este documento se verifica directamente en el expediente del trabajador titular.</p>'
     : `
       <div>
-        <label for="doc-fam-${escaparHtml(rec.tipo_documento_id)}" class="block text-[11px] font-medium text-zinc-600 mb-1">
+        <label for="doc-fam-${rec.tipo_documento_id}" class="block text-[11px] font-medium text-zinc-600 mb-1">
           Adjuntar archivo (PDF/JPG/PNG)
         </label>
         <input
-          id="doc-fam-${escaparHtml(rec.tipo_documento_id)}"
-          name="documentos[${escaparHtml(rec.tipo_documento_id)}]"
+          id="doc-fam-${rec.tipo_documento_id}"
+          name="documentos[${rec.tipo_documento_id}]"
           type="file"
           accept=".pdf,.jpg,.jpeg,.png,.webp"
           class="atlas-doc-fam-input w-full rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-zinc-700 file:mr-2.5 file:rounded-lg file:border-0 file:bg-zinc-900 file:px-2.5 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-zinc-800 cursor-pointer"
@@ -36,10 +28,10 @@ const renderTarjetaRecaudoFamiliar = (rec) => {
     <article class="rounded-2xl border ${rec.obligatorio ? 'border-yellow-300 bg-yellow-50/40' : 'border-slate-200 bg-slate-50/40'} p-4 flex flex-col justify-between gap-3">
       <div class="space-y-1">
         <div class="flex items-start justify-between gap-2">
-          <h3 class="text-sm font-semibold text-zinc-900">${escaparHtml(rec.etiqueta)}</h3>
+          <h3 class="text-sm font-semibold text-zinc-900">${rec.etiqueta}</h3>
           ${badge}
         </div>
-        ${rec.motivo ? `<p class="text-xs text-zinc-500">${escaparHtml(rec.motivo)}</p>` : ''}
+        ${rec.motivo ? `<p class="text-xs text-zinc-500">${rec.motivo}</p>` : ''}
       </div>
       ${controlHtml}
     </article>`;
@@ -53,6 +45,15 @@ const renderRecaudosFamiliar = (lista) => {
       </p>`;
   }
   return lista.map(renderTarjetaRecaudoFamiliar).join('');
+};
+
+const leerMapaRecaudos = (formulario) => {
+  if (!formulario?.dataset?.recaudosParentesco) return {};
+  try {
+    return JSON.parse(formulario.dataset.recaudosParentesco) || {};
+  } catch {
+    return {};
+  }
 };
 
 const validarCamposRequeridos = (formulario) => {
@@ -90,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const contenedorRecaudos = document.getElementById('contenedor-recaudos-familiar');
   const tarjetaTitular = document.getElementById('tarjeta-resumen-titular');
   const formulario = document.getElementById('formulario-registrar-familiar');
-  const recaudosPorParentesco = leerJsonDeScript('recaudos-parentesco-json', {});
+  const recaudosPorParentesco = leerMapaRecaudos(formulario);
 
   const actualizarRecaudos = (parentescoId) => {
     if (!contenedorRecaudos) return;

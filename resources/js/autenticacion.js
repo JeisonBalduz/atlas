@@ -1,13 +1,13 @@
-import { mostrarError } from './ui/elementoError.js';
-import { mostrarToast } from './components/toast.js';
-import { alternarClave } from './ui/alternarClave.js';
-import { botonCargando } from './components/cargando.js';
-import { Solicitud } from './class/Solicitud.js';
+import { Solicitud } from '/js/class/Solicitud.js';
+import { mostrarError, ocultarError } from '/js/components/alerta/alerta.js';
+import { botonCargando } from '/js/components/cargando.js';
+import { mostrarToast } from '/js/components/toast/toast.js';
+import { alternarClave } from '/js/utils/alternarClave.js';
 
 const validarCredenciales = (usuario, clave) => {
-  if (!usuario && !clave) return 'Por favor, completa todos los campos';
-  if (!usuario) return 'Por favor, ingresa tu nombre de usuario';
-  if (!clave) return 'Por favor, ingresa tu contraseña';
+  if (!usuario && !clave) return 'Por favor, completa todos los campos.';
+  if (!usuario) return 'Por favor, ingresa tu nombre de usuario.';
+  if (!clave) return 'Por favor, ingresa tu contraseña.';
   return null;
 };
 
@@ -17,12 +17,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputClave = document.getElementById('clave');
   const btnEntrar = document.getElementById('btn-entrar');
 
-  formularioAutenticacion?.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  alternarClave('clave', 'toggle-password');
 
-    const usuario = inputUsuario.value.trim();
-    const clave = inputClave.value.trim();
+  formularioAutenticacion?.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    ocultarError('.login__error');
+
+    const usuario = inputUsuario?.value.trim() || '';
+    const clave = inputClave?.value.trim() || '';
     const errorValidacion = validarCredenciales(usuario, clave);
+
     if (errorValidacion) {
       mostrarError('.login__error', errorValidacion);
       return;
@@ -36,16 +40,16 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     botonCargando(btnEntrar, false);
 
-    if (resultado.ok) {
-      mostrarToast('success', resultado.mensaje || 'Inicio de sesión exitoso');
+    if (resultado.ok && resultado.data?.ok !== false) {
+      const mensajeExito = resultado.data?.message || resultado.message || 'Inicio de sesión exitoso.';
+      const urlDestino = resultado.data?.redirect || '/inicio';
+      mostrarToast('success', mensajeExito);
       setTimeout(() => {
-        window.location.href = resultado.redirect || '/Inicio';
-      }, 1500);
+        window.location.href = urlDestino;
+      }, 900);
       return;
     }
 
-    mostrarError('.login__error', resultado.mensaje);
+    mostrarError('.login__error', resultado.message || 'Credenciales inválidas.');
   });
-
-  alternarClave('password', 'toggle-password');
 });

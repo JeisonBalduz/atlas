@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Http\LimpiarInputs;
 use App\Model\Catalogos\TipoParentescoModel;
 use App\Model\Personas\FamiliaresModel;
 use App\Model\Personas\PersonasModel;
 use App\Services\CatalogosService;
-use App\Services\ContextoSesion;
 use App\Services\DataTableEloquent;
-use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use DateTimeImmutable;
 use flight\Engine;
@@ -21,43 +18,26 @@ use Throwable;
 /**
  * Controlador general para la vista, DataTables, consulta y eliminación de vínculos familiares.
  */
-class RegistrosFamiliaresController implements RenderInterfaces
+class RegistrosFamiliaresController extends BaseController
 {
-    /**
-     * @param Engine<object> $app
-     */
     public function __construct(
-        private Engine $app,
-        private Config $config,
+        Engine $app,
+        Config $config,
         private CatalogosService $catalogos,
     ) {
+        parent::__construct($app, $config);
     }
 
-    /**
-     * [GET] Renderiza la vista principal de carga familiar.
-     */
     public function render(): void
     {
-        $this->app->render('registros_familiares', [
-            'env' => $this->config->env(),
-            'debug' => $this->config->isDebug(),
-            'usuario' => (object) ContextoSesion::todo(),
+        $this->renderVista('registros_familiares', [
             'parentescos' => $this->catalogos->tiposParentesco(),
         ]);
     }
 
-    /**
-     * [POST|GET] Listado Server-Side para DataTables 3.1.5 usando DataTableEloquent.
-     */
     public function datatable(): void
     {
-        $input = new LimpiarInputs();
-        $entrada = $input->todo();
-        if ($entrada === []) {
-            $request = $this->app->request();
-            $entrada = $request->method === 'GET' ? $request->query->getData() : $request->data->getData();
-        }
-
+        $entrada = $this->entradaDataTable();
         $hoy = new DateTimeImmutable('today');
 
         try {
@@ -176,74 +156,65 @@ class RegistrosFamiliaresController implements RenderInterfaces
         }
     }
 
-    /**
-     * [GET] Detalle de un familiar.
-     */
     public function show(string $id): void
     {
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de familiar inválido.'], 400);
+        $familiaId = $this->idPositivo($id, 'familiar');
+        if ($familiaId === null) {
             return;
         }
 
         $familiar = FamiliaresModel::query()
             ->with(['persona.estadoCivil', 'persona.documentos.tipoDocumento', 'tipoParentesco', 'empleado.persona', 'empleado.cargo'])
-            ->find((int) $id);
+            ->find($familiaId);
 
         if (!$familiar instanceof FamiliaresModel || !$familiar->persona instanceof PersonasModel) {
-            $this->app->json(['ok' => false, 'message' => 'Familiar no encontrado.'], 404);
+            $this->jsonError('Familiar no encontrado.', 404);
             return;
         }
 
         $persona = $familiar->persona;
         $titularPersona = $familiar->empleado?->persona;
 
-        $this->app->json([
-            'ok' => true,
-            'data' => [
-                'familia_id' => (int) $familiar->familia_id,
+        $this->jsonOk([
+            'familia_id' => (int) $familiar->familia_id,
+            'empleado_id' => (int) $familiar->empleado_id,
+            'persona_id' => (int) $familiar->persona_id,
+            'parentesco_id' => (int) $familiar->parentesco_id,
+            'parentesco' => $familiar->tipoParentesco?->parentesco,
+            'tomo' => (int) $familiar->tomo,
+            'folio' => (int) $familiar->folio,
+            'genero' => $persona->genero !== '' ? $persona->genero : $familiar->genero,
+            'titular' => [
                 'empleado_id' => (int) $familiar->empleado_id,
-                'persona_id' => (int) $familiar->persona_id,
-                'parentesco_id' => (int) $familiar->parentesco_id,
-                'parentesco' => $familiar->tipoParentesco?->parentesco,
-                'tomo' => (int) $familiar->tomo,
-                'folio' => (int) $familiar->folio,
-                'genero' => $persona->genero !== '' ? $persona->genero : $familiar->genero,
-                'titular' => [
-                    'empleado_id' => (int) $familiar->empleado_id,
-                    'nombre_completo' => CatalogosService::nombreCompletoPersona($titularPersona),
-                    'cedula' => $titularPersona instanceof PersonasModel
-                        ? strtoupper((string) $titularPersona->nacionalidad) . '-' . (string) $titularPersona->cedula
-                        : '',
-                    'cargo' => $familiar->empleado?->cargo?->cargo,
-                ],
-                'persona' => [
-                    'primer_nombre' => $persona->primer_nombre,
-                    'segundo_nombre' => $persona->segundo_nombre,
-                    'primer_apellido' => $persona->primer_apellido,
-                    'segundo_apellido' => $persona->segundo_apellido,
-                    'nacionalidad' => $persona->nacionalidad,
-                    'cedula' => (int) $persona->cedula,
-                    'fecha_nacimiento' => $persona->fecha_nacimiento?->format('Y-m-d'),
-                    'estado_civil_id' => $persona->estado_civil_id !== null ? (int) $persona->estado_civil_id : null,
-                ],
+                'nombre_completo' => CatalogosService::nombreCompletoPersona($titularPersona),
+                'cedula' => $titularPersona instanceof PersonasModel
+                    ? strtoupper((string) $titularPersona->nacionalidad) . '-' . (string) $titularPersona->cedula
+                    : '',
+                'cargo' => $familiar->empleado?->cargo?->cargo,
             ],
-        ], 200);
+            'persona' => [
+                'primer_nombre' => $persona->primer_nombre,
+                'segundo_nombre' => $persona->segundo_nombre,
+                'primer_apellido' => $persona->primer_apellido,
+                'segundo_apellido' => $persona->segundo_apellido,
+                'nacionalidad' => $persona->nacionalidad,
+                'cedula' => (int) $persona->cedula,
+                'fecha_nacimiento' => $persona->fecha_nacimiento?->format('Y-m-d'),
+                'estado_civil_id' => $persona->estado_civil_id !== null ? (int) $persona->estado_civil_id : null,
+            ],
+        ]);
     }
 
-    /**
-     * [DELETE] Elimina el vínculo familiar (`familiares`) conservando el registro en `personas`.
-     */
     public function destroy(string $id): void
     {
-        if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de familiar inválido.'], 400);
+        $familiaId = $this->idPositivo($id, 'familiar');
+        if ($familiaId === null) {
             return;
         }
 
-        $familiar = FamiliaresModel::query()->find((int) $id);
+        $familiar = FamiliaresModel::query()->find($familiaId);
         if (!$familiar instanceof FamiliaresModel) {
-            $this->app->json(['ok' => false, 'message' => 'Familiar no encontrado.'], 404);
+            $this->jsonError('Familiar no encontrado.', 404);
             return;
         }
 
@@ -251,10 +222,6 @@ class RegistrosFamiliaresController implements RenderInterfaces
             $familiar->delete();
         });
 
-        $this->app->json([
-            'ok' => true,
-            'message' => 'Carga familiar eliminada correctamente.',
-            'data' => ['familia_id' => (int) $id],
-        ], 200);
+        $this->jsonOk(['familia_id' => $familiaId], 'Carga familiar eliminada correctamente.');
     }
 }

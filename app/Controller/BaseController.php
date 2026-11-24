@@ -12,17 +12,39 @@ use flight\Engine;
 
 /**
  * Controlador base con utilidades HTTP compartidas (renderizado BladeOne, respuestas JSON,
- * validación de identificadores y lectura de payloads de DataTables).
+ * validación de identificadores y lectura de payloads).
  */
 abstract class BaseController implements RenderInterfaces
 {
-    /**
-     * @param Engine<object> $app
-     */
     public function __construct(
         protected Engine $app,
         protected Config $config,
     ) {
+    }
+
+    /**
+     * Construye el objeto de usuario autenticado con alias compatibles para vistas Blade.
+     */
+    protected function usuarioActual(): object
+    {
+        $datos = ContextoSesion::todo();
+        $nombreMostrar = trim((string) ($datos['empleado_nombre'] ?? ''));
+        if ($nombreMostrar === '') {
+            $nombreMostrar = trim((string) ($datos['nombre_usuario'] ?? ''));
+        }
+        if ($nombreMostrar === '') {
+            $nombreMostrar = 'Usuario';
+        }
+
+        $rol = trim((string) ($datos['rol'] ?? ''));
+        if ($rol === '') {
+            $rol = 'Usuario';
+        }
+
+        $datos['username'] = $nombreMostrar;
+        $datos['role'] = $rol;
+
+        return (object) $datos;
     }
 
     /**
@@ -35,7 +57,7 @@ abstract class BaseController implements RenderInterfaces
         $this->app->render($vista, array_merge([
             'env' => $this->config->env(),
             'debug' => $this->config->isDebug(),
-            'usuario' => (object) (ContextoSesion::todo() ?? []),
+            'usuario' => $this->usuarioActual(),
         ], $datos));
     }
 

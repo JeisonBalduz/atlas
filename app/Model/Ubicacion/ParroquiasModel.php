@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Model\Ubicacion;
 
 use App\Model\Personas\DireccionModel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $parroquia_id
  * @property int $municipio_id
  * @property string|null $parroquia
+ * @property bool $activo
  */
 class ParroquiasModel extends Model
 {
@@ -37,6 +39,7 @@ class ParroquiasModel extends Model
     protected $fillable = [
         'municipio_id',
         'parroquia',
+        'activo',
     ];
 
     /** @var array<string, string> */
@@ -44,7 +47,17 @@ class ParroquiasModel extends Model
         'parroquia_id' => 'integer',
         'municipio_id' => 'integer',
         'parroquia' => 'string',
+        'activo' => 'boolean',
     ];
+
+    /**
+     * @param Builder<static> $query
+     * @return Builder<static>
+     */
+    public function scopeActivo(Builder $query): Builder
+    {
+        return $query->where('activo', true);
+    }
 
     /**
      * @return BelongsTo<MunicipiosModel, $this>

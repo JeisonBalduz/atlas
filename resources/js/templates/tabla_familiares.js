@@ -1,11 +1,13 @@
-import { crearBadge, crearBotonAccion, crearGrupoBotones } from '/js/templates/template_ui.js';
-import { escaparHtml, formatearFecha } from '/js/utils/dom.js';
+import { crearBadge } from '/js/components/badge/crearBadge.js';
+import { crearBotonAccion } from '/js/components/botones/crearBotonAccion.js';
+import { crearGrupoBotones } from '/js/components/botones/crearGrupoBotones.js';
+import { formatearFecha } from '/js/utils/formatearFecha.js';
 
 const renderNombreFamiliar = (valor, fila) => {
   const fechaHtml = fila.fecha_nacimiento
-    ? `<span class="block text-xs text-zinc-500">Nac: ${escaparHtml(formatearFecha(fila.fecha_nacimiento))}</span>`
+    ? `<span class="block text-xs text-zinc-500">Nac: ${formatearFecha(fila.fecha_nacimiento)}</span>`
     : '';
-  return `<div class="min-w-44"><span class="font-semibold text-zinc-900">${escaparHtml(valor || '—')}</span>${fechaHtml}</div>`;
+  return `<div class="min-w-44"><span class="font-semibold text-zinc-900">${valor || '—'}</span>${fechaHtml}</div>`;
 };
 
 const renderAcciones = (fila) =>
@@ -39,17 +41,17 @@ export const columnasTablaFamiliares = () => [
   {
     data: 'cedula_titular',
     name: 'cedula_titular',
-    render: (v) => `<span class="font-medium text-zinc-900 whitespace-nowrap">${escaparHtml(v || '—')}</span>`,
+    render: (v) => `<span class="font-medium text-zinc-900 whitespace-nowrap">${v || '—'}</span>`,
   },
   {
     data: 'empleado_titular',
     name: 'empleado_titular',
-    render: (v) => `<span class="font-medium text-zinc-900">${escaparHtml(v || '—')}</span>`,
+    render: (v) => `<span class="font-medium text-zinc-900">${v || '—'}</span>`,
   },
   {
     data: 'cedula_familiar',
     name: 'cedula_familiar',
-    render: (v) => `<span class="font-medium text-zinc-900 whitespace-nowrap">${escaparHtml(v || '—')}</span>`,
+    render: (v) => `<span class="font-medium text-zinc-900 whitespace-nowrap">${v || '—'}</span>`,
   },
   { data: 'nombre_familiar', name: 'nombre_familiar', render: (v, _t, fila) => renderNombreFamiliar(v, fila) },
   { data: 'parentesco', name: 'parentesco', render: (v) => crearBadge(v || 'Sin definir', 'marca') },
@@ -57,13 +59,13 @@ export const columnasTablaFamiliares = () => [
     data: 'edad',
     name: 'edad',
     className: 'text-center',
-    render: (v) => (v !== null && v !== undefined ? `<span class="whitespace-nowrap">${escaparHtml(v)} años</span>` : '—'),
+    render: (v) => (v !== null && v !== undefined ? `<span class="whitespace-nowrap">${v} años</span>` : '—'),
   },
   {
     data: 'genero',
     name: 'genero',
     className: 'text-center',
-    render: (v) => `<span class="whitespace-nowrap">${escaparHtml(v || '—')}</span>`,
+    render: (v) => `<span class="whitespace-nowrap">${v || '—'}</span>`,
   },
   {
     data: 'tomo_folio',
@@ -71,7 +73,7 @@ export const columnasTablaFamiliares = () => [
     orderable: false,
     searchable: false,
     className: 'text-center',
-    render: (v) => `<span class="font-medium text-zinc-900 whitespace-nowrap">${escaparHtml(v || '—')}</span>`,
+    render: (v) => `<span class="font-medium text-zinc-900 whitespace-nowrap">${v || '—'}</span>`,
   },
   {
     data: null,

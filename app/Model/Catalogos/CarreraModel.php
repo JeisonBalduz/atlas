@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Model\Catalogos;
 
 use App\Model\Personas\EmpleadosModel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property int $carrera_id
  * @property string $carrera
+ * @property bool $activo
  */
 class CarreraModel extends Model
 {
@@ -34,13 +36,24 @@ class CarreraModel extends Model
     /** @var list<string> */
     protected $fillable = [
         'carrera',
+        'activo',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
         'carrera_id' => 'integer',
         'carrera' => 'string',
+        'activo' => 'boolean',
     ];
+
+    /**
+     * @param Builder<static> $query
+     * @return Builder<static>
+     */
+    public function scopeActivo(Builder $query): Builder
+    {
+        return $query->where('activo', true);
+    }
 
     /**
      * @return HasMany<EmpleadosModel, $this>

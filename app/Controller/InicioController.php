@@ -4,54 +4,133 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Services\EmpleadosService;
+use App\Services\UsuariosService;
+use App\Services\VacacionesService;
 use App\Utils\Config;
 use flight\Engine;
-use App\Services\ContextoSesion;
-use App\Interfaces\RenderInterfaces;
+use Illuminate\Database\Capsule\Manager as DB;
+use Throwable;
 
 /**
- * Welcome page controller — canonical controller example for the skeleton.
- *
- * No Flight:: facade. No $_ENV. Inject what you need.
+ * Controlador de la vista principal de inicio conectada a las tablas reales (excepto estadísticas).
  */
-final class InicioController implements RenderInterfaces
-{   
-     public function __construct(
-        private Engine $app,
-        private Config $config
+final class InicioController extends BaseController
+{
+    private UsuariosService $usuariosService;
+    private EmpleadosService $empleadosService;
+    private VacacionesService $vacacionesService;
+
+    public function __construct(
+        Engine $app,
+        Config $config,
+        ?UsuariosService $usuariosService = null,
+        ?EmpleadosService $empleadosService = null,
+        ?VacacionesService $vacacionesService = null,
     ) {
-        
+        parent::__construct($app, $config);
+        $this->usuariosService = $usuariosService ?? new UsuariosService();
+        $this->empleadosService = $empleadosService ?? new EmpleadosService();
+        $this->vacacionesService = $vacacionesService ?? new VacacionesService();
     }
 
     public function render(): void
     {
-    
-        $this->app->render('inicio', [
-            'env' => $this->config->env(),
-            'debug' => $this->config->isDebug(),
-            'usuario' =>(object) (ContextoSesion::todo() ?? [])
+        $resumen = $this->consultarDatosReales();
+        $this->renderVista('inicio', [
+            'usuarios_activos' => array_slice($resumen['usuarios'], 0, 6),
+            'actividades_recientes' => array_slice($resumen['actividades'], 0, 4),
         ]);
     }
 
-    public function mostrarEmpleado(string $id): void
+    /**
+     * [GET] Devuelve usuarios reales y actividad reciente para `inicio.js`.
+     */
+    public function datos(): void
     {
-        if (is_numeric($id)) {
-            $idEntero = (int) $id;
-            var_dump("Convertido a entero: " . $idEntero);
-        } else {
-            var_dump("no es entero: " . $id);
-        }
+        $this->jsonOk($this->consultarDatosReales());
     }
 
-    public function actualizar(): void
+    /**
+     * @return array{usuarios: list<array<string, mixed>>, actividades: list<array<string, string>>}
+     */
+    private function consultarDatosReales(): array
     {
-        // Forma 1 (Recomendada con PHPStan): acceso por array/Collection
-        $data = $this->app->request()->data;
+        $usuarios = [];
+        $actividades = [];
 
-        $nombre = is_string($data['nombre'] ?? null) ? $data['nombre'] : '';
-        $correo = is_string($data['apellido'] ?? null) ? $data['apellido'] : '';
+        try {
+            $departamentosPorEmpleado = DB::table('public.empleados')
+                ->leftJoin('public.departamentos', 'departamentos.departamento_id', '=', 'empleados.departamento_id')
+                ->pluck('departamentos.departamento', 'empleados.empleado_id')
+                ->all();
 
-        var_dump("Nombre enviado por fetch: " . $nombre);
-        var_dump("Correo enviado por fetch: " . $correo);
+            foreach ($this->usuariosService->listarUsuarios(['limite' => 25]) as $fila) {
+                $empId = isset($fila->empleado_id) ? (int) $fila->empleado_id : 0;
+                $nombreCompleto = trim((string) ($fila->nombre_completo ?? ''));
+                $nombreUsuario = trim((string) ($fila->nombre_usuario ?? 'usuario'));
+                $estatusTexto = strtolower(trim((string) ($fila->estatus_texto ?? 'Activo')));
+
+                $usuarios[] = [
+                    'usuario_id' => (int) ($fila->usuario_id ?? 0),
+                    'nombre_usuario' => $nombreUsuario,
+                    'nombre_mostrar' => $nombreCompleto !== '' ? $nombreCompleto : $nombreUsuario,
+                    'rol' => (string) ($fila->rol ?? 'Usuario'),
+                    'departamento' => (string) ($departamentosPorEmpleado[$empId] ?? 'Talento Humano'),
+                    'estatus_texto' => (string) ($fila->estatus_texto ?? 'Activo'),
+                    'activo' => $estatusTexto === 'activo',
+                ];
+            }
+
+            $auditorias = DB::table('public.auditoria')
+                ->orderByDesc('auditoria_id')
+                ->limit(6)
+                ->get(['accion_realizada', 'descripcion', 'tabla_afectada', 'fecha_creacion']);
+
+            foreach ($auditorias as $aud) {
+                $actividades[] = [
+                    'icono' => 'shield-check',
+                    'titulo' => (string) ($aud->accion_realizada ?? 'Movimiento de auditoría'),
+                    'descripcion' => (string) ($aud->descripcion ?? ('Tabla ' . ($aud->tabla_afectada ?? 'sistema'))),
+                    'fecha' => substr((string) ($aud->fecha_creacion ?? ''), 0, 10),
+                ];
+            }
+
+            if ($actividades === []) {
+                foreach ($this->vacacionesService->listarSolicitudesVacaciones(['limite' => 3]) as $vac) {
+                    $actividades[] = [
+                        'icono' => 'palmtree',
+                        'titulo' => 'Solicitud de Vacaciones #' . (string) ($vac->solicitud_vacaciones_id ?? ''),
+                        'descripcion' => sprintf(
+                            '%s · %d días (%s)',
+                            (string) ($vac->nombre_completo ?? 'Trabajador'),
+                            (int) ($vac->dias_solicitado ?? 0),
+                            (string) ($vac->estatus_descripcion ?? 'Registrada')
+                        ),
+                        'fecha' => (string) ($vac->fecha_inicio ?? ''),
+                    ];
+                }
+
+                foreach ($this->empleadosService->listarEmpleados(['limite' => 3, 'orden_por' => 'empleado_id', 'direccion' => 'desc']) as $emp) {
+                    $actividades[] = [
+                        'icono' => 'user-check',
+                        'titulo' => 'Ficha de Personal · ' . (string) ($emp->codigo_empleado ?? ''),
+                        'descripcion' => sprintf(
+                            '%s registrado en %s.',
+                            (string) ($emp->nombre_completo ?? 'Trabajador'),
+                            (string) ($emp->departamento ?? 'Nómina general')
+                        ),
+                        'fecha' => '',
+                    ];
+                }
+            }
+        } catch (Throwable) {
+            // En entornos de prueba sin vistas PostgreSQL mantiene arreglo vacío sin romper render()
+        }
+
+        return [
+            'usuarios' => $usuarios,
+            'actividades' => $actividades,
+        ];
     }
 }

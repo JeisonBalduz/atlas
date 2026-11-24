@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Model\Catalogos;
 
 use App\Model\Personas\EmpleadosModel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $nivel_academico_id
  * @property string $nivel_academico
  * @property int $jerarquia
+ * @property bool $activo
  */
 class NivelAcademicosModel extends Model
 {
@@ -36,6 +38,7 @@ class NivelAcademicosModel extends Model
     protected $fillable = [
         'nivel_academico',
         'jerarquia',
+        'activo',
     ];
 
     /** @var array<string, string> */
@@ -43,7 +46,17 @@ class NivelAcademicosModel extends Model
         'nivel_academico_id' => 'integer',
         'nivel_academico' => 'string',
         'jerarquia' => 'integer',
+        'activo' => 'boolean',
     ];
+
+    /**
+     * @param Builder<static> $query
+     * @return Builder<static>
+     */
+    public function scopeActivo(Builder $query): Builder
+    {
+        return $query->where('activo', true);
+    }
 
     /**
      * @return HasMany<EmpleadosModel, $this>

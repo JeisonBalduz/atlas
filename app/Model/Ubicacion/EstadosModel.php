@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Model\Ubicacion;
 
 use App\Model\Catalogos\DependenciasModel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property int $estado_id
  * @property string $estado
+ * @property bool $activo
  */
 class EstadosModel extends Model
 {
@@ -34,13 +36,24 @@ class EstadosModel extends Model
     /** @var list<string> */
     protected $fillable = [
         'estado',
+        'activo',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
         'estado_id' => 'integer',
         'estado' => 'string',
+        'activo' => 'boolean',
     ];
+
+    /**
+     * @param Builder<static> $query
+     * @return Builder<static>
+     */
+    public function scopeActivo(Builder $query): Builder
+    {
+        return $query->where('activo', true);
+    }
 
     /**
      * @return HasMany<MunicipiosModel, $this>

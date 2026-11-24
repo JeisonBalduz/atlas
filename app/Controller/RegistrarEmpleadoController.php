@@ -10,58 +10,44 @@ use App\Model\Personas\EmpleadosModel;
 use App\Model\Personas\PersonasModel;
 use App\Model\Personas\TelefonoPersonasModel;
 use App\Services\CatalogosService;
-use App\Services\ContextoSesion;
 use App\Services\GestorDocumentos;
-use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use flight\Engine;
 use Throwable;
 
 /**
- * Controlador general para el registro de empleados y consulta de ubicación geográfica.
+ * Controlador general para el registro de empleados y consulta de ubicación geográfica activa.
  */
-class RegistrarEmpleadoController implements RenderInterfaces
+class RegistrarEmpleadoController extends BaseController
 {
-    /**
-     * @param Engine<object> $app
-     */
     public function __construct(
-        private Engine $app,
-        private Config $config,
+        Engine $app,
+        Config $config,
         private CatalogosService $catalogos,
         private ?GestorDocumentos $gestorDocumentos = null,
-    ) {}
+    ) {
+        parent::__construct($app, $config);
+    }
 
-    /**
-     * [GET] Renderiza el formulario de registro de personal con catálogos hidratados desde Eloquent.
-     */
     public function render(): void
     {
-        $tiposDiscapacidad = ['0' => 'Ninguna'] + $this->catalogos->tiposDiscapacidad();
-
-        $this->app->render('registrar_empleado', [
-            'env' => $this->config->env(),
-            'debug' => $this->config->isDebug(),
-            'usuario' => (object) ContextoSesion::todo(),
+        $this->renderVista('registrar_empleado', [
             'estados_civiles' => $this->catalogos->estadosCiviles(),
-            'tipos_discapacidad' => $tiposDiscapacidad,
-            'estados' => $this->catalogos->estados(),
+            'tipos_discapacidad' => ['0' => 'Ninguna'] + $this->catalogos->tiposDiscapacidad(),
+            'estados' => $this->catalogos->estados(true),
             'municipios' => [],
             'parroquias' => [],
             'estatus' => $this->catalogos->estatus(true),
             'cargos' => $this->catalogos->cargos(true),
             'departamentos' => $this->catalogos->departamentos(true),
             'dependencias' => $this->catalogos->dependencias(true),
-            'niveles_academicos' => $this->catalogos->nivelesAcademicos(),
-            'carreras' => $this->catalogos->carreras(),
+            'niveles_academicos' => $this->catalogos->nivelesAcademicos(true),
+            'carreras' => $this->catalogos->carreras(true),
             'tipos_documentos' => $this->catalogos->tiposDocumentos(),
             'generos' => $this->catalogos->generos(),
         ]);
     }
 
-    /**
-     * [POST] Registra un nuevo trabajador usando LimpiarInputs con nacionalidad y cédula separadas.
-     */
     public function store(): void
     {
         $input = new LimpiarInputs();
@@ -72,31 +58,25 @@ class RegistrarEmpleadoController implements RenderInterfaces
 
         $error = $input->validar($camposRequeridos);
         if ($error !== null) {
-            $this->app->json(['ok' => false, 'message' => $error], 422);
+            $this->jsonError($error, 422);
             return;
         }
 
         if (!$input->validarNumericos('cedula')) {
-            $this->app->json(['ok' => false, 'message' => 'La cédula debe contener solo números.'], 422);
+            $this->jsonError('La cédula debe contener solo números.', 422);
             return;
         }
 
-        // Nacionalidad y cédula se guardan estrictamente por separado
         $nacionalidad = substr(strtoupper((string) $input->get('nacionalidad', 'V')), 0, 1);
         $cedula = (int) $input->get('cedula');
 
         if (!in_array($nacionalidad, ['V', 'E'], true) || $cedula <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Nacionalidad o cédula inválida.'], 422);
+            $this->jsonError('Nacionalidad o cédula inválida.', 422);
             return;
         }
 
-        $existePersona = PersonasModel::query()
-            ->where('nacionalidad', $nacionalidad)
-            ->where('cedula', $cedula)
-            ->exists();
-
-        if ($existePersona) {
-            $this->app->json(['ok' => false, 'message' => 'Ya existe una persona registrada con esa nacionalidad y cédula.'], 422);
+        if (PersonasModel::query()->where('nacionalidad', $nacionalidad)->where('cedula', $cedula)->exists()) {
+            $this->jsonError('Ya existe una persona registrada con esa nacionalidad y cédula.', 422);
             return;
         }
 
@@ -120,7 +100,6 @@ class RegistrarEmpleadoController implements RenderInterfaces
         $carreraRaw = $input->get('carrera_id') ?? $input->get('carrera');
         $carreraId = is_numeric($carreraRaw) && (int) $carreraRaw > 0 ? (int) $carreraRaw : null;
 
-        // codigo_empleado es VARCHAR(10) en PostgreSQL: nunca superar 10 caracteres
         $codigoInput = (string) $input->get('codigo_empleado', '');
         $codigoEmpleado = substr($codigoInput !== '' ? $codigoInput : (string) $cedula, 0, 10);
 
@@ -197,7 +176,7 @@ class RegistrarEmpleadoController implements RenderInterfaces
                     'nivel_academico_id' => $nivelAcademicoId,
                     'carrera_id' => $carreraId,
                     'codigo_empleado' => $codigoEmpleado,
-                    'estatus_actual' => 3, // Pendiente hasta completar documentos obligatorios
+                    'estatus_actual' => 3,
                     'correo' => $correo,
                 ]);
 
@@ -231,42 +210,29 @@ class RegistrarEmpleadoController implements RenderInterfaces
                 }
 
                 $documentosIds = [];
+                $empId = (int) $empleado->empleado_id;
                 if ($this->gestorDocumentos !== null) {
-                    if (
-                        is_array($entradaArchivo)
-                        && ($entradaArchivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
-                        && $tipoDocumentoId !== null
-                    ) {
-                        $doc = $this->gestorDocumentos->subir($entradaArchivo, $tipoDocumentoId, (int) $empleado->empleado_id);
-                        $documentosIds[] = (int) $doc->documentos_id;
+                    if (is_array($entradaArchivo) && ($entradaArchivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE && $tipoDocumentoId !== null) {
+                        $documentosIds[] = (int) $this->gestorDocumentos->subir($entradaArchivo, $tipoDocumentoId, $empId)->documentos_id;
                     }
 
-                    if (
-                        is_array($archivoContrato)
-                        && ($archivoContrato['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
-                    ) {
-                        $tipoContratoId = $this->catalogos->resolverTipoDocumentoPorPalabras(['contrato laboral', 'nombramiento', 'contrato'], 15);
-                        $doc = $this->gestorDocumentos->subir($archivoContrato, $tipoContratoId, (int) $empleado->empleado_id);
-                        $documentosIds[] = (int) $doc->documentos_id;
+                    if (is_array($archivoContrato) && ($archivoContrato['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                        $tipoContratoId = $this->catalogos->resolverTipoDocumentoPorPalabras(['contrato laboral', 'contrato'], 15);
+                        $documentosIds[] = (int) $this->gestorDocumentos->subir($archivoContrato, $tipoContratoId, $empId)->documentos_id;
                     }
 
-                    if (
-                        is_array($archivoNotificacion)
-                        && ($archivoNotificacion['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
-                    ) {
-                        $tipoNotifId = $this->catalogos->resolverTipoDocumentoPorPalabras(['notificacion', 'notificación', 'designacion', 'designación'], 15);
-                        $doc = $this->gestorDocumentos->subir($archivoNotificacion, $tipoNotifId, (int) $empleado->empleado_id);
-                        $documentosIds[] = (int) $doc->documentos_id;
+                    if (is_array($archivoNotificacion) && ($archivoNotificacion['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                        $tipoNotifId = $this->catalogos->resolverTipoDocumentoPorPalabras(['notificación del contrato', 'notificacion del contrato', 'notificacion'], 15);
+                        $documentosIds[] = (int) $this->gestorDocumentos->subir($archivoNotificacion, $tipoNotifId, $empId)->documentos_id;
                     }
 
                     foreach ($documentosPorTipo as $tipoDocId => $archivoDoc) {
-                        $doc = $this->gestorDocumentos->subir($archivoDoc, (int) $tipoDocId, (int) $empleado->empleado_id);
-                        $documentosIds[] = (int) $doc->documentos_id;
+                        $documentosIds[] = (int) $this->gestorDocumentos->subir($archivoDoc, (int) $tipoDocId, $empId)->documentos_id;
                     }
                 }
 
                 return [
-                    'empleado_id' => (int) $empleado->empleado_id,
+                    'empleado_id' => $empId,
                     'persona_id' => (int) $persona->persona_id,
                     'codigo_empleado' => (string) $empleado->codigo_empleado,
                     'estatus_actual' => 3,
@@ -275,49 +241,37 @@ class RegistrarEmpleadoController implements RenderInterfaces
                 ];
             });
 
-            $this->app->json([
-                'ok' => true,
-                'message' => 'Trabajador registrado en estado Pendiente. Complete sus documentos en la vista de edición.',
-                'data' => $resultado,
-            ], 201);
+            $this->jsonOk(
+                $resultado,
+                'Trabajador registrado en estado Pendiente. Complete sus documentos en la vista de edición.',
+                201
+            );
         } catch (Throwable $e) {
             $codigo = (int) $e->getCode();
-            $this->app->json([
-                'ok' => false,
-                'message' => $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo registrar el trabajador en la base de datos.',
-            ], $codigo >= 400 && $codigo < 600 ? $codigo : 500);
+            $this->jsonError(
+                $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo registrar el trabajador en la base de datos.',
+                $codigo >= 400 && $codigo < 600 ? $codigo : 500
+            );
         }
     }
 
-    /**
-     * [GET] Lista los municipios pertenecientes a un estado.
-     */
     public function municipios(string $estadoId): void
     {
-        if (!ctype_digit($estadoId) || (int) $estadoId <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de estado inválido.'], 400);
+        $id = $this->idPositivo($estadoId, 'estado');
+        if ($id === null) {
             return;
         }
 
-        $this->app->json([
-            'ok' => true,
-            'data' => $this->catalogos->municipiosPorEstado((int) $estadoId),
-        ], 200);
+        $this->jsonOk($this->catalogos->municipiosPorEstado($id, true));
     }
 
-    /**
-     * [GET] Lista las parroquias pertenecientes a un municipio.
-     */
     public function parroquias(string $municipioId): void
     {
-        if (!ctype_digit($municipioId) || (int) $municipioId <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador de municipio inválido.'], 400);
+        $id = $this->idPositivo($municipioId, 'municipio');
+        if ($id === null) {
             return;
         }
 
-        $this->app->json([
-            'ok' => true,
-            'data' => $this->catalogos->parroquiasPorMunicipio((int) $municipioId),
-        ], 200);
+        $this->jsonOk($this->catalogos->parroquiasPorMunicipio($id, true));
     }
 }

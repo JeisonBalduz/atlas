@@ -8,6 +8,7 @@ use App\Model\Movimientos\DetalleTrasladoModel;
 use App\Model\Personas\EmpleadosModel;
 use App\Model\Tramites\PostulacionModel;
 use App\Model\Ubicacion\EstadosModel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -54,6 +55,15 @@ class DependenciasModel extends Model
         'activo' => 'boolean',
         'estado_id' => 'integer',
     ];
+
+    /**
+     * @param Builder<static> $query
+     * @return Builder<static>
+     */
+    public function scopeActivo(Builder $query): Builder
+    {
+        return $query->where('activo', true);
+    }
 
     /**
      * @return BelongsTo<EstadosModel, $this>

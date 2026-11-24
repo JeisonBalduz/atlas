@@ -44,9 +44,9 @@
                 class="w-4 h-4 text-zinc-400 transition-transform duration-200 shrink-0 ml-2"></i>
         </button>
 
-        {{-- Menú Desplegable con Buscador y Filtro --}}
-        <div
-            class="custom-select-dropdown hidden absolute left-0 right-0 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden z-50 p-1.5 space-y-1">
+        {{-- Menú Desplegable con Buscador y Filtro (Top Layer para no quedar debajo de ninguna card) --}}
+        <div popover="manual"
+            class="custom-select-dropdown hidden bg-white border border-zinc-200 rounded-xl shadow-[0_15px_30px_rgba(0,0,0,0.08)] overflow-hidden z-50 p-1.5 space-y-1">
             {{-- Input Buscador --}}
             @if ($search ?? false)
             <div class="px-2 pt-1 pb-1.5 border-b border-zinc-100">

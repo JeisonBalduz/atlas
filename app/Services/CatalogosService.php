@@ -29,7 +29,8 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * Servicio centralizado de consulta de catálogos mediante Eloquent ORM.
- * Optimizado con proyecciones mínimas, consultas paginadas para selects remotos y memoización por petición.
+ * Filtra por `activo = true` de forma global para todos los selectores de vistas,
+ * permitiendo `$soloActivos = false` cuando la vista de Tablas Maestras requiere todos.
  */
 final class CatalogosService
 {
@@ -146,16 +147,14 @@ final class CatalogosService
             return $this->memo[$clave] = $datos;
         }
 
-        $datos = $query->select(['dependencia_id', 'dependencia', 'codigo'])
-            ->toBase()
-            ->get()
-            ->map(static fn (object $dep): array => [
+        $datos = [];
+        foreach ($query->get(['dependencia_id', 'dependencia', 'codigo']) as $dep) {
+            $datos[] = [
                 'value' => (string) $dep->dependencia_id,
                 'label' => (string) $dep->dependencia,
                 'sublabel' => (string) ($dep->codigo ?? ''),
-            ])
-            ->values()
-            ->all();
+            ];
+        }
 
         return $this->memo[$clave] = $datos;
     }
@@ -163,40 +162,47 @@ final class CatalogosService
     /**
      * @return array<int|string, string>
      */
-    public function nivelesAcademicos(): array
+    public function nivelesAcademicos(bool $soloActivos = true): array
     {
-        if (isset($this->memo['niveles'])) {
+        $clave = 'niveles_' . ($soloActivos ? '1' : '0');
+        if (isset($this->memo[$clave])) {
             /** @var array<int|string, string> */
-            return $this->memo['niveles'];
+            return $this->memo[$clave];
+        }
+
+        $query = NivelAcademicosModel::query()
+            ->orderBy('jerarquia')
+            ->orderBy('nivel_academico');
+        if ($soloActivos) {
+            $query->where('activo', true);
         }
 
         /** @var array<int|string, string> $datos */
-        $datos = NivelAcademicosModel::query()
-            ->orderBy('jerarquia')
-            ->orderBy('nivel_academico')
-            ->pluck('nivel_academico', 'nivel_academico_id')
-            ->all();
+        $datos = $query->pluck('nivel_academico', 'nivel_academico_id')->all();
 
-        return $this->memo['niveles'] = $datos;
+        return $this->memo[$clave] = $datos;
     }
 
     /**
      * @return array<int|string, string>
      */
-    public function carreras(): array
+    public function carreras(bool $soloActivos = true): array
     {
-        if (isset($this->memo['carreras'])) {
+        $clave = 'carreras_' . ($soloActivos ? '1' : '0');
+        if (isset($this->memo[$clave])) {
             /** @var array<int|string, string> */
-            return $this->memo['carreras'];
+            return $this->memo[$clave];
+        }
+
+        $query = CarreraModel::query()->orderBy('carrera');
+        if ($soloActivos) {
+            $query->where('activo', true);
         }
 
         /** @var array<int|string, string> $datos */
-        $datos = CarreraModel::query()
-            ->orderBy('carrera')
-            ->pluck('carrera', 'carrera_id')
-            ->all();
+        $datos = $query->pluck('carrera', 'carrera_id')->all();
 
-        return $this->memo['carreras'] = $datos;
+        return $this->memo[$clave] = $datos;
     }
 
     /**
@@ -278,62 +284,71 @@ final class CatalogosService
     /**
      * @return array<int|string, string>
      */
-    public function estados(): array
+    public function estados(bool $soloActivos = true): array
     {
-        if (isset($this->memo['estados'])) {
+        $clave = 'estados_' . ($soloActivos ? '1' : '0');
+        if (isset($this->memo[$clave])) {
             /** @var array<int|string, string> */
-            return $this->memo['estados'];
+            return $this->memo[$clave];
+        }
+
+        $query = EstadosModel::query()->orderBy('estado');
+        if ($soloActivos) {
+            $query->where('activo', true);
         }
 
         /** @var array<int|string, string> $datos */
-        $datos = EstadosModel::query()
-            ->orderBy('estado')
-            ->pluck('estado', 'estado_id')
-            ->all();
+        $datos = $query->pluck('estado', 'estado_id')->all();
 
-        return $this->memo['estados'] = $datos;
+        return $this->memo[$clave] = $datos;
     }
 
     /**
      * @return array<int|string, string>
      */
-    public function municipiosPorEstado(int $estadoId): array
+    public function municipiosPorEstado(int $estadoId, bool $soloActivos = true): array
     {
         if ($estadoId <= 0) {
             return [];
         }
 
-        /** @var array<int|string, string> */
-        return MunicipiosModel::query()
+        $query = MunicipiosModel::query()
             ->where('estado_id', $estadoId)
-            ->orderBy('municipio')
-            ->pluck('municipio', 'municipio_id')
-            ->all();
+            ->orderBy('municipio');
+        if ($soloActivos) {
+            $query->where('activo', true);
+        }
+
+        /** @var array<int|string, string> */
+        return $query->pluck('municipio', 'municipio_id')->all();
     }
 
     /**
      * @return array<int|string, string>
      */
-    public function parroquiasPorMunicipio(int $municipioId): array
+    public function parroquiasPorMunicipio(int $municipioId, bool $soloActivos = true): array
     {
         if ($municipioId <= 0) {
             return [];
         }
 
-        /** @var array<int|string, string> */
-        return ParroquiasModel::query()
+        $query = ParroquiasModel::query()
             ->where('municipio_id', $municipioId)
-            ->orderBy('parroquia')
-            ->pluck('parroquia', 'parroquia_id')
-            ->all();
+            ->orderBy('parroquia');
+        if ($soloActivos) {
+            $query->where('activo', true);
+        }
+
+        /** @var array<int|string, string> */
+        return $query->pluck('parroquia', 'parroquia_id')->all();
     }
 
     /**
      * @return list<array{value: string, label: string, sublabel: string}>
      */
-    public function parroquiasConUbicacion(): array
+    public function parroquiasConUbicacion(bool $soloActivos = true): array
     {
-        return ParroquiasModel::query()
+        $query = ParroquiasModel::query()
             ->join('municipios', 'municipios.municipio_id', '=', 'parroquias.municipio_id')
             ->join('estados', 'estados.estado_id', '=', 'municipios.estado_id')
             ->select([
@@ -342,7 +357,15 @@ final class CatalogosService
                 'municipios.municipio',
                 'estados.estado',
             ])
-            ->orderBy('parroquias.parroquia')
+            ->orderBy('parroquias.parroquia');
+
+        if ($soloActivos) {
+            $query->where('parroquias.activo', true)
+                ->where('municipios.activo', true)
+                ->where('estados.activo', true);
+        }
+
+        return $query
             ->toBase()
             ->get()
             ->map(static function (object $fila): array {
@@ -437,25 +460,17 @@ final class CatalogosService
         return $this->memo['tipos_beneficio'] = $datos;
     }
 
-    /**
-     * Conteo rápido de trabajadores activos sin hidratar modelos ni cargar selects completos.
-     */
     public function contarEmpleadosActivos(): int
     {
         return EmpleadosModel::query()->where('estatus_actual', 1)->count();
     }
 
-    /**
-     * Conteo rápido de personas elegibles (titulares y familiares) sin hidratar modelos.
-     */
     public function contarPersonasElegibles(): int
     {
         return PersonasModel::query()->count();
     }
 
     /**
-     * Obtiene un único trabajador formateado para preselección inicial de selects remotos.
-     *
      * @return list<array{value: string, label: string, sublabel: string}>
      */
     public function empleadoParaSelectPorId(int $empleadoId): array
@@ -488,8 +503,6 @@ final class CatalogosService
     }
 
     /**
-     * Búsqueda paginada en servidor de trabajadores activos para selects remotos (máx. 50).
-     *
      * @return list<array{value: string, label: string, sublabel: string}>
      */
     public function buscarEmpleadosActivosParaSelect(string $busqueda = '', int $limite = 30): array
@@ -543,8 +556,6 @@ final class CatalogosService
     }
 
     /**
-     * Listado completo de empleados activos optimizado con JOIN + proyección mínima.
-     *
      * @return list<array{value: string, label: string, sublabel: string}>
      */
     public function empleadosActivosParaSelect(): array
@@ -573,8 +584,6 @@ final class CatalogosService
     }
 
     /**
-     * Búsqueda paginada en servidor de personas (titulares y familiares) para selects remotos (máx. 50).
-     *
      * @return list<array{value: string, label: string, sublabel: string}>
      */
     public function buscarPersonasParaSelect(string $busqueda = '', int $limite = 30): array
@@ -630,8 +639,6 @@ final class CatalogosService
     }
 
     /**
-     * Listado completo de personas optimizado con JOIN + proyección mínima.
-     *
      * @return list<array{value: string, label: string, sublabel: string}>
      */
     public function personasParaSelect(): array
@@ -662,8 +669,6 @@ final class CatalogosService
     }
 
     /**
-     * Opciones de género preservando un valor histórico guardado si difiere del formato estándar.
-     *
      * @return array<string, string>
      */
     public function generos(?string $valorActual = null): array
@@ -701,163 +706,253 @@ final class CatalogosService
     }
 
     /**
-     * @return array{value: string, label: string, sublabel: string}
-     */
-    private static function formatearEmpleadoFila(object $fila): array
-    {
-        $nombre = self::formatearNombre(
-            (string) ($fila->primer_nombre ?? ''),
-            (string) ($fila->segundo_nombre ?? ''),
-            (string) ($fila->primer_apellido ?? ''),
-            (string) ($fila->segundo_apellido ?? '')
-        );
-        $cedula = isset($fila->cedula)
-            ? strtoupper((string) ($fila->nacionalidad ?? 'V')) . '-' . (string) $fila->cedula
-            : (string) ($fila->codigo_empleado ?? '');
-
-        return [
-            'value' => (string) $fila->empleado_id,
-            'label' => $nombre !== '' ? $nombre : "Empleado #{$fila->empleado_id}",
-            'sublabel' => $cedula,
-        ];
-    }
-
-    /**
-     * @return array{value: string, label: string, sublabel: string}
-     */
-    private static function formatearPersonaFila(object $fila): array
-    {
-        $cedula = strtoupper((string) ($fila->nacionalidad ?? 'V')) . '-' . (string) ($fila->cedula ?? '');
-        $rol = 'Persona';
-        if (!empty($fila->empleado_id)) {
-            $rol = 'Titular';
-        } elseif (!empty($fila->parentesco)) {
-            $rol = (string) $fila->parentesco;
-        }
-
-        $nombre = self::formatearNombre(
-            (string) ($fila->primer_nombre ?? ''),
-            (string) ($fila->segundo_nombre ?? ''),
-            (string) ($fila->primer_apellido ?? ''),
-            (string) ($fila->segundo_apellido ?? '')
-        );
-
-        return [
-            'value' => (string) $fila->persona_id,
-            'label' => $nombre,
-            'sublabel' => "{$cedula} · {$rol}",
-        ];
-    }
-
-    private static function formatearNombre(string $pNom, string $sNom, string $pApe, string $sApe): string
-    {
-        $partes = array_filter([
-            trim($pNom),
-            trim($sNom),
-            trim($pApe),
-            trim($sApe),
-        ], static fn (string $parte): bool => $parte !== '');
-
-        $unido = implode(' ', $partes);
-
-        return function_exists('mb_convert_case')
-            ? mb_convert_case($unido, MB_CASE_TITLE, 'UTF-8')
-            : ucwords(strtolower($unido));
-    }
-
-    /**
-     * Resuelve los recaudos documentales de un trabajador (obligatorios y opcionales)
-     * según Contrato Colectivo, Procesos RRHH y `tipo_documentos`, cruzando con `documentos` vigentes.
+     * Resuelve los recaudos documentales vigentes del trabajador según cargo, nivel académico y estado civil
+     * conforme al Contrato Colectivo INCES y Procesos RRHH.
      *
      * @return list<array{
      *     tipo_documento_id: int,
      *     nombre: string,
+     *     etiqueta: string,
      *     obligatorio: bool,
      *     condicion: string,
+     *     motivo: string,
      *     grupo: string,
+     *     es_titular: bool,
      *     cargado: bool,
-     *     documento: array{documentos_id: int, nombre_original: string, url_descarga: string}|null
+     *     documento: array{documentos_id: int, nombre_original: string, url_descarga: string}|null,
+     *     nombre_original: string|null,
+     *     url_descarga: string|null
      * }>
      */
-    public function recaudosParaEmpleado(int $estadoCivilId, int $nivelAcademicoId, int $personaId = 0): array
-    {
+    public function recaudosParaEmpleado(
+        int $estadoCivilId,
+        int $nivelAcademicoId,
+        int $personaId = 0,
+        ?int $cargoId = null
+    ): array {
         $tipos = $this->tiposDocumentos();
         $vigentes = $this->documentosVigentesPorPersona($personaId);
 
-        // Generales obligatorios (IDs existentes + los nuevos cuando estén en tipo_documentos)
+        $idContrato = $this->buscarTipoPorPalabras($tipos, ['contrato laboral', 'contrato']) ?? 15;
+        $idNotificacion = $this->buscarTipoPorPalabras($tipos, ['notificación del contrato', 'notificacion del contrato', 'notificacion']) ?? 2;
+        $idCurriculum = $this->buscarTipoPorPalabras($tipos, ['currículum', 'curriculum']);
+        $idBachiller = $this->buscarTipoPorPalabras($tipos, ['título de bachiller', 'titulo de bachiller', 'bachiller']);
+        $idDefuncion = $this->buscarTipoPorPalabras($tipos, ['acta de defunción', 'acta de defuncion', 'defunción', 'defuncion']) ?? 14;
+
+        // 1. Documentos fijos obligatorios para TODO trabajador
         $reglas = [
-            ['id' => 1, 'obligatorio' => true, 'condicion' => 'Obligatorio para todo trabajador', 'grupo' => 'general'],
-            ['id' => 2, 'obligatorio' => true, 'condicion' => 'Obligatorio para todo trabajador', 'grupo' => 'general'],
-            ['id' => 15, 'obligatorio' => true, 'condicion' => 'Constancia de trabajo / solicitud de empleo', 'grupo' => 'general'],
+            [
+                'id' => $idContrato,
+                'etiqueta' => 'Contrato Laboral',
+                'obligatorio' => true,
+                'condicion' => 'Obligatorio fijo para todo trabajador',
+                'grupo' => 'general',
+            ],
+            [
+                'id' => $idNotificacion,
+                'etiqueta' => 'Notificación del Contrato',
+                'obligatorio' => true,
+                'condicion' => 'Obligatorio fijo para todo trabajador',
+                'grupo' => 'general',
+            ],
+            [
+                'id' => 1,
+                'etiqueta' => 'Cédula de Identidad',
+                'obligatorio' => true,
+                'condicion' => 'Identificación personal obligatoria',
+                'grupo' => 'general',
+            ],
         ];
 
-        $extrasObligatorios = [
-            ['palabras' => ['curriculum', 'currículum'], 'condicion' => 'Ingreso de personal (Procesos RRHH)'],
-            ['palabras' => ['rif', 'informacion fiscal', 'información fiscal'], 'condicion' => 'Ingreso y Prima de Transporte'],
-            ['palabras' => ['referencia bancaria', 'bdt'], 'condicion' => 'Ingreso de personal (Procesos RRHH)'],
-            ['palabras' => ['contrato laboral', 'nombramiento'], 'condicion' => 'Formalización de ingreso'],
-            ['palabras' => ['notificacion de ingreso', 'notificación de ingreso', 'designacion', 'designación'], 'condicion' => 'Formalización de ingreso'],
-            ['palabras' => ['14-04', 'asegurado ivss'], 'condicion' => 'Registro de asegurado IVSS'],
-            ['palabras' => ['afiliacion hcm', 'afiliación hcm'], 'condicion' => 'Inclusión titular HCM'],
-        ];
-        foreach ($extrasObligatorios as $extra) {
-            $idExtra = $this->buscarTipoPorPalabras($tipos, $extra['palabras']);
-            if ($idExtra !== null) {
-                $reglas[] = ['id' => $idExtra, 'obligatorio' => true, 'condicion' => $extra['condicion'], 'grupo' => 'general'];
+        // 2. Condicionales por Nivel Académico (Cláusula 24 - Prima de Profesionalización)
+        if (in_array($nivelAcademicoId, [2, 3], true) && $idBachiller !== null) {
+            $reglas[] = [
+                'id' => $idBachiller,
+                'etiqueta' => 'Título de Bachiller',
+                'obligatorio' => true,
+                'condicion' => 'Nivel Secundaria / Bachiller / Técnico Medio',
+                'grupo' => 'academico',
+            ];
+        } elseif ($nivelAcademicoId === 4) {
+            $reglas[] = [
+                'id' => 8,
+                'etiqueta' => 'Título de Técnico Superior Universitario (TSU)',
+                'obligatorio' => true,
+                'condicion' => 'Nivel TSU (Cláusula 24)',
+                'grupo' => 'academico',
+            ];
+        } elseif (in_array($nivelAcademicoId, [5, 6], true)) {
+            $reglas[] = [
+                'id' => 8,
+                'etiqueta' => 'Título Profesional Universitario',
+                'obligatorio' => true,
+                'condicion' => 'Nivel Licenciatura / Ingeniería (Cláusula 24)',
+                'grupo' => 'academico',
+            ];
+        } elseif ($nivelAcademicoId >= 7) {
+            $reglas[] = [
+                'id' => 8,
+                'etiqueta' => 'Título Profesional Universitario',
+                'obligatorio' => true,
+                'condicion' => 'Soporte universitario base (Cláusula 24)',
+                'grupo' => 'academico',
+            ];
+            $reglas[] = [
+                'id' => 9,
+                'etiqueta' => 'Certificado de Especialización, Maestría o Doctorado',
+                'obligatorio' => true,
+                'condicion' => 'Nivel Postgrado (Cláusula 24)',
+                'grupo' => 'academico',
+            ];
+        }
+
+        // 3. Condicionales por Estado Civil (6 estados de BD + Contrato Colectivo Cláusulas 1.14, 41, 45, 92)
+        if ($estadoCivilId === 2) {
+            $reglas[] = [
+                'id' => 4,
+                'etiqueta' => 'Acta de Matrimonio',
+                'obligatorio' => true,
+                'condicion' => 'Estado civil: Casado/a (Cláusula 45)',
+                'grupo' => 'estado_civil',
+            ];
+        } elseif ($estadoCivilId === 3) {
+            $reglas[] = [
+                'id' => 14,
+                'etiqueta' => 'Acta o Sentencia de Divorcio',
+                'obligatorio' => true,
+                'condicion' => 'Estado civil: Divorciado/a',
+                'grupo' => 'estado_civil',
+            ];
+        } elseif ($estadoCivilId === 4) {
+            $reglas[] = [
+                'id' => $idDefuncion,
+                'etiqueta' => 'Acta de Defunción del Cónyuge',
+                'obligatorio' => true,
+                'condicion' => 'Estado civil: Viudo/a (Cláusula 41 / 92)',
+                'grupo' => 'estado_civil',
+            ];
+        } elseif ($estadoCivilId === 5) {
+            $reglas[] = [
+                'id' => 5,
+                'etiqueta' => 'Declaración de Unión Estable de Hecho',
+                'obligatorio' => true,
+                'condicion' => 'Estado civil: Unión Estable de Hecho (Cláusula 45)',
+                'grupo' => 'estado_civil',
+            ];
+        }
+
+        // 4. Condicionales por Cargo (Formadores / Docentes)
+        if ($cargoId !== null && $cargoId > 0) {
+            $todosCargos = $this->cargos(false);
+            $nombreCargo = strtolower((string) ($todosCargos[$cargoId] ?? ''));
+            if (
+                str_contains($nombreCargo, 'formador')
+                || str_contains($nombreCargo, 'instructor')
+                || str_contains($nombreCargo, 'maestro')
+                || str_contains($nombreCargo, 'docente')
+            ) {
+                $reglas[] = [
+                    'id' => 7,
+                    'etiqueta' => 'Calendario / Acreditación Docente Certificada',
+                    'obligatorio' => true,
+                    'condicion' => 'Requerido por perfil de cargo formativo',
+                    'grupo' => 'cargo',
+                ];
             }
         }
 
-        // Condicionales por Estado Civil (Cláusula 45)
-        if ($estadoCivilId === 2) {
-            $reglas[] = ['id' => 4, 'obligatorio' => true, 'condicion' => 'Estado civil: Casado/a (Cláusula 45)', 'grupo' => 'estado_civil'];
-        } elseif ($estadoCivilId === 5) {
-            $reglas[] = ['id' => 5, 'obligatorio' => true, 'condicion' => 'Estado civil: Unión Estable de Hecho (Cláusula 45)', 'grupo' => 'estado_civil'];
+        // 5. Siempre Opcionales (Currículum + Caja de Ahorros Cláusula 34)
+        if ($idCurriculum !== null) {
+            $reglas[] = [
+                'id' => $idCurriculum,
+                'etiqueta' => 'Currículum Vitae',
+                'obligatorio' => false,
+                'condicion' => 'Opcional · Síntesis curricular del trabajador',
+                'grupo' => 'opcional',
+            ];
         }
-
-        // Condicionales por Nivel Académico (Cláusula 24 - Prima de Profesionalización)
-        if ($nivelAcademicoId >= 4) {
-            $reglas[] = ['id' => 8, 'obligatorio' => true, 'condicion' => 'Nivel TSU / Universitario / Ingeniería (Cláusula 24)', 'grupo' => 'academico'];
-        }
-        if ($nivelAcademicoId >= 7) {
-            $reglas[] = ['id' => 9, 'obligatorio' => true, 'condicion' => 'Especialización / Maestría / Doctorado (Cláusula 24)', 'grupo' => 'academico'];
-        }
-
-        // Opcionales / complementarios
-        $reglas[] = ['id' => 13, 'obligatorio' => false, 'condicion' => 'Opcional · Caja de Ahorros', 'grupo' => 'opcional'];
-        $idCursos = $this->buscarTipoPorPalabras($tipos, ['cursos realizados', 'certificados de cursos']);
-        if ($idCursos !== null) {
-            $reglas[] = ['id' => $idCursos, 'obligatorio' => false, 'condicion' => 'Opcional · Cursos realizados', 'grupo' => 'opcional'];
-        }
+        $reglas[] = [
+            'id' => 13,
+            'etiqueta' => 'Constancia o Comprobante de Caja de Ahorros',
+            'obligatorio' => false,
+            'condicion' => 'Opcional · Aporte Caja de Ahorros (Cláusula 34)',
+            'grupo' => 'opcional',
+        ];
 
         return $this->construirListaRecaudos($reglas, $tipos, $vigentes);
     }
 
     /**
-     * Indica si el trabajador tiene cargados todos los recaudos obligatorios según su perfil.
+     * @param list<array<string, mixed>> $recaudos
+     * @return array{
+     *     total: int,
+     *     cargados_total: int,
+     *     obligatorios_total: int,
+     *     obligatorios_cargados: int,
+     *     opcionales_total: int,
+     *     opcionales_cargados: int,
+     *     completos: bool
+     * }
      */
-    public function recaudosObligatoriosCompletosEmpleado(int $estadoCivilId, int $nivelAcademicoId, int $personaId): bool
+    public function resumenRecaudos(array $recaudos): array
     {
-        $recaudos = $this->recaudosParaEmpleado($estadoCivilId, $nivelAcademicoId, $personaId);
-        foreach ($recaudos as $item) {
-            if ($item['obligatorio'] && !$item['cargado']) {
-                return false;
+        $obligatoriosTotal = 0;
+        $obligatoriosCargados = 0;
+        $opcionalesTotal = 0;
+        $opcionalesCargados = 0;
+
+        foreach ($recaudos as $rec) {
+            $esObligatorio = (bool) ($rec['obligatorio'] ?? false);
+            $cargado = (bool) ($rec['cargado'] ?? false);
+
+            if ($esObligatorio) {
+                $obligatoriosTotal++;
+                if ($cargado) {
+                    $obligatoriosCargados++;
+                }
+            } else {
+                $opcionalesTotal++;
+                if ($cargado) {
+                    $opcionalesCargados++;
+                }
             }
         }
 
-        return $recaudos !== [];
+        return [
+            'total' => count($recaudos),
+            'cargados_total' => $obligatoriosCargados + $opcionalesCargados,
+            'obligatorios_total' => $obligatoriosTotal,
+            'obligatorios_cargados' => $obligatoriosCargados,
+            'opcionales_total' => $opcionalesTotal,
+            'opcionales_cargados' => $opcionalesCargados,
+            'completos' => $obligatoriosTotal > 0 && $obligatoriosCargados === $obligatoriosTotal,
+        ];
+    }
+
+    public function recaudosObligatoriosCompletosEmpleado(
+        int $estadoCivilId,
+        int $nivelAcademicoId,
+        int $personaId,
+        ?int $cargoId = null
+    ): bool {
+        $recaudos = $this->recaudosParaEmpleado($estadoCivilId, $nivelAcademicoId, $personaId, $cargoId);
+        return $this->resumenRecaudos($recaudos)['completos'];
     }
 
     /**
-     * Resuelve los recaudos documentales de un familiar según `parentesco_id` y Contrato Colectivo.
-     *
      * @return list<array{
      *     tipo_documento_id: int,
      *     nombre: string,
+     *     etiqueta: string,
      *     obligatorio: bool,
      *     condicion: string,
+     *     motivo: string,
      *     grupo: string,
+     *     es_titular: bool,
      *     cargado: bool,
-     *     documento: array{documentos_id: int, nombre_original: string, url_descarga: string}|null
+     *     documento: array{documentos_id: int, nombre_original: string, url_descarga: string}|null,
+     *     nombre_original: string|null,
+     *     url_descarga: string|null
      * }>
      */
     public function recaudosParaFamiliar(int $parentescoId, int $personaFamiliarId = 0, int $personaTitularId = 0): array
@@ -869,27 +964,19 @@ final class CatalogosService
         $reglas = [];
 
         if (in_array($parentescoId, [3, 4], true)) {
-            // Hijo / Hija
             $reglas[] = ['id' => 3, 'obligatorio' => true, 'condicion' => 'Obligatorio · Filiación de hijo/hija', 'grupo' => 'familiar'];
             $reglas[] = ['id' => 1, 'obligatorio' => false, 'condicion' => 'Opcional si es menor sin cédula', 'grupo' => 'familiar'];
             $reglas[] = ['id' => 6, 'obligatorio' => false, 'condicion' => 'Condicional · Estudios / Becas / HCM (hasta 27 años)', 'grupo' => 'familiar'];
-            $idExpensas = $this->buscarTipoPorPalabras($tipos, ['expensas', 'dependencia economica', 'dependencia económica']);
-            if ($idExpensas !== null) {
-                $reglas[] = ['id' => $idExpensas, 'obligatorio' => false, 'condicion' => 'Alternativa a constancia de estudios (HCM)', 'grupo' => 'familiar'];
-            }
             $reglas[] = ['id' => 10, 'obligatorio' => false, 'condicion' => 'Condicional · Discapacidad sin límite de edad (Cláusula 49)', 'grupo' => 'familiar'];
             $reglas[] = ['id' => 14, 'obligatorio' => false, 'condicion' => 'Condicional · Sentencia de adopción o tutela (Cláusula 46)', 'grupo' => 'familiar'];
         } elseif (in_array($parentescoId, [1, 2], true)) {
-            // Madre / Padre
             $reglas[] = ['id' => 1, 'obligatorio' => true, 'condicion' => 'Obligatorio · Cédula del padre/madre', 'grupo' => 'familiar'];
             $reglas[] = ['id' => 2, 'obligatorio' => true, 'condicion' => 'Filiación con el trabajador titular (HCM)', 'grupo' => 'titular'];
         } elseif ($parentescoId === 6) {
-            // Cónyuge
             $reglas[] = ['id' => 1, 'obligatorio' => true, 'condicion' => 'Obligatorio · Cédula del cónyuge o pareja', 'grupo' => 'familiar'];
             $reglas[] = ['id' => 4, 'obligatorio' => false, 'condicion' => 'Requerido si existe matrimonio civil (Cláusula 45)', 'grupo' => 'familiar'];
             $reglas[] = ['id' => 5, 'obligatorio' => false, 'condicion' => 'Requerido si es Unión Estable de Hecho (Cláusula 45)', 'grupo' => 'familiar'];
         } elseif ($parentescoId === 5) {
-            // Hermano
             $reglas[] = ['id' => 1, 'obligatorio' => true, 'condicion' => 'Obligatorio · Cédula del familiar', 'grupo' => 'familiar'];
             $reglas[] = ['id' => 14, 'obligatorio' => true, 'condicion' => 'Decisión judicial de tutela / dependencia (Cláusula 49)', 'grupo' => 'familiar'];
             $reglas[] = ['id' => 10, 'obligatorio' => true, 'condicion' => 'Certificación CONAPDIS (Cláusula 49)', 'grupo' => 'familiar'];
@@ -897,7 +984,6 @@ final class CatalogosService
             $reglas[] = ['id' => 1, 'obligatorio' => true, 'condicion' => 'Identificación del familiar', 'grupo' => 'familiar'];
         }
 
-        // Para Madre/Padre, si el titular ya cargó su Partida de Nacimiento (ID 2), la marcamos como cubierta
         $mapa = $vigentesFamiliar;
         if (in_array($parentescoId, [1, 2], true) && !isset($mapa[2]) && isset($vigentesTitular[2])) {
             $mapa[2] = $vigentesTitular[2];
@@ -907,8 +993,6 @@ final class CatalogosService
     }
 
     /**
-     * Busca el ID de un tipo de documento por palabras clave (con respaldo seguro a un ID existente).
-     *
      * @param list<string> $palabras
      */
     public function resolverTipoDocumentoPorPalabras(array $palabras, int $fallbackId = 15): int
@@ -928,8 +1012,6 @@ final class CatalogosService
     }
 
     /**
-     * Normaliza `$_FILES['documentos']` con estructura `name="documentos[{tipo_id}]"` a `[tipo_id => array]`.
-     *
      * @param array<string, mixed> $archivosRequest
      * @return array<int, array<string, mixed>>
      */
@@ -1000,9 +1082,10 @@ final class CatalogosService
     private function buscarTipoPorPalabras(array $tipos, array $palabras): ?int
     {
         foreach ($tipos as $id => $nombre) {
-            $norm = strtolower($nombre);
+            $norm = function_exists('mb_strtolower') ? mb_strtolower($nombre, 'UTF-8') : strtolower($nombre);
             foreach ($palabras as $palabra) {
-                if (str_contains($norm, strtolower($palabra))) {
+                $aguja = function_exists('mb_strtolower') ? mb_strtolower($palabra, 'UTF-8') : strtolower($palabra);
+                if (str_contains($norm, $aguja)) {
                     return (int) $id;
                 }
             }
@@ -1012,17 +1095,22 @@ final class CatalogosService
     }
 
     /**
-     * @param list<array{id: int, obligatorio: bool, condicion: string, grupo: string}> $reglas
+     * @param list<array{id: int, etiqueta?: string, obligatorio: bool, condicion: string, grupo: string}> $reglas
      * @param array<int|string, string> $tipos
      * @param array<int, array{documentos_id: int, nombre_original: string, url_descarga: string}> $vigentes
      * @return list<array{
      *     tipo_documento_id: int,
      *     nombre: string,
+     *     etiqueta: string,
      *     obligatorio: bool,
      *     condicion: string,
+     *     motivo: string,
      *     grupo: string,
+     *     es_titular: bool,
      *     cargado: bool,
-     *     documento: array{documentos_id: int, nombre_original: string, url_descarga: string}|null
+     *     documento: array{documentos_id: int, nombre_original: string, url_descarga: string}|null,
+     *     nombre_original: string|null,
+     *     url_descarga: string|null
      * }>
      */
     private function construirListaRecaudos(array $reglas, array $tipos, array $vigentes): array
@@ -1037,11 +1125,14 @@ final class CatalogosService
             }
             $vistos[$id] = true;
             $doc = $vigentes[$id] ?? null;
+            $etiqueta = isset($regla['etiqueta']) && $regla['etiqueta'] !== ''
+                ? $regla['etiqueta']
+                : (string) $tipos[$id];
 
             $lista[] = [
                 'tipo_documento_id' => $id,
                 'nombre' => (string) $tipos[$id],
-                'etiqueta' => (string) $tipos[$id],
+                'etiqueta' => $etiqueta,
                 'obligatorio' => (bool) $regla['obligatorio'],
                 'condicion' => (string) $regla['condicion'],
                 'motivo' => (string) $regla['condicion'],
@@ -1055,5 +1146,70 @@ final class CatalogosService
         }
 
         return $lista;
+    }
+
+    /**
+     * @return array{value: string, label: string, sublabel: string}
+     */
+    private static function formatearEmpleadoFila(object $fila): array
+    {
+        $nombre = self::formatearNombre(
+            (string) ($fila->primer_nombre ?? ''),
+            (string) ($fila->segundo_nombre ?? ''),
+            (string) ($fila->primer_apellido ?? ''),
+            (string) ($fila->segundo_apellido ?? '')
+        );
+        $cedula = isset($fila->cedula)
+            ? strtoupper((string) ($fila->nacionalidad ?? 'V')) . '-' . (string) $fila->cedula
+            : (string) ($fila->codigo_empleado ?? '');
+
+        return [
+            'value' => (string) $fila->empleado_id,
+            'label' => $nombre !== '' ? $nombre : "Empleado #{$fila->empleado_id}",
+            'sublabel' => $cedula,
+        ];
+    }
+
+    /**
+     * @return array{value: string, label: string, sublabel: string}
+     */
+    private static function formatearPersonaFila(object $fila): array
+    {
+        $cedula = strtoupper((string) ($fila->nacionalidad ?? 'V')) . '-' . (string) ($fila->cedula ?? '');
+        $rol = 'Persona';
+        if (!empty($fila->empleado_id)) {
+            $rol = 'Titular';
+        } elseif (!empty($fila->parentesco)) {
+            $rol = (string) $fila->parentesco;
+        }
+
+        $nombre = self::formatearNombre(
+            (string) ($fila->primer_nombre ?? ''),
+            (string) ($fila->segundo_nombre ?? ''),
+            (string) ($fila->primer_apellido ?? ''),
+            (string) ($fila->segundo_apellido ?? '')
+        );
+
+        return [
+            'value' => (string) $fila->persona_id,
+            'label' => $nombre,
+            'sublabel' => "{$cedula} · {$rol}",
+        ];
+    }
+
+    private static function formatearNombre(string $pNom, string $sNom, string $pApe, string $sApe): string
+    {
+        $partes = array_filter([
+            trim($pNom),
+            trim($sNom),
+            trim($pApe),
+            trim($sApe),
+        ], static fn (string $parte): bool => $parte !== '');
+
+        $unido = implode(' ', $partes);
+
+        return function_exists('mb_convert_case')
+            ? mb_convert_case($unido, MB_CASE_TITLE, 'UTF-8')
+            : ucwords(strtolower($unido));
     }
 }

@@ -1,29 +1,12 @@
-/**
- * registroEmpleado.js
- * Formulario multipaso de registro de trabajadores conectado a POST /api/empleados
- * y selects dependientes de /api/ubicacion/*.
- */
-
 import { Solicitud } from '/js/class/Solicitud.js';
 import { InputValidador } from '/js/class/validator/InputValidador.js';
-import { inicializarPasoMultiple } from '/js/components/pasoMultiple.js';
+import { inicializarPasoMultiple } from '/js/components/pasoMultiple/pasoMultiple.js';
 import {
   actualizarOpcionesSelect,
   inicializarSelectsPersonalizados,
-} from '/js/components/selectPersonalizado.js';
-import { mostrarToast } from '/js/components/toast.js';
-
-const calcularEdad = (ano, mes, dia) => {
-  if (!ano || !mes || !dia) return '';
-  const hoy = new Date();
-  let edad = hoy.getFullYear() - ano;
-  const mesActual = hoy.getMonth() + 1;
-  const diaActual = hoy.getDate();
-  if (mesActual < mes || (mesActual === mes && diaActual < dia)) {
-    edad -= 1;
-  }
-  return edad >= 0 && edad <= 99 ? String(edad) : '';
-};
+} from '/js/components/select/selectPersonalizado.js';
+import { mostrarToast } from '/js/components/toast/toast.js';
+import { calcularEdad } from '/js/utils/calcularEdad.js';
 
 const configurarValidaciones = () => {
   InputValidador.soloLetras('#primerNombre, #primerApellido, #segundoNombre, #segundoApellido', {
@@ -127,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         mostrarToast('success', res.data.message || 'Trabajador registrado en estado Pendiente.');
         setTimeout(() => {
-          window.location.href = '/empleados/registros';
+          window.location.href = '/empleado/registros';
         }, 700);
       } finally {
         enviando = false;

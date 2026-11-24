@@ -337,7 +337,7 @@ final class ApiEloquentEndpointsTest extends TestCase
         self::assertSame(200, $this->ultimoCodigo);
         self::assertCount(2, $this->ultimoJson['personales']);
         self::assertSame('cedula_v1.pdf', $this->ultimoJson['personales'][0]['nombre_original']);
-        self::assertSame('Histórico', $this->ultimoJson['personales'][0]['estatus_documento']);
+        self::assertSame('No vigente', $this->ultimoJson['personales'][0]['estatus_documento']);
         self::assertSame('cedula_v2.pdf', $this->ultimoJson['personales'][1]['nombre_original']);
         self::assertSame('Vigente', $this->ultimoJson['personales'][1]['estatus_documento']);
         self::assertSame('/documentos/' . $doc2->documentos_id, $this->ultimoJson['personales'][1]['url_descarga']);
@@ -465,23 +465,54 @@ final class ApiEloquentEndpointsTest extends TestCase
         self::assertCount(1, $this->ultimoJson['data']);
         self::assertSame('Madre María', $this->ultimoJson['data'][0]['parroquia']);
 
-        // Integridad referencial: no permite borrar un estado con municipios (409)
-        $appDelEstadoConHijos = $this->crearMockEngine('DELETE');
-        (new TablasMaestrasController($appDelEstadoConHijos, $this->config, $this->catalogos))->destroy('estados', (string) $caraboboId);
-        self::assertSame(409, $this->ultimoCodigo);
-
-        // Borrado en orden hoja -> raíz funciona correctamente
+        // Desactivación lógica (`activo = false`) en los 9 catálogos configurables
         $appDelPar = $this->crearMockEngine('DELETE');
         (new TablasMaestrasController($appDelPar, $this->config, $this->catalogos))->destroy('parroquias', (string) $sanJoseId);
         self::assertSame(200, $this->ultimoCodigo);
+        self::assertFalse((bool) ParroquiasModel::query()->find($sanJoseId)?->activo);
 
         $appDelMun = $this->crearMockEngine('DELETE');
         (new TablasMaestrasController($appDelMun, $this->config, $this->catalogos))->destroy('municipios', (string) $valenciaId);
         self::assertSame(200, $this->ultimoCodigo);
+        self::assertFalse((bool) MunicipiosModel::query()->find($valenciaId)?->activo);
 
         $appDelEst = $this->crearMockEngine('DELETE');
         (new TablasMaestrasController($appDelEst, $this->config, $this->catalogos))->destroy('estados', (string) $caraboboId);
         self::assertSame(200, $this->ultimoCodigo);
+        self::assertFalse((bool) EstadosModel::query()->find($caraboboId)?->activo);
+    }
+
+    public function testEditarEmpleadoSoportaMultiplesTelefonosUnicoEmergenciaYRecaudosDinamicos(): void
+    {
+        $appDosEmergencias = $this->crearMockEngine('POST', [
+            'telefonos_numero' => ['0412-1111111', '0414-2222222'],
+            'telefonos_emergencia' => ['1', '1'],
+        ]);
+        (new EditarEmpleadoController($appDosEmergencias, $this->config, $this->catalogos, $this->gestor))->update('1');
+        self::assertSame(422, $this->ultimoCodigo);
+
+        $appValido = $this->crearMockEngine('POST', [
+            'telefonos_numero' => ['0412-1111111', '0414-2222222', '0416-3333333'],
+            'telefonos_emergencia' => ['0', '1', '0'],
+        ]);
+        (new EditarEmpleadoController($appValido, $this->config, $this->catalogos, $this->gestor))->update('1');
+        self::assertSame(200, $this->ultimoCodigo);
+
+        $emp = EmpleadosModel::query()->with('persona.telefonos')->find(1);
+        $telefonos = $emp?->persona?->telefonos ?? collect();
+        self::assertCount(3, $telefonos);
+        self::assertSame(1, $telefonos->where('emergencia', true)->count());
+        self::assertSame('0414-2222222', $telefonos->firstWhere('emergencia', true)?->numero_telefono);
+
+        $appRecaudos = $this->crearMockEngine('GET', [], [
+            'estado_civil_id' => '2',
+            'nivel_academico_id' => '4',
+            'cargo_id' => '1',
+        ]);
+        (new EditarEmpleadoController($appRecaudos, $this->config, $this->catalogos, $this->gestor))->recaudos('1');
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertArrayHasKey('resumen', $this->ultimoJson['data']);
+        self::assertGreaterThan(0, $this->ultimoJson['data']['resumen']['obligatorios_total']);
     }
 
     public function testControladoresDeVistasHidratanSelectsYPreseleccionDesdeEloquent(): void
@@ -504,7 +535,8 @@ final class ApiEloquentEndpointsTest extends TestCase
         (new EditarEmpleadoController($appEditEmp, $this->config, $this->catalogos, $this->gestor))->render('1');
         self::assertSame('editar_empleado', $this->ultimaVista);
         self::assertSame(1, $this->ultimosDatosVista['empleado']->empleado_id);
-        self::assertArrayHasKey(2, $this->ultimosDatosVista['estatus']);
+        self::assertArrayHasKey(1, $this->ultimosDatosVista['estatus']);
+        self::assertArrayNotHasKey(2, $this->ultimosDatosVista['estatus']);
         self::assertArrayHasKey(1, $this->ultimosDatosVista['estados']);
 
         $appRegFam = $this->crearMockEngine('GET', [], ['empleado' => '1']);
@@ -613,16 +645,19 @@ final class ApiEloquentEndpointsTest extends TestCase
         $schema->create('estados', static function (Blueprint $t): void {
             $t->increments('estado_id');
             $t->string('estado');
+            $t->boolean('activo')->default(true);
         });
         $schema->create('municipios', static function (Blueprint $t): void {
             $t->increments('municipio_id');
             $t->integer('estado_id');
             $t->string('municipio');
+            $t->boolean('activo')->default(true);
         });
         $schema->create('parroquias', static function (Blueprint $t): void {
             $t->increments('parroquia_id');
             $t->integer('municipio_id');
             $t->string('parroquia');
+            $t->boolean('activo')->default(true);
         });
         $schema->create('estado_civil', static function (Blueprint $t): void {
             $t->increments('estado_civil_id');
@@ -654,10 +689,12 @@ final class ApiEloquentEndpointsTest extends TestCase
             $t->increments('nivel_academico_id');
             $t->string('nivel_academico');
             $t->integer('jerarquia');
+            $t->boolean('activo')->default(true);
         });
         $schema->create('carrera', static function (Blueprint $t): void {
             $t->increments('carrera_id');
             $t->string('carrera');
+            $t->boolean('activo')->default(true);
         });
         $schema->create('tipo_parentesco', static function (Blueprint $t): void {
             $t->increments('parentesco_id');

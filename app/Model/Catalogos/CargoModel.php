@@ -6,6 +6,7 @@ namespace App\Model\Catalogos;
 
 use App\Model\Personas\EmpleadosModel;
 use App\Model\Tramites\PostulacionModel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -45,6 +46,15 @@ class CargoModel extends Model
         'cargo' => 'string',
         'activo' => 'boolean',
     ];
+
+    /**
+     * @param Builder<static> $query
+     * @return Builder<static>
+     */
+    public function scopeActivo(Builder $query): Builder
+    {
+        return $query->where('activo', true);
+    }
 
     /**
      * @return HasMany<EmpleadosModel, $this>

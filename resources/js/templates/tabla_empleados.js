@@ -1,24 +1,15 @@
-import { crearBadge, crearBotonAccion, crearGrupoBotones } from '/js/templates/template_ui.js';
+import { crearBadge } from '/js/components/badge/crearBadge.js';
+import { crearBotonAccion } from '/js/components/botones/crearBotonAccion.js';
+import { crearGrupoBotones } from '/js/components/botones/crearGrupoBotones.js';
+import { formatearFecha } from '/js/utils/formatearFecha.js';
 
-/**
- * Muestra un texto corto en negrita (código de empleado o cédula).
- */
-const renderTextoSimple = (valor) => {
-  return `<span class="font-medium text-zinc-900 whitespace-nowrap">${valor || '—'}</span>`;
-};
+const renderTextoSimple = (valor) => `<span class="font-medium text-zinc-900 whitespace-nowrap">${valor || '—'}</span>`;
 
-/**
- * Muestra el nombre completo del trabajador y su correo electrónico debajo si tiene.
- */
 const renderNombre = (nombre, fila) => {
   const correo = fila.correo ? `<span class="block text-xs text-zinc-500">${fila.correo}</span>` : '';
   return `<div class="min-w-44"><span class="font-semibold text-zinc-900">${nombre || '—'}</span>${correo}</div>`;
 };
 
-/**
- * Si el trabajador tiene discapacidad registrada muestra su badge;
- * si no tiene, muestra el botón "Asignar" para abrir el modal.
- */
 const renderDiscapacidad = (discapacidad, fila) => {
   if (discapacidad && typeof discapacidad === 'object') {
     const carnet = discapacidad.numero_carnet ? `Carnet: ${discapacidad.numero_carnet}` : 'Discapacidad registrada';
@@ -35,10 +26,6 @@ const renderDiscapacidad = (discapacidad, fila) => {
   });
 };
 
-/**
- * Muestra el badge del estatus laboral.
- * Si estatus_actual == 3, muestra "Pendiente" en amarillo.
- */
 const renderEstatus = (fila) => {
   if (Number(fila.estatus_actual) === 3) {
     return `<div class="inline-flex flex-wrap items-center justify-center gap-1">${crearBadge('Pendiente', 'yellow')}</div>`;
@@ -51,21 +38,17 @@ const renderEstatus = (fila) => {
   return `<div class="inline-flex flex-wrap items-center justify-center gap-1">${badgePrincipal}${badgeInactivo}</div>`;
 };
 
-/**
- * Genera los botones de acción por fila:
- * - Si estatus_actual == 3: solo botón amarillo "Pendiente" hacia la edición.
- * - En caso normal: Familiares, Editar y Activar/Eliminar según esté activo o inactivo.
- */
 const renderAcciones = (fila) => {
   if (Number(fila.estatus_actual) === 3) {
-    const btnPendiente = crearBotonAccion({
-      etiqueta: 'Pendiente',
-      icono: 'clock',
-      variante: 'yellow',
-      href: `/empleado/editar/${fila.empleado_id}`,
-      titulo: `Completar documentos pendientes de ${fila.nombre_completo || 'empleado'}`,
-    });
-    return crearGrupoBotones([btnPendiente]);
+    return crearGrupoBotones([
+      crearBotonAccion({
+        etiqueta: 'Pendiente',
+        icono: 'clock',
+        variante: 'yellow',
+        href: `/empleado/editar/${fila.empleado_id}`,
+        titulo: `Completar documentos pendientes de ${fila.nombre_completo || 'empleado'}`,
+      }),
+    ]);
   }
 
   const btnFamiliares = crearBotonAccion({
@@ -107,59 +90,117 @@ const renderAcciones = (fila) => {
   return crearGrupoBotones([btnFamiliares, btnEditar, btnEstado]);
 };
 
-/**
- * Definición de las 9 columnas de DataTables para el listado de empleados.
- */
 export const columnasTablaEmpleados = () => [
-  {
-    data: 'codigo_empleado',
-    name: 'codigo_empleado',
-    render: (valor) => renderTextoSimple(valor),
-  },
-  {
-    data: 'cedula',
-    name: 'cedula',
-    render: (valor) => renderTextoSimple(valor),
-  },
-  {
-    data: 'nombre_completo',
-    name: 'nombre_completo',
-    render: (valor, tipo, fila) => renderNombre(valor, fila),
-  },
-  {
-    data: 'cargo',
-    name: 'cargo',
-    render: (valor) => valor || '—',
-  },
-  {
-    data: 'departamento',
-    name: 'departamento',
-    render: (valor) => valor || '—',
-  },
-  {
-    data: 'dependencia',
-    name: 'dependencia',
-    render: (valor) => valor || '—',
-  },
+  { data: 'codigo_empleado', name: 'codigo_empleado', render: (valor) => renderTextoSimple(valor) },
+  { data: 'cedula', name: 'cedula', render: (valor) => renderTextoSimple(valor) },
+  { data: 'nombre_completo', name: 'nombre_completo', render: (valor, _t, fila) => renderNombre(valor, fila) },
+  { data: 'cargo', name: 'cargo', render: (valor) => valor || '—' },
+  { data: 'departamento', name: 'departamento', render: (valor) => valor || '—' },
+  { data: 'dependencia', name: 'dependencia', render: (valor) => valor || '—' },
   {
     data: 'discapacidad',
     name: 'discapacidad',
     orderable: false,
     searchable: false,
     className: 'text-center',
-    render: (valor, tipo, fila) => renderDiscapacidad(valor, fila),
+    render: (valor, _t, fila) => renderDiscapacidad(valor, fila),
   },
   {
     data: 'estatus_actual',
     name: 'estatus_actual',
     className: 'text-center',
-    render: (valor, tipo, fila) => renderEstatus(fila),
+    render: (_valor, _t, fila) => renderEstatus(fila),
   },
   {
     data: null,
     orderable: false,
     searchable: false,
     className: 'text-right',
-    render: (datos, tipo, fila) => renderAcciones(fila),
+    render: (_d, _t, fila) => renderAcciones(fila),
   },
 ];
+
+const renderFilaTablaFamiliaresModal = (fam) => {
+  const edadTexto = fam.edad !== null && fam.edad !== undefined ? `${fam.edad} años` : '—';
+  const editarBtn = crearBotonAccion({
+    etiqueta: 'Editar',
+    icono: 'pencil',
+    variante: 'zinc',
+    href: `/empleado/familiar/editar/${fam.familia_id}`,
+    titulo: `Editar a ${fam.nombre_completo || 'familiar'}`,
+  });
+
+  return `
+    <tr class="hover:bg-slate-50/70 transition-colors">
+      <td class="px-3.5 py-2.5 font-medium text-zinc-900 whitespace-nowrap">${fam.cedula || '—'}</td>
+      <td class="px-3.5 py-2.5 font-medium text-zinc-900">${fam.nombre_completo || '—'}</td>
+      <td class="px-3.5 py-2.5 whitespace-nowrap">${crearBadge(fam.parentesco || 'Sin definir', 'marca')}</td>
+      <td class="px-3.5 py-2.5 whitespace-nowrap text-zinc-600">
+        <span>${formatearFecha(fam.fecha_nacimiento)}</span>
+        <span class="block text-xs text-zinc-400">${edadTexto}</span>
+      </td>
+      <td class="px-3.5 py-2.5 text-center whitespace-nowrap text-zinc-700">${fam.genero || '—'}</td>
+      <td class="px-3.5 py-2.5 text-center whitespace-nowrap font-medium text-zinc-700">T-${fam.tomo} / F-${fam.folio}</td>
+      <td class="px-3.5 py-2.5 text-right whitespace-nowrap">${editarBtn}</td>
+    </tr>
+  `;
+};
+
+export const renderTablaFamiliaresEmpleado = (payload, empleadoIdFallback) => {
+  const empleado = payload?.empleado || {};
+  const empleadoId = empleado.empleado_id || empleadoIdFallback;
+  const lista = Array.isArray(payload?.data) ? payload.data : [];
+
+  if (lista.length === 0) {
+    return `
+      <div class="flex flex-col items-center justify-center gap-4 py-10 text-center">
+        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-zinc-500">
+          <i data-lucide="users" class="h-6 w-6" aria-hidden="true"></i>
+        </div>
+        <div class="max-w-sm space-y-1">
+          <p class="text-sm font-semibold text-zinc-900">Este trabajador no tiene familiares registrados</p>
+          <p class="text-xs text-zinc-500">Puedes asociar su carga familiar ahora mismo usando el botón inferior.</p>
+        </div>
+        <a href="/empleado/registrar/familiar?empleado=${empleadoId}"
+           class="inline-flex items-center gap-1.5 rounded-lg bg-marca px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-marca-700 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-marca active:scale-[0.98]">
+          <i data-lucide="user-plus" class="h-3.5 w-3.5" aria-hidden="true"></i>
+          <span>Registrar familiar</span>
+        </a>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <div class="text-xs text-zinc-600">
+          <span class="font-semibold text-zinc-900">${lista.length}</span>
+          ${lista.length === 1 ? 'familiar registrado' : 'familiares registrados'}
+          ${empleado.departamento ? ` · <span>${empleado.departamento}</span>` : ''}
+        </div>
+        <a href="/empleado/registrar/familiar?empleado=${empleadoId}"
+           class="inline-flex items-center gap-1.5 rounded-lg bg-marca px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:bg-marca-700 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-marca active:scale-[0.98]">
+          <i data-lucide="user-plus" class="h-3.5 w-3.5" aria-hidden="true"></i>
+          <span>Agregar familiar</span>
+        </a>
+      </div>
+
+      <div class="overflow-x-auto rounded-xl border border-slate-200">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            <tr>
+              <th class="px-3.5 py-2.5">Cédula</th>
+              <th class="px-3.5 py-2.5">Nombre completo</th>
+              <th class="px-3.5 py-2.5">Parentesco</th>
+              <th class="px-3.5 py-2.5">Nacimiento / Edad</th>
+              <th class="px-3.5 py-2.5 text-center">Género</th>
+              <th class="px-3.5 py-2.5 text-center">Tomo / Folio</th>
+              <th class="px-3.5 py-2.5 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 bg-white">${lista.map(renderFilaTablaFamiliaresModal).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+};

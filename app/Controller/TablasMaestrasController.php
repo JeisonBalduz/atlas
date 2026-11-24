@@ -18,8 +18,6 @@ use App\Model\Ubicacion\EstadosModel;
 use App\Model\Ubicacion\MunicipiosModel;
 use App\Model\Ubicacion\ParroquiasModel;
 use App\Services\CatalogosService;
-use App\Services\ContextoSesion;
-use App\Interfaces\RenderInterfaces;
 use App\Utils\Config;
 use flight\Engine;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,9 +25,10 @@ use Illuminate\Database\Eloquent\Model;
 use Throwable;
 
 /**
- * Controlador general para la vista y operaciones CRUD de los catálogos del sistema.
+ * Controlador general para la vista y operaciones CRUD de las Tablas Maestras del sistema.
+ * Muestra registros activos e inactivos (`true` y `false`) en los 9 catálogos configurables.
  */
-class TablasMaestrasController implements RenderInterfaces
+class TablasMaestrasController extends BaseController
 {
     /** @var array<string, array{modelo: class-string<Model>, campo: string, limite: int, tiene_activo: bool}> */
     private const CATALOGOS = [
@@ -37,11 +36,11 @@ class TablasMaestrasController implements RenderInterfaces
         'dependencias' => ['modelo' => DependenciasModel::class, 'campo' => 'dependencia', 'limite' => 100, 'tiene_activo' => true],
         'departamentos' => ['modelo' => DepartamentosModel::class, 'campo' => 'departamento', 'limite' => 100, 'tiene_activo' => true],
         'cargo' => ['modelo' => CargoModel::class, 'campo' => 'cargo', 'limite' => 50, 'tiene_activo' => true],
-        'nivel_academicos' => ['modelo' => NivelAcademicosModel::class, 'campo' => 'nivel_academico', 'limite' => 100, 'tiene_activo' => false],
-        'carrera' => ['modelo' => CarreraModel::class, 'campo' => 'carrera', 'limite' => 150, 'tiene_activo' => false],
-        'estados' => ['modelo' => EstadosModel::class, 'campo' => 'estado', 'limite' => 100, 'tiene_activo' => false],
-        'municipios' => ['modelo' => MunicipiosModel::class, 'campo' => 'municipio', 'limite' => 100, 'tiene_activo' => false],
-        'parroquias' => ['modelo' => ParroquiasModel::class, 'campo' => 'parroquia', 'limite' => 100, 'tiene_activo' => false],
+        'nivel_academicos' => ['modelo' => NivelAcademicosModel::class, 'campo' => 'nivel_academico', 'limite' => 100, 'tiene_activo' => true],
+        'carrera' => ['modelo' => CarreraModel::class, 'campo' => 'carrera', 'limite' => 150, 'tiene_activo' => true],
+        'estados' => ['modelo' => EstadosModel::class, 'campo' => 'estado', 'limite' => 100, 'tiene_activo' => true],
+        'municipios' => ['modelo' => MunicipiosModel::class, 'campo' => 'municipio', 'limite' => 100, 'tiene_activo' => true],
+        'parroquias' => ['modelo' => ParroquiasModel::class, 'campo' => 'parroquia', 'limite' => 100, 'tiene_activo' => true],
         'tipo_documentos' => ['modelo' => TipoDocumentosModel::class, 'campo' => 'tipo_documentos', 'limite' => 150, 'tiene_activo' => false],
         'estado_civil' => ['modelo' => EstadoCivilModel::class, 'campo' => 'estado_civil', 'limite' => 50, 'tiene_activo' => false],
         'tipo_parentesco' => ['modelo' => TipoParentescoModel::class, 'campo' => 'parentesco', 'limite' => 50, 'tiene_activo' => false],
@@ -54,38 +53,27 @@ class TablasMaestrasController implements RenderInterfaces
         'parroquias' => ['municipio.estado'],
     ];
 
-    /**
-     * @param Engine<object> $app
-     */
     public function __construct(
-        private Engine $app,
-        private Config $config,
+        Engine $app,
+        Config $config,
         private CatalogosService $catalogos,
     ) {
+        parent::__construct($app, $config);
     }
 
-    /**
-     * [GET] Renderiza la vista unificada de catálogos.
-     */
     public function render(): void
     {
-        $this->app->render('tabla_maestra', [
-            'env' => $this->config->env(),
-            'debug' => $this->config->isDebug(),
-            'usuario' => (object) ContextoSesion::todo(),
-            'estados' => $this->catalogos->estados(),
+        $this->renderVista('tabla_maestra', [
+            'estados' => $this->catalogos->estados(false),
             'tipos_documentos' => $this->catalogos->tiposDocumentos(),
         ]);
     }
 
-    /**
-     * [GET] Lista los registros de un catálogo permitido con relaciones y filtros sanitizados.
-     */
     public function index(string $tipo): void
     {
         $definicion = self::CATALOGOS[$tipo] ?? null;
         if ($definicion === null) {
-            $this->app->json(['ok' => false, 'message' => 'Catálogo no reconocido.'], 404);
+            $this->jsonError('Catálogo no reconocido.', 404);
             return;
         }
 
@@ -115,21 +103,18 @@ class TablasMaestrasController implements RenderInterfaces
         ], 200);
     }
 
-    /**
-     * [POST] Crea un registro en el catálogo indicado usando LimpiarInputs.
-     */
     public function store(string $tipo): void
     {
         $definicion = self::CATALOGOS[$tipo] ?? null;
         if ($definicion === null) {
-            $this->app->json(['ok' => false, 'message' => 'Catálogo no reconocido.'], 404);
+            $this->jsonError('Catálogo no reconocido.', 404);
             return;
         }
 
         $input = new LimpiarInputs();
         $resultado = $this->construirPayload($tipo, $definicion, $input, null);
-        if (isset($resultado['error'])) {
-            $this->app->json(['ok' => false, 'message' => $resultado['error']], 422);
+        if (!isset($resultado['payload'])) {
+            $this->jsonError($resultado['error'] ?? 'Datos inválidos.', 422);
             return;
         }
 
@@ -139,29 +124,22 @@ class TablasMaestrasController implements RenderInterfaces
             $creado = $modelo::query()->create($resultado['payload']);
             $this->cargarRelaciones($tipo, $creado);
 
-            $this->app->json([
-                'ok' => true,
-                'message' => 'Registro de catálogo creado correctamente.',
-                'data' => $creado->toArray(),
-            ], 201);
+            $this->jsonOk($creado->toArray(), 'Registro de catálogo creado correctamente.', 201);
         } catch (Throwable) {
-            $this->app->json(['ok' => false, 'message' => 'No se pudo crear el registro en el catálogo.'], 500);
+            $this->jsonError('No se pudo crear el registro en el catálogo.', 500);
         }
     }
 
-    /**
-     * [PUT] Actualiza un registro del catálogo indicado usando LimpiarInputs.
-     */
     public function update(string $tipo, string $id): void
     {
         $definicion = self::CATALOGOS[$tipo] ?? null;
         if ($definicion === null) {
-            $this->app->json(['ok' => false, 'message' => 'Catálogo no reconocido.'], 404);
+            $this->jsonError('Catálogo no reconocido.', 404);
             return;
         }
 
         if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador inválido.'], 400);
+            $this->jsonError('Identificador inválido.', 400);
             return;
         }
 
@@ -169,14 +147,14 @@ class TablasMaestrasController implements RenderInterfaces
         $modelo = $definicion['modelo'];
         $registro = $modelo::query()->find((int) $id);
         if (!$registro instanceof Model) {
-            $this->app->json(['ok' => false, 'message' => 'Registro de catálogo no encontrado.'], 404);
+            $this->jsonError('Registro de catálogo no encontrado.', 404);
             return;
         }
 
         $input = new LimpiarInputs();
         $resultado = $this->construirPayload($tipo, $definicion, $input, $registro);
-        if (isset($resultado['error'])) {
-            $this->app->json(['ok' => false, 'message' => $resultado['error']], 422);
+        if (!isset($resultado['payload'])) {
+            $this->jsonError($resultado['error'] ?? 'Datos inválidos.', 422);
             return;
         }
 
@@ -185,29 +163,22 @@ class TablasMaestrasController implements RenderInterfaces
             $registro->save();
             $this->cargarRelaciones($tipo, $registro);
 
-            $this->app->json([
-                'ok' => true,
-                'message' => 'Registro de catálogo actualizado correctamente.',
-                'data' => $registro->toArray(),
-            ], 200);
+            $this->jsonOk($registro->toArray(), 'Registro de catálogo actualizado correctamente.');
         } catch (Throwable) {
-            $this->app->json(['ok' => false, 'message' => 'No se pudo actualizar el registro del catálogo.'], 500);
+            $this->jsonError('No se pudo actualizar el registro del catálogo.', 500);
         }
     }
 
-    /**
-     * [DELETE] Desactiva o elimina un registro del catálogo.
-     */
     public function destroy(string $tipo, string $id): void
     {
         $definicion = self::CATALOGOS[$tipo] ?? null;
         if ($definicion === null) {
-            $this->app->json(['ok' => false, 'message' => 'Catálogo no reconocido.'], 404);
+            $this->jsonError('Catálogo no reconocido.', 404);
             return;
         }
 
         if (!ctype_digit($id) || (int) $id <= 0) {
-            $this->app->json(['ok' => false, 'message' => 'Identificador inválido.'], 400);
+            $this->jsonError('Identificador inválido.', 400);
             return;
         }
 
@@ -215,7 +186,7 @@ class TablasMaestrasController implements RenderInterfaces
         $modelo = $definicion['modelo'];
         $registro = $modelo::query()->find((int) $id);
         if (!$registro instanceof Model) {
-            $this->app->json(['ok' => false, 'message' => 'Registro de catálogo no encontrado.'], 404);
+            $this->jsonError('Registro de catálogo no encontrado.', 404);
             return;
         }
 
@@ -224,39 +195,17 @@ class TablasMaestrasController implements RenderInterfaces
                 $registro->setAttribute('activo', false);
                 $registro->save();
 
-                $this->app->json([
-                    'ok' => true,
-                    'message' => 'Registro de catálogo desactivado correctamente.',
-                    'data' => $registro->toArray(),
-                ], 200);
-                return;
-            }
-
-            if ($this->tieneDependenciasAsociadas($registro)) {
-                $this->app->json([
-                    'ok' => false,
-                    'message' => 'No se puede eliminar este registro porque está asociado a otros datos.',
-                ], 409);
+                $this->jsonOk($registro->toArray(), 'Registro de catálogo desactivado correctamente.');
                 return;
             }
 
             $registro->delete();
-            $this->app->json([
-                'ok' => true,
-                'message' => 'Registro de catálogo eliminado correctamente.',
-                'data' => ['id' => (int) $id],
-            ], 200);
+            $this->jsonOk(['id' => (int) $id], 'Registro de catálogo eliminado correctamente.');
         } catch (Throwable) {
-            $this->app->json([
-                'ok' => false,
-                'message' => 'No se puede eliminar este registro porque está asociado a otros datos.',
-            ], 409);
+            $this->jsonError('No se puede eliminar este registro porque está asociado a otros datos.', 409);
         }
     }
 
-    /**
-     * Sanitiza los parámetros GET de búsqueda y filtros utilizando `LimpiarInputs` sin alterarlo.
-     */
     private function limpiarQuery(): LimpiarInputs
     {
         $postOriginal = $_POST;
@@ -324,8 +273,6 @@ class TablasMaestrasController implements RenderInterfaces
     }
 
     /**
-     * Construye y valida el arreglo de atributos para `store` y `update`.
-     *
      * @param array{modelo: class-string<Model>, campo: string, limite: int, tiene_activo: bool} $definicion
      * @return array{payload: array<string, mixed>}|array{error: string}
      */
@@ -414,21 +361,6 @@ class TablasMaestrasController implements RenderInterfaces
         if ($relaciones !== []) {
             $registro->load($relaciones);
         }
-    }
-
-    private function tieneDependenciasAsociadas(Model $registro): bool
-    {
-        if ($registro instanceof EstadosModel) {
-            return $registro->municipios()->exists() || $registro->dependencias()->exists();
-        }
-        if ($registro instanceof MunicipiosModel) {
-            return $registro->parroquias()->exists();
-        }
-        if ($registro instanceof ParroquiasModel) {
-            return $registro->direcciones()->exists();
-        }
-
-        return false;
     }
 
     private static function enteroPositivo(mixed $valor): ?int

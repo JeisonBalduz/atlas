@@ -1,34 +1,48 @@
-@extends('layouts.app') {{-- CARGAR PAGINA PRINCIPAL --}}
+@extends('layouts.app')
 
-@section('titulo', 'Editar Empleado') {{-- TÍTULO DE LA PÁGINA --}}
+@section('titulo', 'Editar Empleado')
 
-@section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 xl:px-12
-    2xl:px-16 pb-12 pt-6 bg-slate-50') {{-- CSS DE LA ETIQUETA MAIN --}}
+@section('main_class', 'ml-20 transition-[margin] duration-300 flex-1 h-screen overflow-y-auto px-6 md:px-10 xl:px-12 2xl:px-16 pb-12 pt-6 bg-slate-50')
 
-@section('menu_lateral'){{-- CARGAR HTML EN ESTE APARTADO --}}
-    @include('layouts.menu_lateral'){{-- CARGAR menu_lateral  --}}
+@section('menu_lateral')
+    @include('layouts.menu_lateral')
 @endsection
 
-@section('header'){{-- CARGAR HTML EN ESTE APARTADO --}}
-    @include('layouts.header'){{-- CARGAR HEADER  --}}
+@section('header')
+    @include('layouts.header')
 @endsection
 
-@section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
-    <form id="formulario-editar-empleado" data-empleado-id="{{ $empleado->empleado_id ?? '' }}" enctype="multipart/form-data"
-        class="w-full max-w-none mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 atlas-vista-entrada" novalidate>
+@section('contenido')
+    @php
+        $resumenDoc = $resumen_recaudos ?? [
+            'total' => count($recaudos ?? []),
+            'cargados_total' => 0,
+            'obligatorios_total' => 0,
+            'obligatorios_cargados' => 0,
+            'opcionales_total' => 0,
+            'opcionales_cargados' => 0,
+            'completos' => false,
+        ];
+        $listaTelefonos = $telefonos ?? [['telefono_id' => null, 'numero_telefono' => '', 'emergencia' => false]];
+    @endphp
+
+    <form id="formulario-editar-empleado"
+        data-empleado-id="{{ $empleado->empleado_id ?? '' }}"
+        enctype="multipart/form-data"
+        class="w-full max-w-none mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 atlas-vista-entrada"
+        novalidate>
 
         {{-- Card 1 (Bento Hero Oscura): Cabecera con retorno al listado de empleados --}}
-        <header
-            class="col-span-full lg:col-span-8 rounded-3xl border border-zinc-900 bg-zinc-950 p-6 sm:p-7 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <header class="col-span-full lg:col-span-8 rounded-3xl border border-zinc-900 bg-zinc-950 p-6 sm:p-7 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div class="space-y-1.5">
-                <span
-                    class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-zinc-300">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-zinc-300">
                     <i data-lucide="user-cog" class="h-3.5 w-3.5" aria-hidden="true"></i>
                     <span>Actualización de Expediente</span>
                 </span>
                 <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">Editar Empleado</h1>
-                <p id="subtitulo-editar-empleado" class="text-sm text-zinc-400">Actualiza la información personal,
-                    ubicación, teléfonos y datos laborales.</p>
+                <p id="subtitulo-editar-empleado" class="text-sm text-zinc-400">
+                    Actualiza la información personal, ubicación, teléfonos y recaudos vigentes del trabajador.
+                </p>
             </div>
 
             <a href="/empleado/registros"
@@ -39,8 +53,7 @@
         </header>
 
         {{-- Card 2 (Bento Marca): Resumen de identificación del trabajador --}}
-        <aside
-            class="col-span-full lg:col-span-4 rounded-3xl border border-marca bg-marca p-6 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+        <aside class="col-span-full lg:col-span-4 rounded-3xl border border-marca bg-marca p-6 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wider text-marca-200">Identificación en Nómina</span>
                 <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-marca-100">
@@ -50,15 +63,17 @@
             <div class="mt-4 flex flex-wrap items-end justify-between gap-2">
                 <div>
                     <p class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-                        {{ $empleado->codigo_empleado ?? 'SIN-COD' }}</p>
-                    <p class="mt-1 text-xs font-medium text-marca-100">Cédula:
-                        {{ ($persona->nacionalidad ?? 'V') . '-' . ($persona->cedula ?? '') }}</p>
+                        {{ $empleado->codigo_empleado ?? 'SIN-COD' }}
+                    </p>
+                    <p class="mt-1 text-xs font-medium text-marca-100">
+                        Cédula: {{ ($persona->nacionalidad ?? 'V') . '-' . ($persona->cedula ?? '') }}
+                    </p>
                 </div>
-                <span
+                <span id="badge-estatus-nomina-header"
                     class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
                     @if (((int) ($empleado->estatus_actual ?? 1)) === 3)
                         Pendiente de Documentos
-                    @elseif(((int) ($empleado->estatus_actual ?? 1)) === 1)
+                    @elseif (((int) ($empleado->estatus_actual ?? 1)) === 1)
                         Activo en Nómina
                     @else
                         Inactivo
@@ -68,11 +83,10 @@
         </aside>
 
         {{-- Sección 1: Datos Personales (PersonasModel) --}}
-        <section
-            class="col-span-full md:col-span-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+        <section class="col-span-full md:col-span-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
             <header>
                 <h2 class="text-lg font-semibold text-zinc-900">Datos Personales</h2>
-                <p class="text-sm text-zinc-500">Identificación civil del trabajador.</p>
+                <p class="text-sm text-zinc-500">Identificación civil del trabajador (impacta los documentos requeridos).</p>
             </header>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -151,24 +165,25 @@
                     'selected' => $persona->genero ?? '',
                 ])
                 @endcomponent
-                @component('components.select', [
-                    'label' => 'Estado civil',
-                    'id' => 'estado_civil_id',
-                    'name' => 'estado_civil_id',
-                    'required' => true,
-                    'options' => $estados_civiles ?? [],
-                    'selected' => $persona->estado_civil_id ?? '',
-                ])
-                @endcomponent
+                <div class="sm:col-span-2">
+                    @component('components.select', [
+                        'label' => 'Estado civil',
+                        'id' => 'estado_civil_id',
+                        'name' => 'estado_civil_id',
+                        'required' => true,
+                        'options' => $estados_civiles ?? [],
+                        'selected' => $persona->estado_civil_id ?? '',
+                    ])
+                    @endcomponent
+                </div>
             </div>
         </section>
 
-        {{-- Sección 2: Datos Laborales (EmpleadosModel) --}}
-        <section
-            class="col-span-full md:col-span-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+        {{-- Sección 2: Datos Laborales (EmpleadosModel — solo catálogos activos) --}}
+        <section class="col-span-full md:col-span-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
             <header>
                 <h2 class="text-lg font-semibold text-zinc-900">Datos Laborales</h2>
-                <p class="text-sm text-zinc-500">Ubicación administrativa, cargo y formación académica.</p>
+                <p class="text-sm text-zinc-500">Ubicación administrativa, cargo y formación académica activa.</p>
             </header>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -265,11 +280,10 @@
         </section>
 
         {{-- Sección 3: Dirección de Habitación (DireccionModel) --}}
-        <section
-            class="col-span-full md:col-span-7 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+        <section class="col-span-full md:col-span-7 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
             <header>
                 <h2 class="text-lg font-semibold text-zinc-900">Dirección de Habitación</h2>
-                <p class="text-sm text-zinc-500">Campos correspondientes al modelo Direccion.</p>
+                <p class="text-sm text-zinc-500">Ubicación geográfica con estados, municipios y parroquias activos.</p>
             </header>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -359,80 +373,97 @@
             </div>
         </section>
 
-        {{-- Sección 4: Teléfonos de Contacto (TelefonoPersonasModel) --}}
-        <section
-            class="col-span-full md:col-span-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5 flex flex-col justify-between">
-            <div class="space-y-5">
-                <header>
-                    <h2 class="text-lg font-semibold text-zinc-900">Teléfonos de Contacto</h2>
-                    <p class="text-sm text-zinc-500">Número personal principal y contacto de emergencia.</p>
+        {{-- Sección 4: Múltiples Teléfonos de Contacto + Único Teléfono de Emergencia --}}
+        <section class="col-span-full md:col-span-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] flex flex-col justify-between gap-5">
+            <div class="space-y-4">
+                <header class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg font-semibold text-zinc-900">Teléfonos de Contacto</h2>
+                        <p class="text-sm text-zinc-500">Agrega uno o varios números; solo uno puede ser de emergencia.</p>
+                    </div>
+                    <button type="button"
+                        id="btn-agregar-telefono"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-marca px-3.5 py-2 text-xs font-semibold text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-marca-700 cursor-pointer">
+                        <i data-lucide="plus" class="h-3.5 w-3.5" aria-hidden="true"></i>
+                        <span>Agregar teléfono</span>
+                    </button>
                 </header>
 
-                <div class="space-y-4">
-                    @component('components.input', [
-                        'label' => 'Teléfono principal',
-                        'id' => 'telefono_principal',
-                        'name' => 'telefono_principal',
-                        'value' => $telefono_principal ?? '',
-                        'maxlength' => 20,
-                        'leftIcon' => 'phone',
-                        'required' => true,
-                    ])
-                    @endcomponent
-                    @component('components.input', [
-                        'label' => 'Teléfono de emergencia',
-                        'id' => 'telefono_emergencia',
-                        'name' => 'telefono_emergencia',
-                        'value' => $telefono_emergencia ?? '',
-                        'maxlength' => 20,
-                        'leftIcon' => 'phone-call',
-                    ])
-                    @endcomponent
+                <div id="lista-telefonos-empleado" class="space-y-3">
+                    @foreach ($listaTelefonos as $idx => $tel)
+                        @php
+                            $esEmergencia = !empty($tel['emergencia']);
+                        @endphp
+                        <div data-fila-telefono class="rounded-2xl border {{ $esEmergencia ? 'border-marca-200 bg-marca-50/40' : 'border-slate-200 bg-slate-50/70' }} p-3.5 space-y-2.5 transition-colors">
+                            <div class="flex items-center gap-2">
+                                <div class="relative flex-1">
+                                    <i data-lucide="phone" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="text"
+                                        name="telefonos_numero[]"
+                                        value="{{ $tel['numero_telefono'] ?? '' }}"
+                                        maxlength="20"
+                                        placeholder="Ej: 0412-1234567"
+                                        class="input-telefono-empleado w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-black focus:ring-2 focus:ring-black focus:ring-offset-1" />
+                                </div>
+                                <button type="button"
+                                    data-eliminar-telefono
+                                    title="Eliminar teléfono"
+                                    class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 transition-colors hover:bg-red-100 cursor-pointer">
+                                    <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
+                                </button>
+                            </div>
+
+                            <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 cursor-pointer select-none">
+                                <span class="text-xs font-medium text-zinc-700">Designar como único contacto de emergencia</span>
+                                <input type="hidden" name="telefonos_emergencia[]" value="{{ $esEmergencia ? '1' : '0' }}" data-hidden-emergencia />
+                                <input type="checkbox"
+                                    data-check-emergencia
+                                    {{ $esEmergencia ? 'checked' : '' }}
+                                    class="h-4 w-4 rounded border-slate-300 text-marca accent-marca focus:ring-2 focus:ring-marca-500 cursor-pointer" />
+                            </label>
+                        </div>
+                    @endforeach
                 </div>
             </div>
+
+            <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-zinc-500">
+                Al marcar un número como contacto de emergencia, cualquier otro teléfono quedará automáticamente como línea personal.
+            </p>
         </section>
 
-        {{-- Sección 5: Expediente Documental del Trabajador (Contrato Colectivo / Procesos RRHH) --}}
-        <section
-            class="col-span-full rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
-            <header
-                class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4">
+        {{-- Sección 5: Expediente Documental del Trabajador (Evaluación dinámica + Vigencia) --}}
+        <section class="col-span-full rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+            <header class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between border-b border-slate-200 pb-4">
                 <div>
                     <h2 class="text-lg font-semibold text-zinc-900">Expediente Documental del Trabajador</h2>
                     <p class="text-sm text-zinc-500">
-                        Verifica los documentos cargados y adjunta los faltantes.
-                        @if (((int) ($empleado->estatus_actual ?? 1)) === 3)
-                            <span class="font-medium text-yellow-800">Al completar todos los documentos obligatorios, el
-                                trabajador pasará automáticamente a estado Activo.</span>
-                        @endif
+                        Evaluación automática según cargo, nivel académico y estado civil (Contrato Colectivo INCES).
+                        Al subir un archivo nuevo de un documento existente, el anterior pasa a <strong>No vigente</strong> y el nuevo queda <strong>Vigente</strong>.
                     </p>
                 </div>
-                @php
-                    $totalOblig = 0;
-                    $cargadosOblig = 0;
-                    foreach ($recaudos ?? [] as $itemRec) {
-                        if (!empty($itemRec['obligatorio'])) {
-                            $totalOblig++;
-                            if (!empty($itemRec['cargado'])) {
-                                $cargadosOblig++;
-                            }
-                        }
-                    }
-                @endphp
-                <span
-                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold {{ $cargadosOblig >= $totalOblig && $totalOblig > 0 ? 'bg-green-400/20 text-green-800' : 'bg-yellow-400/20 text-yellow-900' }}">
-                    <i data-lucide="{{ $cargadosOblig >= $totalOblig && $totalOblig > 0 ? 'check-circle-2' : 'file-warning' }}"
-                        class="h-3.5 w-3.5" aria-hidden="true"></i>
-                    <span>Obligatorios: {{ $cargadosOblig }} / {{ $totalOblig }}</span>
-                </span>
+
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                    <span id="badge-contador-obligatorios"
+                        class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold {{ $resumenDoc['completos'] ? 'bg-green-400/20 text-green-800' : 'bg-yellow-400/20 text-yellow-900' }}">
+                        <i data-lucide="{{ $resumenDoc['completos'] ? 'check-circle-2' : 'file-warning' }}" class="h-3.5 w-3.5" aria-hidden="true"></i>
+                        <span id="texto-contador-obligatorios">Obligatorios vigentes: {{ $resumenDoc['obligatorios_cargados'] }} / {{ $resumenDoc['obligatorios_total'] }}</span>
+                    </span>
+
+                    <span id="badge-contador-totales"
+                        class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3.5 py-1.5 text-xs font-semibold text-zinc-700">
+                        <i data-lucide="folder-check" class="h-3.5 w-3.5" aria-hidden="true"></i>
+                        <span id="texto-contador-totales">Cargados totales: {{ $resumenDoc['cargados_total'] }} / {{ $resumenDoc['total'] }}</span>
+                    </span>
+                </div>
             </header>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div id="contenedor-recaudos-empleado" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 @foreach ($recaudos ?? [] as $rec)
                     @component('components.tarjeta_recaudo', [
                         'rec' => $rec,
                         'prefijoId' => 'doc-emp',
                         'claseInput' => 'atlas-doc-input',
+                        'subidaDirecta' => true,
                     ])
                     @endcomponent
                 @endforeach
@@ -454,6 +485,5 @@
 @endsection
 
 @push('scripts')
-    {{-- CARGAR SCRIPTS DE JS --}}
     <script type="module" src="/js/editar_empleado.js"></script>
 @endpush

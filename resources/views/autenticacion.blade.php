@@ -47,7 +47,7 @@
 
                 <!-- Input: Contraseña con su cabecera accesible -->
                 <div class="mt-5 mb-1.5 flex items-center justify-between text-sm">
-                    <label for="password" class="font-medium text-zinc-900 cursor-pointer">
+                    <label for="clave" class="font-medium text-zinc-900 cursor-pointer">
                         Contraseña
                     </label>
                     <a href="#"
@@ -62,7 +62,6 @@
                     'type' => 'password',
                     'leftIcon' => 'lock',
                     'rightIcon' => 'eye',
-                    'idIcon' => 'toggle-password',
                     'placeholder' => '••••••••',
                     'maxlength' => 64,
                     'autocomplete' => 'current-password',

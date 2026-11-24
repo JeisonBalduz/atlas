@@ -1,24 +1,19 @@
-/**
- * catalogo.js
- * Controlador de los 9 catálogos base conectado a /api/catalogos/{tipo}.
- */
-
-import { ControladorModal } from '/js/class/ControladorModal.js';
 import { GestorDataTable } from '/js/class/GestorDataTable.js';
 import { Solicitud } from '/js/class/Solicitud.js';
+import { crearAlertaConfirmacion } from '/js/components/alerta/alerta.js';
+import { crearCheck } from '/js/components/check/crearCheck.js';
+import { Modal } from '/js/components/modal/Modal.js';
 import {
   actualizarOpcionesSelect,
+  crearMarkupSelectPersonalizado,
   inicializarSelectsPersonalizados,
-} from '/js/components/selectPersonalizado.js';
-import { mostrarToast } from '/js/components/toast.js';
+} from '/js/components/select/selectPersonalizado.js';
+import { mostrarToast } from '/js/components/toast/toast.js';
 import {
   construirColumnasCatalogo,
   construirConfigCatalogos,
-  renderFormularioCatalogo,
   renderTablaVaciaCatalogo,
 } from '/js/templates/tabla_catalogo.js';
-import { crearAlertaConfirmacion } from '/js/templates/template_ui.js';
-import { escaparHtml } from '/js/utils/dom.js';
 
 const leerEstadosDesdeDom = (contenedor) => {
   if (!contenedor?.dataset?.estados) return {};
@@ -28,6 +23,59 @@ const leerEstadosDesdeDom = (contenedor) => {
     return {};
   }
 };
+
+const renderCampoFormularioCatalogo = (campo, registroEditar) => {
+  const idCampo = `modal-catalogo-${campo.nombre}`;
+  const valorActual = registroEditar ? (registroEditar[campo.nombre] ?? '') : '';
+
+  if (campo.tipo === 'checkbox') {
+    const marcado = registroEditar ? Boolean(valorActual) : true;
+    return crearCheck({
+      id: idCampo,
+      nombre: campo.nombre,
+      etiqueta: campo.etiqueta,
+      descripcion: 'Define si este registro aparece habilitado en los selectores de formularios.',
+      marcado,
+    });
+  }
+
+  if (campo.tipo === 'select') {
+    return crearMarkupSelectPersonalizado({
+      id: idCampo,
+      nombre: campo.nombre,
+      etiqueta: campo.etiqueta,
+      opciones: campo.opciones || {},
+      valorSeleccionado: valorActual,
+      placeholder: 'Seleccionar opción...',
+      requerido: Boolean(campo.requerido),
+      buscador: true,
+    });
+  }
+
+  const maxAttr = campo.maximo ? `maxlength="${campo.maximo}"` : '';
+  const reqAttr = campo.requerido ? 'required' : '';
+
+  return `
+    <div class="space-y-1.5">
+      <label for="${idCampo}" class="block text-sm font-medium text-zinc-900">${campo.etiqueta}</label>
+      <input
+        id="${idCampo}"
+        name="${campo.nombre}"
+        type="${campo.tipo}"
+        value="${valorActual}"
+        ${maxAttr}
+        ${reqAttr}
+        class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none transition duration-200 focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2"
+      />
+    </div>
+  `;
+};
+
+const renderFormularioCatalogo = (config, registroEditar) => `
+  <form id="form-modal-catalogo" class="space-y-4" novalidate>
+    ${config.campos.map((campo) => renderCampoFormularioCatalogo(campo, registroEditar)).join('')}
+  </form>
+`;
 
 const leerPayloadFormulario = (formulario, campos) => {
   const payload = {};
@@ -84,8 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const estadosMapa = leerEstadosDesdeDom(contenedorTabla);
   const configCatalogos = construirConfigCatalogos(estadosMapa);
-  const modalFormulario = new ControladorModal('#modal-formulario-catalogo');
-  const modalEliminar = new ControladorModal('#modal-eliminar-catalogo');
+  const modalFormulario = new Modal('#modal-formulario-catalogo');
+  const modalEliminar = new Modal('#modal-eliminar-catalogo');
 
   let catalogoActivo = 'estatus';
   let tablaActual = null;
@@ -117,12 +165,18 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const res = await Solicitud.get(`/api/ubicacion/municipios/${estadoId}`, {
+    const res = await Solicitud.get(`/api/catalogos/municipios`, {
+      params: { estado_id: estadoId },
       claveCancelacion: `municipios:${selector}`,
     });
     if (res.aborted) return;
 
-    const municipios = res.ok && res.data?.ok ? res.data.data || {} : {};
+    const lista = res.ok && Array.isArray(res.data?.data) ? res.data.data : [];
+    const municipios = {};
+    lista.forEach((m) => {
+      municipios[String(m.municipio_id)] = m.municipio;
+    });
+
     sincronizandoFiltros = incluirTodos;
     actualizarOpcionesSelect(selector, { ...base, ...municipios }, valorSeleccionado);
     sincronizandoFiltros = false;
@@ -221,9 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
           : '';
 
       if (estadoInicial) {
-        if (!registroEditar) {
-          actualizarOpcionesSelect('#modal-catalogo-estado_id', estadosMapa, estadoInicial);
-        }
+        actualizarOpcionesSelect('#modal-catalogo-estado_id', estadosMapa, estadoInicial);
         cargarMunicipiosSelect('#modal-catalogo-municipio_id', estadoInicial, municipioInicial);
       }
 
@@ -269,28 +321,27 @@ document.addEventListener('DOMContentLoaded', () => {
       },
     });
 
-    inicializarSelectsPersonalizados();
     if (modalFormulario.dialogo) vincularSelectsModal(modalFormulario.dialogo, registroEditar);
   };
 
   const abrirModalEliminar = (registro) => {
     const config = configCatalogos[catalogoActivo];
     modalEliminar.abrir({
-      titulo: 'Eliminar registro',
+      titulo: 'Desactivar registro',
       subtitulo: config.titulo,
       contenidoHtml: crearAlertaConfirmacion({
         variante: 'red',
-        mensajeHtml: `¿Deseas eliminar o desactivar el registro seleccionado del catálogo <strong>${escaparHtml(config.titulo)}</strong>?`,
+        mensajeHtml: `¿Deseas desactivar el registro seleccionado del catálogo <strong>${config.titulo}</strong>? Dejará de mostrarse en los selectores de formularios.`,
       }),
       textoConfirmar: 'Confirmar',
       textoCargando: 'Procesando...',
       alConfirmar: async () => {
         const res = await Solicitud.delete(`/api/catalogos/${catalogoActivo}/${registro[config.claveId]}`);
         if (!res.ok || !res.data?.ok) {
-          mostrarToast('error', res.message || 'No se pudo eliminar el registro.');
+          mostrarToast('error', res.message || 'No se pudo desactivar el registro.');
           return false;
         }
-        mostrarToast('success', res.data.message || 'Operación completada.');
+        mostrarToast('success', res.data.message || 'Registro desactivado.');
         cargarCatalogo(catalogoActivo);
         return true;
       },
@@ -300,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
   envolturaTabla?.addEventListener('click', (evento) => {
     const boton = evento.target.closest('button[data-accion]');
     if (!boton || !tablaActual) return;
-    const registro = tablaActual.obtenerInstancia().row(boton.closest('tr')).data();
+    const registro = tablaActual.obtenerInstancia()?.row(boton.closest('tr')).data();
     if (!registro) return;
 
     if (boton.dataset.accion === 'editar') abrirModalRegistro(registro);

@@ -1,7 +1,9 @@
 import { Solicitud } from '/js/class/Solicitud.js';
-import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
-import { mostrarToast } from '/js/components/toast.js';
-import { crearMarkupSelectLongitud } from '/js/templates/template_ui.js';
+import {
+  crearMarkupSelectLongitud,
+  inicializarSelectsPersonalizados,
+} from '/js/components/select/selectPersonalizado.js';
+import { mostrarToast } from '/js/components/toast/toast.js';
 
 export const IDIOMA_ES = {
   processing: 'Procesando registros...',
@@ -53,16 +55,11 @@ const transformarSelectLongitud = (tablaEl) => {
   relativo.appendChild(selectLongitud);
 
   relativo.insertAdjacentHTML('beforeend', crearMarkupSelectLongitud(opciones, valorActual));
-  inicializarSelectsPersonalizados();
+  inicializarSelectsPersonalizados(contenedorDt);
   window.lucide?.createIcons();
 };
 
 export class GestorDataTable {
-  /**
-   * Inicializa DataTables 3.1.5 en modo servidor (si recibe `url`) o cliente (si recibe `datos`).
-   * @param {string} selector
-   * @param {Object} opciones
-   */
   constructor(
     selector,
     {
@@ -93,7 +90,10 @@ export class GestorDataTable {
     const configuracion = {
       autoWidth: false,
       pageLength: longitudPagina,
-      lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+      lengthMenu: [
+        [10, 25, 50, 100],
+        [10, 25, 50, 100],
+      ],
       language: IDIOMA_ES,
       order: ordenInicial,
       columns: columnas,

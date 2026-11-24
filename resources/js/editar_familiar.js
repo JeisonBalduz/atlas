@@ -1,12 +1,7 @@
-/**
- * editar_familiar.js
- * Formulario de edición de carga familiar conectado a POST /api/familiares/{id} con FormData.
- */
-
 import { Solicitud } from '/js/class/Solicitud.js';
 import { InputValidador } from '/js/class/validator/InputValidador.js';
-import { inicializarSelectsPersonalizados } from '/js/components/selectPersonalizado.js';
-import { mostrarToast } from '/js/components/toast.js';
+import { inicializarSelectsPersonalizados } from '/js/components/select/selectPersonalizado.js';
+import { mostrarToast } from '/js/components/toast/toast.js';
 
 const configurarValidaciones = () => {
   InputValidador.soloLetras('#primer_nombre, #segundo_nombre, #primer_apellido, #segundo_apellido', {
