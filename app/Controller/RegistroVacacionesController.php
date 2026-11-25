@@ -350,7 +350,23 @@ class RegistroVacacionesController extends BaseController
         }
 
         $diasDisfrutados = max(0, (int) $input->get('dias_disfrutados', 0));
+        $fechaCorte = trim((string) $input->get('fecha_corte', ''));
         $observacion = trim((string) $input->get('observacion', ''));
+
+        if ($nuevoEstatus === 6 && $fechaCorte !== '') {
+            $fechaInicioSol = substr((string) $solicitud->fecha_inicio, 0, 10);
+            $fechaFinalSol = substr((string) $solicitud->fecha_final, 0, 10);
+
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaCorte) || $fechaCorte < $fechaInicioSol || $fechaCorte > $fechaFinalSol) {
+                $this->jsonError("La fecha hasta donde disfrutó debe estar entre {$fechaInicioSol} y {$fechaFinalSol}.", 422);
+                return;
+            }
+
+            $diasDisfrutados = min(
+                (int) $solicitud->dias_solicitado,
+                $this->vacacionesService->calcularDiasDisfrutadosPorCorte($fechaInicioSol, $fechaCorte)
+            );
+        }
 
         try {
             $this->vacacionesService->procesarCambioEstatus($solicitud, $nuevoEstatus, $diasDisfrutados, $observacion);
@@ -362,9 +378,15 @@ class RegistroVacacionesController extends BaseController
                 default => 'Estatus de la solicitud actualizado correctamente.',
             };
 
+            $diasReintegrados = $nuevoEstatus === 6
+                ? max(0, (int) $solicitud->dias_solicitado - (int) $solicitud->dias_afectados)
+                : null;
+
             $this->jsonOk([
                 'solicitud_vacaciones_id' => $solicitudId,
                 'estatus' => $nuevoEstatus,
+                'dias_disfrutados' => $nuevoEstatus === 6 ? (int) $solicitud->dias_afectados : null,
+                'dias_reintegrar' => $diasReintegrados,
             ], $mensaje);
         } catch (Throwable $e) {
             $codigo = (int) $e->getCode();

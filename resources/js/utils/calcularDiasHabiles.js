@@ -189,7 +189,7 @@ export const calcularFechaFinalHabiles = (fechaInicio, diasHabiles, feriadosCust
     return { fechaFinal: '', fechaReincorporacion: '' };
   }
 
-  let contados = 1;
+  let contados = 0;
   while (contados < dias) {
     cursor.setUTCDate(cursor.getUTCDate() + 1);
     const iso = formatearIsoUtc(cursor);
@@ -237,4 +237,24 @@ export const calcularDiasHabiles = (inicio, fin) => {
   }
 
   return habiles;
+};
+
+/**
+ * Calcula los días hábiles INCES disfrutados desde `inicio` hasta `fechaCorte`,
+ * siendo consistente con `calcularFechaFinalHabiles` (donde `inicio + N hábiles = fechaFinal`).
+ * @param {string} inicio
+ * @param {string} fechaCorte
+ * @returns {number}
+ */
+export const calcularDiasDisfrutadosPorCorte = (inicio, fechaCorte) => {
+  if (!inicio || !fechaCorte || fechaCorte <= inicio) return 0;
+
+  const cursor = parsearFechaIsoUtc(inicio);
+  const limite = parsearFechaIsoUtc(fechaCorte);
+  if (!cursor || !limite || limite <= cursor) {
+    return 0;
+  }
+
+  cursor.setUTCDate(cursor.getUTCDate() + 1);
+  return calcularDiasHabiles(formatearIsoUtc(cursor), formatearIsoUtc(limite));
 };

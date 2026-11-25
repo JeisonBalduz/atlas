@@ -19,6 +19,7 @@ import {
   varianteEstatusVacaciones,
 } from '/js/templates/tabla_vacaciones.js';
 import {
+  calcularDiasDisfrutadosPorCorte,
   calcularFechaFinalHabiles,
   esDiaHabilInces,
   esFechaIsoValida,
@@ -187,24 +188,43 @@ const renderFormularioEdicionVacaciones = (registro) => `
   </form>
 `;
 
-const renderFormularioSuspenderVacaciones = (registro) => `
+const renderFormularioSuspenderVacaciones = (registro) => {
+  const fechaInicio = String(registro.fecha_inicio || '').slice(0, 10);
+  const fechaFinal = String(registro.fecha_final || '').slice(0, 10);
+  const totalDias = Number(registro.dias_solicitado || 0);
+
+  return `
   <form id="form-suspender-vacaciones" class="space-y-4" novalidate>
     ${crearAlertaConfirmacion({
       variante: 'yellow',
       icono: 'pause-circle',
-      mensajeHtml: `Al suspender la solicitud de <strong>${registro.nombre_completo}</strong> (${registro.dias_solicitado} días), los días no disfrutados se reintegrarán automáticamente a sus períodos abiertos.`,
+      mensajeHtml: `Al suspender la solicitud de <strong>${registro.nombre_completo}</strong> (${totalDias} días hábiles del <strong>${formatearFecha(fechaInicio)}</strong> al <strong>${formatearFecha(fechaFinal)}</strong>), los días no disfrutados se reintegrarán automáticamente a sus períodos abiertos.`,
     })}
     <div>
-      <label for="susp-dias-disfrutados" class="block text-sm font-medium text-zinc-900 mb-1.5">Días efectivamente disfrutados antes de suspender</label>
-      <input id="susp-dias-disfrutados" name="dias_disfrutados" type="number" min="0" max="${registro.dias_solicitado || 0}" value="0" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
-      <p class="mt-1 text-xs text-zinc-500">Deja <strong>0</strong> si no llegó a iniciar el disfrute (se devuelven los ${registro.dias_solicitado || 0} días).</p>
+      <label for="susp-fecha-corte" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha hasta donde disfrutó</label>
+      <div class="relative">
+        <input id="susp-fecha-corte" name="fecha_corte" type="text" value="${fechaInicio}" placeholder="YYYY-MM-DD" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+      </div>
+      <p id="susp-fecha-corte-error" class="mt-1 text-xs text-red-600 hidden"></p>
+      <p class="mt-1 text-xs text-zinc-500">Rango válido: ${formatearFecha(fechaInicio)} al ${formatearFecha(fechaFinal)}. Selecciona la fecha de inicio (${formatearFecha(fechaInicio)}) si no llegó a disfrutar días.</p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label for="susp-dias-disfrutados" class="block text-sm font-medium text-zinc-900 mb-1.5">Días disfrutados</label>
+        <input id="susp-dias-disfrutados" name="dias_disfrutados" type="text" readonly value="0" class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2.5 text-sm font-semibold text-zinc-700 cursor-not-allowed outline-none" />
+      </div>
+      <div>
+        <label for="susp-dias-reintegrar" class="block text-sm font-medium text-zinc-900 mb-1.5">Días a reintegrar</label>
+        <input id="susp-dias-reintegrar" name="dias_reintegrar" type="text" readonly value="${totalDias}" class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2.5 text-sm font-semibold text-emerald-700 cursor-not-allowed outline-none" />
+      </div>
     </div>
     <div>
       <label for="susp-observacion" class="block text-sm font-medium text-zinc-900 mb-1.5">Motivo de suspensión</label>
-      <input id="susp-observacion" name="observacion" type="text" maxlength="200" placeholder="Ej: Necesidad del servicio / Interrupción administrativa" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+      <input id="susp-observacion" name="observacion" type="text" maxlength="200" placeholder="Ej: Necesidad del servicio / Reposo médico" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
     </div>
   </form>
 `;
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
@@ -367,25 +387,80 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const abrirModalSuspender = (registro) => {
     const id = registro.solicitud_vacaciones_id;
+    const fechaInicioSol = String(registro.fecha_inicio || '').slice(0, 10);
+    const fechaFinalSol = String(registro.fecha_final || '').slice(0, 10);
+    const totalSolicitado = Math.max(0, Number(registro.dias_solicitado || 0));
+
     modalAccion.abrir({
       titulo: `Suspender vacaciones · #${id}`,
-      subtitulo: `${registro.nombre_completo} · ${formatearFecha(registro.fecha_inicio)} al ${formatearFecha(registro.fecha_final)}`,
+      subtitulo: `${registro.nombre_completo} · ${formatearFecha(fechaInicioSol)} al ${formatearFecha(fechaFinalSol)}`,
       contenidoHtml: renderFormularioSuspenderVacaciones(registro),
       mostrarConfirmar: true,
       textoConfirmar: 'Suspender y reintegrar',
       varianteConfirmar: 'marca',
+      alAbrir: (dlg) => {
+        const inputCorte = dlg.querySelector('#susp-fecha-corte');
+        const inputDisfrutados = dlg.querySelector('#susp-dias-disfrutados');
+        const inputReintegrar = dlg.querySelector('#susp-dias-reintegrar');
+        const nodoErrorCorte = dlg.querySelector('#susp-fecha-corte-error');
+
+        const recalcularSuspension = () => {
+          const fechaCorte = String(inputCorte?.value || '').trim();
+          toggleMensajeCampo(nodoErrorCorte, '');
+
+          if (!esFechaIsoValida(fechaCorte) || fechaCorte < fechaInicioSol || fechaCorte > fechaFinalSol) {
+            if (inputDisfrutados) inputDisfrutados.value = '0';
+            if (inputReintegrar) inputReintegrar.value = String(totalSolicitado);
+            toggleMensajeCampo(
+              nodoErrorCorte,
+              `La fecha debe estar entre ${formatearFecha(fechaInicioSol)} y ${formatearFecha(fechaFinalSol)}.`
+            );
+            return false;
+          }
+
+          const disfrutados = Math.max(
+            0,
+            Math.min(totalSolicitado, calcularDiasDisfrutadosPorCorte(fechaInicioSol, fechaCorte))
+          );
+          const reintegrar = Math.max(0, totalSolicitado - disfrutados);
+
+          if (inputDisfrutados) inputDisfrutados.value = String(disfrutados);
+          if (inputReintegrar) inputReintegrar.value = String(reintegrar);
+          return true;
+        };
+
+        inicializarCalendario(inputCorte, {
+          soloHabiles: true,
+          minDate: fechaInicioSol,
+          maxDate: fechaFinalSol,
+          alSeleccionar: recalcularSuspension,
+        });
+
+        inputCorte?.addEventListener('input', recalcularSuspension);
+        inputCorte?.addEventListener('change', recalcularSuspension);
+        recalcularSuspension();
+      },
       alConfirmar: async (dlg) => {
         const form = dlg.querySelector('#form-suspender-vacaciones');
-        const disfrutados = Number(form?.elements?.dias_disfrutados?.value || 0);
+        const fechaCorte = String(form?.elements?.fecha_corte?.value || '').trim();
         const observacion = form?.elements?.observacion?.value?.trim() || '';
 
-        if (disfrutados < 0 || disfrutados > Number(registro.dias_solicitado || 0)) {
-          notificarErrorFormulario(form, 'Los días disfrutados deben estar entre 0 y los días solicitados.');
+        if (!esFechaIsoValida(fechaCorte) || fechaCorte < fechaInicioSol || fechaCorte > fechaFinalSol) {
+          notificarErrorFormulario(
+            form,
+            `La fecha hasta donde disfrutó debe estar entre ${formatearFecha(fechaInicioSol)} y ${formatearFecha(fechaFinalSol)}.`
+          );
           return false;
         }
 
+        const disfrutados = Math.max(
+          0,
+          Math.min(totalSolicitado, calcularDiasDisfrutadosPorCorte(fechaInicioSol, fechaCorte))
+        );
+
         const res = await Solicitud.post(`/api/vacaciones/${id}/estatus`, {
           estatus: 6,
+          fecha_corte: fechaCorte,
           dias_disfrutados: disfrutados,
           observacion,
         });

@@ -69,7 +69,7 @@ final class VacacionesService extends BaseVistaService
             ];
         }
 
-        $contados = 1;
+        $contados = 0;
         while ($contados < $diasHabiles) {
             $cursor = $cursor->modify('+1 day');
             if ($this->esDiaHabilInces($cursor->format('Y-m-d'))) {
@@ -150,6 +150,22 @@ final class VacacionesService extends BaseVistaService
         }
 
         return $habiles;
+    }
+
+    /**
+     * Calcula los días hábiles INCES efectivamente disfrutados desde `fechaInicio` hasta `fechaCorte`,
+     * siendo consistente con `calcularFechaFinYReincorporacion` (donde `fecha_inicio + N hábiles = fecha_final`).
+     */
+    public function calcularDiasDisfrutadosPorCorte(string $fechaInicio, string $fechaCorte): int
+    {
+        $inicio = DateTimeImmutable::createFromFormat('!Y-m-d', trim($fechaInicio));
+        $corte = DateTimeImmutable::createFromFormat('!Y-m-d', trim($fechaCorte));
+
+        if (!$inicio instanceof DateTimeImmutable || !$corte instanceof DateTimeImmutable || $corte <= $inicio) {
+            return 0;
+        }
+
+        return $this->calcularDiasHabilesInces($inicio->modify('+1 day')->format('Y-m-d'), $corte->format('Y-m-d'));
     }
 
     /**

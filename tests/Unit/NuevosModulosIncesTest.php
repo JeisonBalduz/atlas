@@ -172,27 +172,33 @@ final class NuevosModulosIncesTest extends TestCase
     {
         $svc = new VacacionesService();
 
-        // 1. Caso base: Lunes hábil + 5 días (sin feriados) -> Viernes de esa misma semana
+        // 1. Caso base: Lunes hábil + 5 días (sin feriados) -> Lunes siguiente
         $base = $svc->calcularFechaFinYReincorporacion('2026-11-02', 5);
-        self::assertSame('2026-11-06', $base['fecha_final']);
-        self::assertSame('2026-11-09', $base['fecha_reincorporacion']);
+        self::assertSame('2026-11-09', $base['fecha_final']);
+        self::assertSame('2026-11-10', $base['fecha_reincorporacion']);
 
-        // 2. Caso mínimo: Día hábil + 1 día -> mismo día
+        // 2. Caso mínimo: Día hábil + 1 día -> siguiente día hábil
         $minimo = $svc->calcularFechaFinYReincorporacion('2026-11-02', 1);
-        self::assertSame('2026-11-02', $minimo['fecha_final']);
-        self::assertSame('2026-11-03', $minimo['fecha_reincorporacion']);
+        self::assertSame('2026-11-03', $minimo['fecha_final']);
+        self::assertSame('2026-11-04', $minimo['fecha_reincorporacion']);
 
-        // 3. Cruce de fin de semana: Jueves hábil + 4 días -> Martes siguiente
+        // 3. Cruce de fin de semana: Jueves hábil + 4 días -> Miércoles siguiente
         $cruceFinde = $svc->calcularFechaFinYReincorporacion('2026-11-05', 4);
-        self::assertSame('2026-11-10', $cruceFinde['fecha_final']);
-        self::assertSame('2026-11-11', $cruceFinde['fecha_reincorporacion']);
+        self::assertSame('2026-11-11', $cruceFinde['fecha_final']);
+        self::assertSame('2026-11-12', $cruceFinde['fecha_reincorporacion']);
 
         // 4. Cruce de feriados INCES y cambio de año (salta 17, 24, 25, 31 dic y 1 ene + fines de semana)
         $cruceAnio = $svc->calcularFechaFinYReincorporacion('2026-12-16', 10);
-        self::assertSame('2027-01-05', $cruceAnio['fecha_final']);
-        self::assertSame('2027-01-06', $cruceAnio['fecha_reincorporacion']);
+        self::assertSame('2027-01-06', $cruceAnio['fecha_final']);
+        self::assertSame('2027-01-07', $cruceAnio['fecha_reincorporacion']);
 
-        // 5. Entradas inválidas: sábado, domingo, feriado o días <= 0
+        // 5. Consistencia inversa: calcularDiasDisfrutadosPorCorte coincide exactamente con N
+        self::assertSame(0, $svc->calcularDiasDisfrutadosPorCorte('2026-11-02', '2026-11-02'));
+        self::assertSame(1, $svc->calcularDiasDisfrutadosPorCorte('2026-11-02', '2026-11-03'));
+        self::assertSame(5, $svc->calcularDiasDisfrutadosPorCorte('2026-11-02', '2026-11-09'));
+        self::assertSame(10, $svc->calcularDiasDisfrutadosPorCorte('2026-12-16', '2027-01-06'));
+
+        // 6. Entradas inválidas: sábado, domingo, feriado o días <= 0
         self::assertFalse($svc->esDiaHabilInces('2026-11-07')); // sábado
         self::assertFalse($svc->esDiaHabilInces('2026-11-08')); // domingo
         self::assertFalse($svc->esDiaHabilInces('2026-11-20')); // Día del Trabajador INCES
