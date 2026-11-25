@@ -1,6 +1,7 @@
 import { obtenerListaFeriadosInces } from '/js/utils/calcularDiasHabiles.js';
 
 const instanciasPorInput = new WeakMap();
+const opcionesPorInstancia = new WeakMap();
 const REGEX_FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 // Recibe un selector CSS o elemento input; devuelve el HTMLInputElement encontrado o null.
@@ -48,7 +49,13 @@ const construirDeshabilitados = (opciones = {}) => {
   }
 
   if (opciones.soloHabiles) {
-    obtenerListaFeriadosInces().forEach((feriado) => reglas.push(feriado));
+    const feriadosSet = new Set(obtenerListaFeriadosInces());
+    reglas.push((fecha) => {
+      const anio = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const dia = String(fecha.getDate()).padStart(2, '0');
+      return feriadosSet.has(`${anio}-${mes}-${dia}`);
+    });
   }
 
   if (Array.isArray(opciones.disableDates) && opciones.disableDates.length > 0) {
@@ -67,6 +74,51 @@ const obtenerLocaleEs = () => {
   return { firstDayOfWeek: 1 };
 };
 
+// Posiciona el calendario en coordenadas viewport (`position: fixed`) dentro de `<dialog>` evitando desfase y recorte.
+const posicionarCalendarioEnModal = (input, calendario, dialogoPadre) => {
+  if (!input || !calendario || !dialogoPadre?.open) return false;
+
+  const inputRect = input.getBoundingClientRect();
+  if (inputRect.width === 0 && inputRect.height === 0) return false;
+
+  const cuerpoModal = input.closest('[data-modal-cuerpo]');
+  if (cuerpoModal) {
+    const cuerpoRect = cuerpoModal.getBoundingClientRect();
+    const visibleEnCuerpo = inputRect.bottom > cuerpoRect.top + 4 && inputRect.top < cuerpoRect.bottom - 4;
+    if (!visibleEnCuerpo) return false;
+  }
+
+  if (inputRect.bottom <= 0 || inputRect.top >= window.innerHeight) {
+    return false;
+  }
+
+  calendario.classList.add('atlas-fp-modal');
+  calendario.style.position = 'fixed';
+  calendario.style.right = 'auto';
+  calendario.style.bottom = 'auto';
+  calendario.style.margin = '0';
+
+  const calRect = calendario.getBoundingClientRect();
+  const anchoCal = calRect.width || 312;
+  const altoCal = calRect.height || 320;
+  const margen = 8;
+
+  const espacioAbajo = window.innerHeight - inputRect.bottom;
+  const espacioArriba = inputRect.top;
+  const abrirArriba = espacioAbajo < altoCal + 10 && espacioArriba > espacioAbajo;
+
+  let top = abrirArriba ? inputRect.top - altoCal - 6 : inputRect.bottom + 6;
+  top = Math.max(margen, Math.min(top, window.innerHeight - altoCal - margen));
+
+  let left = inputRect.left;
+  left = Math.max(margen, Math.min(left, window.innerWidth - anchoCal - margen));
+
+  calendario.style.top = `${Math.round(top)}px`;
+  calendario.style.left = `${Math.round(left)}px`;
+
+  return true;
+};
+
 // Recibe dos fechas ISO YYYY-MM-DD; valida formato y que fechaFin sea mayor o igual que fechaInicio.
 export const validarRangoFechas = (fechaInicio, fechaFin) => {
   const inicio = String(fechaInicio || '').trim();
@@ -77,6 +129,17 @@ export const validarRangoFechas = (fechaInicio, fechaFin) => {
   return fin >= inicio;
 };
 
+/**
+ * Actualiza las reglas `disable` de una instancia Flatpickr (por ejemplo tras cargar feriados de BD).
+ * @param {object|null} instancia
+ */
+export const refrescarReglasCalendario = (instancia) => {
+  if (!instancia || typeof instancia.set !== 'function') return;
+  const opciones = opcionesPorInstancia.get(instancia);
+  if (!opciones) return;
+  instancia.set('disable', construirDeshabilitados(opciones));
+};
+
 // Recibe un selector o input y opciones; inicializa Flatpickr en formato YYYY-MM-DD con soporte para <dialog>.
 export const inicializarCalendario = (selectorOElemento, opciones = {}) => {
   const input = resolverInput(selectorOElemento);
@@ -85,6 +148,7 @@ export const inicializarCalendario = (selectorOElemento, opciones = {}) => {
   const existente = instanciasPorInput.get(input);
   if (existente) {
     try {
+      existente.close?.();
       existente.destroy();
     } catch {
       // Ignorar si la instancia previa ya fue destruida
@@ -97,6 +161,28 @@ export const inicializarCalendario = (selectorOElemento, opciones = {}) => {
   const valorInicial = REGEX_FECHA_ISO.test(input.value) ? input.value : '';
   const dialogoPadre = input.closest('dialog');
   const deshabilitados = construirDeshabilitados(opciones);
+  let controladorModalAbierto = null;
+
+  const sincronizarPosicionModal = (instancia) => {
+    const cal = instancia?.calendarContainer;
+    if (!dialogoPadre || !cal) return;
+
+    if (!posicionarCalendarioEnModal(input, cal, dialogoPadre)) {
+      instancia.close();
+    }
+  };
+
+  const limpiarEventosModal = (cal) => {
+    controladorModalAbierto?.abort();
+    controladorModalAbierto = null;
+    if (cal && typeof cal.hidePopover === 'function' && cal.matches?.(':popover-open')) {
+      try {
+        cal.hidePopover();
+      } catch {
+        // Ignorar si ya fue ocultado
+      }
+    }
+  };
 
   const configuracion = {
     locale: obtenerLocaleEs(),
@@ -109,6 +195,68 @@ export const inicializarCalendario = (selectorOElemento, opciones = {}) => {
     clickOpens: true,
     monthSelectorType: 'dropdown',
     disable: deshabilitados,
+    onOpen(_fechasSeleccionadas, _fechaStr, instancia) {
+      const cal = instancia?.calendarContainer;
+      if (!dialogoPadre || !cal) return;
+
+      cal.classList.add('atlas-fp-modal');
+      if (typeof cal.showPopover === 'function') {
+        if (!cal.hasAttribute('popover')) {
+          cal.setAttribute('popover', 'manual');
+        }
+        try {
+          if (!cal.matches?.(':popover-open')) {
+            cal.showPopover();
+          }
+        } catch {
+          // Respaldo silencioso si ya está en Top Layer
+        }
+      }
+
+      sincronizarPosicionModal(instancia);
+      requestAnimationFrame(() => {
+        if (instancia.isOpen) sincronizarPosicionModal(instancia);
+      });
+
+      controladorModalAbierto?.abort();
+      controladorModalAbierto = new AbortController();
+      const { signal } = controladorModalAbierto;
+
+      window.addEventListener(
+        'scroll',
+        (ev) => {
+          if (cal.contains(ev.target)) return;
+          sincronizarPosicionModal(instancia);
+        },
+        { capture: true, passive: true, signal }
+      );
+      window.addEventListener(
+        'resize',
+        () => sincronizarPosicionModal(instancia),
+        { passive: true, signal }
+      );
+      dialogoPadre.addEventListener(
+        'close',
+        () => instancia.close(),
+        { once: true, signal }
+      );
+    },
+    onMonthChange(_f, _s, instancia) {
+      if (dialogoPadre && instancia?.isOpen) {
+        requestAnimationFrame(() => sincronizarPosicionModal(instancia));
+      }
+    },
+    onYearChange(_f, _s, instancia) {
+      if (dialogoPadre && instancia?.isOpen) {
+        requestAnimationFrame(() => sincronizarPosicionModal(instancia));
+      }
+    },
+    onClose(_fechasSeleccionadas, _fechaStr, instancia) {
+      limpiarEventosModal(instancia?.calendarContainer);
+    },
+    onDestroy(_fechasSeleccionadas, _fechaStr, instancia) {
+      limpiarEventosModal(instancia?.calendarContainer);
+    },
     onChange(_fechasSeleccionadas, fechaStr, instancia) {
       if (input.value !== fechaStr) {
         input.value = fechaStr;
@@ -129,6 +277,7 @@ export const inicializarCalendario = (selectorOElemento, opciones = {}) => {
 
   const instancia = window.flatpickr(input, configuracion);
   instanciasPorInput.set(input, instancia);
+  opcionesPorInstancia.set(instancia, { ...opciones });
 
   if (input.form && !input.dataset.fpResetVinculado) {
     input.dataset.fpResetVinculado = '1';

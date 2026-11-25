@@ -73,6 +73,7 @@ $router->group('/api', function (Router $router): void {
 
     // --- Vacaciones ---
     $router->get('/vacaciones', [RegistroVacacionesController::class, 'listar']);
+    $router->get('/vacaciones/feriados', [RegistroVacacionesController::class, 'feriados']);
     $router->get('/vacaciones/saldo/@empleadoId:[0-9]+', [RegistroVacacionesController::class, 'saldo']);
     $router->get('/vacaciones/@id:[0-9]+', [RegistroVacacionesController::class, 'show']);
     $router->post('/vacaciones', [RegistroVacacionesController::class, 'store']);

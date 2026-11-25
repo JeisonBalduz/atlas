@@ -401,6 +401,18 @@
   z-index: 9996;
 }
 
+.flatpickr-calendar.atlas-fp-modal {
+  position: fixed !important;
+  inset: auto;
+  margin: 0 !important;
+  z-index: 9999;
+}
+
+.flatpickr-calendar.atlas-fp-modal[popover] {
+  overflow: visible;
+  color: inherit;
+}
+
 .flatpickr-calendar::before,
 .flatpickr-calendar::after {
   display: none;

@@ -88,6 +88,27 @@ class RegistroVacacionesController extends BaseController
     }
 
     /**
+     * [GET] Lista los días feriados aplicables (nacionales, contractuales INCES y móviles) desde PostgreSQL.
+     */
+    public function feriados(): void
+    {
+        $query = $this->app->request()->query;
+        $anioActual = (int) date('Y');
+        $anioInicioRaw = $query['anio_inicio'] ?? $anioActual;
+        $anioFinRaw = $query['anio_fin'] ?? ($anioActual + 1);
+
+        $anioInicio = is_numeric($anioInicioRaw) ? (int) $anioInicioRaw : $anioActual;
+        $anioFin = is_numeric($anioFinRaw) ? (int) $anioFinRaw : ($anioActual + 1);
+
+        try {
+            $catalogo = $this->vacacionesService->obtenerCatalogoFeriados($anioInicio, $anioFin);
+            $this->jsonOk($catalogo);
+        } catch (Throwable) {
+            $this->jsonError('No se pudieron consultar los días feriados.', 500);
+        }
+    }
+
+    /**
      * [GET] Consulta el saldo real de días pendientes de un trabajador (`vw_resumen_vacaciones` + `vw_balance_vacaciones`).
      */
     public function saldo(string $empleadoId): void

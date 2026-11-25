@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use App\Controller\AsistenciaController;
+use App\Controller\RegistroVacacionesController;
 use App\Controller\RolesPermisosController;
 use App\Controller\UsuariosController;
+use App\Services\CatalogosService;
 use App\Model\Asistencia\AusenciaJustificadaModel;
 use App\Model\Asistencia\DetalleAsistenciaModel;
 use App\Model\Asistencia\DetalleReposoModel;
@@ -164,6 +166,82 @@ final class NuevosModulosIncesTest extends TestCase
 
         self::assertSame(6, (int) $valida->fresh()?->estatus);
         self::assertSame(3, $svc->obtenerDiasDisponibles(1));
+    }
+
+    public function testVacacionesCalculoFechaFinalDesdeInicioYCantidadDiasHabiles(): void
+    {
+        $svc = new VacacionesService();
+
+        // 1. Caso base: Lunes hábil + 5 días (sin feriados) -> Viernes de esa misma semana
+        $base = $svc->calcularFechaFinYReincorporacion('2026-11-02', 5);
+        self::assertSame('2026-11-06', $base['fecha_final']);
+        self::assertSame('2026-11-09', $base['fecha_reincorporacion']);
+
+        // 2. Caso mínimo: Día hábil + 1 día -> mismo día
+        $minimo = $svc->calcularFechaFinYReincorporacion('2026-11-02', 1);
+        self::assertSame('2026-11-02', $minimo['fecha_final']);
+        self::assertSame('2026-11-03', $minimo['fecha_reincorporacion']);
+
+        // 3. Cruce de fin de semana: Jueves hábil + 4 días -> Martes siguiente
+        $cruceFinde = $svc->calcularFechaFinYReincorporacion('2026-11-05', 4);
+        self::assertSame('2026-11-10', $cruceFinde['fecha_final']);
+        self::assertSame('2026-11-11', $cruceFinde['fecha_reincorporacion']);
+
+        // 4. Cruce de feriados INCES y cambio de año (salta 17, 24, 25, 31 dic y 1 ene + fines de semana)
+        $cruceAnio = $svc->calcularFechaFinYReincorporacion('2026-12-16', 10);
+        self::assertSame('2027-01-05', $cruceAnio['fecha_final']);
+        self::assertSame('2027-01-06', $cruceAnio['fecha_reincorporacion']);
+
+        // 5. Entradas inválidas: sábado, domingo, feriado o días <= 0
+        self::assertFalse($svc->esDiaHabilInces('2026-11-07')); // sábado
+        self::assertFalse($svc->esDiaHabilInces('2026-11-08')); // domingo
+        self::assertFalse($svc->esDiaHabilInces('2026-11-20')); // Día del Trabajador INCES
+        self::assertSame('', $svc->calcularFechaFinYReincorporacion('2026-11-07', 3)['fecha_final']);
+        self::assertSame('', $svc->calcularFechaFinYReincorporacion('2026-11-02', 0)['fecha_final']);
+    }
+
+    public function testVacacionesLeeCatalogoDiasFeriadosYLoExponePorEndpoint(): void
+    {
+        $schema = $this->capsule->getConnection()->getSchemaBuilder();
+        $schema->create('dias_feriados', static function (Blueprint $t): void {
+            $t->increments('feriado_id');
+            $t->date('fecha')->nullable();
+            $t->integer('mes')->nullable();
+            $t->integer('dia')->nullable();
+            $t->string('tipo')->default('Nacional');
+            $t->string('descripcion');
+            $t->boolean('es_recurrente')->default(false);
+            $t->boolean('activo')->default(true);
+        });
+
+        $this->capsule->getConnection()->table('dias_feriados')->insert([
+            ['fecha' => null, 'mes' => 1, 'dia' => 1, 'tipo' => 'Nacional', 'descripcion' => 'Año Nuevo', 'es_recurrente' => true, 'activo' => true],
+            ['fecha' => null, 'mes' => 12, 'dia' => 17, 'tipo' => 'Contractual INCES', 'descripcion' => 'INCES 17 Dic', 'es_recurrente' => true, 'activo' => true],
+            ['fecha' => null, 'mes' => 12, 'dia' => 24, 'tipo' => 'Contractual INCES', 'descripcion' => 'INCES 24 Dic', 'es_recurrente' => true, 'activo' => true],
+            ['fecha' => null, 'mes' => 12, 'dia' => 25, 'tipo' => 'Nacional', 'descripcion' => 'Navidad', 'es_recurrente' => true, 'activo' => true],
+            ['fecha' => null, 'mes' => 12, 'dia' => 31, 'tipo' => 'Contractual INCES', 'descripcion' => 'INCES 31 Dic', 'es_recurrente' => true, 'activo' => true],
+            ['fecha' => '2026-04-02', 'mes' => null, 'dia' => null, 'tipo' => 'Móvil', 'descripcion' => 'Jueves Santo 2026', 'es_recurrente' => false, 'activo' => true],
+            ['fecha' => '2026-04-03', 'mes' => null, 'dia' => null, 'tipo' => 'Móvil', 'descripcion' => 'Viernes Santo 2026', 'es_recurrente' => false, 'activo' => true],
+            ['fecha' => '2027-03-25', 'mes' => null, 'dia' => null, 'tipo' => 'Móvil', 'descripcion' => 'Jueves Santo 2027', 'es_recurrente' => false, 'activo' => true],
+            ['fecha' => '2027-03-26', 'mes' => null, 'dia' => null, 'tipo' => 'Móvil', 'descripcion' => 'Viernes Santo 2027', 'es_recurrente' => false, 'activo' => true],
+        ]);
+
+        $svc = new VacacionesService();
+        $catalogo = $svc->obtenerCatalogoFeriados(2026, 2027);
+        self::assertContains('2026-12-17', $catalogo['fechas']);
+        self::assertContains('2026-12-24', $catalogo['fechas']);
+        self::assertContains('2026-12-25', $catalogo['fechas']);
+        self::assertContains('2026-12-31', $catalogo['fechas']);
+        self::assertContains('2027-01-01', $catalogo['fechas']);
+        self::assertContains('2027-03-25', $catalogo['fechas']);
+
+        $app = $this->crearMockEngine('GET', [], ['anio_inicio' => '2026', 'anio_fin' => '2027']);
+        $controller = new RegistroVacacionesController($app, $this->config, new CatalogosService(), $svc);
+        $controller->feriados();
+
+        self::assertSame(200, $this->ultimoCodigo);
+        self::assertTrue((bool) ($this->ultimoJson['ok'] ?? false));
+        self::assertContains('2027-01-01', $this->ultimoJson['data']['fechas'] ?? []);
     }
 
     public function testReanudarAusenciaAcortaLapsoYDevuelveDiasNoCumplidos(): void

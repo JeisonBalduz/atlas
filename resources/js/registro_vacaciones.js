@@ -8,8 +8,8 @@ import {
 } from '/js/components/alerta/alerta.js';
 import { crearBadge } from '/js/components/badge/crearBadge.js';
 import {
-  inicializarRangoFechas,
-  validarRangoFechas,
+  inicializarCalendario,
+  refrescarReglasCalendario,
 } from '/js/components/calendario/calendario.js';
 import { Modal } from '/js/components/modal/Modal.js';
 import { inicializarSelectsPersonalizados } from '/js/components/select/selectPersonalizado.js';
@@ -18,8 +18,94 @@ import {
   columnasTablaVacaciones,
   varianteEstatusVacaciones,
 } from '/js/templates/tabla_vacaciones.js';
-import { calcularDiasHabiles } from '/js/utils/calcularDiasHabiles.js';
+import {
+  calcularFechaFinalHabiles,
+  esDiaHabilInces,
+  esFechaIsoValida,
+  establecerFeriadosRemotos,
+} from '/js/utils/calcularDiasHabiles.js';
 import { formatearFecha } from '/js/utils/formatearFecha.js';
+
+const toggleMensajeCampo = (nodoError, mensaje = '') => {
+  if (!nodoError) return;
+  if (mensaje) {
+    nodoError.textContent = mensaje;
+    nodoError.classList.remove('hidden');
+  } else {
+    nodoError.textContent = '';
+    nodoError.classList.add('hidden');
+  }
+};
+
+const actualizarCalculoVacaciones = ({
+  inputInicio,
+  inputDias,
+  inputFin,
+  nodoReincorporacion,
+  nodoErrorInicio,
+  nodoErrorDias,
+  saldoMaximo = null,
+}) => {
+  const inicio = String(inputInicio?.value || '').trim();
+  const diasTexto = String(inputDias?.value || '').trim();
+
+  toggleMensajeCampo(nodoErrorInicio, '');
+  toggleMensajeCampo(nodoErrorDias, '');
+
+  let hayError = false;
+
+  if (inicio !== '' && (!esFechaIsoValida(inicio) || !esDiaHabilInces(inicio))) {
+    toggleMensajeCampo(
+      nodoErrorInicio,
+      'La fecha de inicio debe ser un día hábil laborable (lunes a viernes, no feriado).'
+    );
+    hayError = true;
+  }
+
+  let dias = 0;
+  if (diasTexto !== '') {
+    if (!/^\d+$/.test(diasTexto) || Number(diasTexto) < 1) {
+      toggleMensajeCampo(nodoErrorDias, 'Ingresa una cantidad entera de días mayor o igual a 1.');
+      hayError = true;
+    } else {
+      dias = Number(diasTexto);
+      if (saldoMaximo !== null && dias > saldoMaximo) {
+        toggleMensajeCampo(
+          nodoErrorDias,
+          `Los días ingresados (${dias}) superan el saldo disponible (${saldoMaximo} días).`
+        );
+        hayError = true;
+      }
+    }
+  }
+
+  if (hayError || inicio === '' || dias < 1) {
+    if (inputFin) inputFin.value = '';
+    if (nodoReincorporacion) {
+      nodoReincorporacion.textContent = '';
+      nodoReincorporacion.classList.add('hidden');
+    }
+    return { valido: false, inicio, dias, fechaFinal: '', fechaReincorporacion: '' };
+  }
+
+  const { fechaFinal, fechaReincorporacion } = calcularFechaFinalHabiles(inicio, dias);
+  if (!fechaFinal) {
+    if (inputFin) inputFin.value = '';
+    if (nodoReincorporacion) {
+      nodoReincorporacion.textContent = '';
+      nodoReincorporacion.classList.add('hidden');
+    }
+    return { valido: false, inicio, dias, fechaFinal: '', fechaReincorporacion: '' };
+  }
+
+  if (inputFin) inputFin.value = fechaFinal;
+  if (nodoReincorporacion && fechaReincorporacion) {
+    nodoReincorporacion.textContent = `Reincorporación estimada: ${formatearFecha(fechaReincorporacion)} (siguiente día hábil)`;
+    nodoReincorporacion.classList.remove('hidden');
+  }
+
+  return { valido: true, inicio, dias, fechaFinal, fechaReincorporacion };
+};
 
 const renderDetalleVacaciones = (detalle) => {
   const filasPeriodos = (detalle.periodos_descontados || [])
@@ -81,17 +167,18 @@ const renderFormularioEdicionVacaciones = (registro) => `
         <div class="relative">
           <input id="edit-vac-inicio" name="fecha_inicio" type="date" value="${registro.fecha_inicio || ''}" required class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
         </div>
+        <p id="edit-vac-inicio-error" class="hidden mt-1 text-xs font-medium text-red-600" role="alert"></p>
       </div>
       <div>
-        <label for="edit-vac-fin" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha final *</label>
-        <div class="relative">
-          <input id="edit-vac-fin" name="fecha_final" type="date" value="${registro.fecha_final || ''}" required class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
-        </div>
+        <label for="edit-vac-dias" class="block text-sm font-medium text-zinc-900 mb-1.5">Días a disfrutar *</label>
+        <input id="edit-vac-dias" name="dias_solicitados" type="number" min="1" step="1" inputmode="numeric" value="${registro.dias_solicitado || 1}" required class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+        <p id="edit-vac-dias-error" class="hidden mt-1 text-xs font-medium text-red-600" role="alert"></p>
       </div>
     </div>
     <div>
-      <label for="edit-vac-dias" class="block text-sm font-medium text-zinc-900 mb-1.5">Días hábiles calculados</label>
-      <input id="edit-vac-dias" name="dias_solicitados" type="number" value="${registro.dias_solicitado || 0}" readonly class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2.5 text-sm font-semibold text-zinc-900 outline-none" />
+      <label for="edit-vac-fin" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha final (último día hábil) *</label>
+      <input id="edit-vac-fin" name="fecha_final" type="text" value="${registro.fecha_final || ''}" readonly required class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2.5 text-sm font-semibold text-zinc-700 outline-none cursor-not-allowed" />
+      <p id="edit-vac-reincorporacion" class="hidden mt-1.5 text-xs font-medium text-zinc-500"></p>
     </div>
     <label class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer">
       <span class="text-sm font-medium text-zinc-900">Requiere firma de Gerencia</span>
@@ -132,11 +219,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const nodoDiasPendientes = document.getElementById('saldo-dias-pendientes');
   const nodoPeriodosActivos = document.getElementById('saldo-periodos-activos');
   const inputInicio = document.getElementById('fecha_inicio');
-  const inputFin = document.getElementById('fecha_final');
   const inputDias = document.getElementById('dias_solicitado');
+  const inputFin = document.getElementById('fecha_final');
+  const nodoReincorporacion = document.getElementById('texto-reincorporacion-vacaciones');
+  const nodoErrorInicio = document.getElementById('fecha_inicio-error');
+  const nodoErrorDias = document.getElementById('dias_solicitado-error');
   const filtroEstatus = document.getElementById('filtro-estatus-vacaciones');
 
   let saldoActualEmpleado = null;
+  let calEditInicioActivo = null;
+  let recalcularEditActivo = null;
+
+  if (inputDias) {
+    inputDias.min = '1';
+    inputDias.step = '1';
+    inputDias.inputMode = 'numeric';
+  }
+  if (inputFin) {
+    inputFin.readOnly = true;
+    inputFin.classList.remove('bg-slate-50');
+    inputFin.classList.add('bg-slate-100', 'font-semibold', 'text-zinc-700', 'cursor-not-allowed');
+  }
 
   const actualizarResumenCards = (resumen) => {
     if (!resumen) return;
@@ -148,10 +251,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  const recalcularPrincipal = () =>
+    actualizarCalculoVacaciones({
+      inputInicio,
+      inputDias,
+      inputFin,
+      nodoReincorporacion,
+      nodoErrorInicio,
+      nodoErrorDias,
+      saldoMaximo: saldoActualEmpleado,
+    });
+
   const consultarSaldoEmpleado = async (empleadoId) => {
     saldoActualEmpleado = null;
+    if (inputDias) inputDias.removeAttribute('max');
+
     if (!empleadoId) {
       tarjetaSaldo?.classList.add('hidden');
+      recalcularPrincipal();
       return;
     }
 
@@ -162,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (res.aborted) return;
     if (!res.ok || !res.data?.ok) {
       tarjetaSaldo?.classList.add('hidden');
+      recalcularPrincipal();
       return;
     }
 
@@ -170,27 +288,49 @@ document.addEventListener('DOMContentLoaded', () => {
     saldoActualEmpleado = diasPendientes;
     const periodosTexto = saldo.resumen_periodos || 'Sin períodos abiertos';
 
+    if (inputDias && diasPendientes > 0) {
+      inputDias.max = String(diasPendientes);
+    }
     if (nodoDiasPendientes) {
       nodoDiasPendientes.textContent = `${diasPendientes} días`;
       nodoDiasPendientes.dataset.dias = String(diasPendientes);
     }
     if (nodoPeriodosActivos) nodoPeriodosActivos.textContent = periodosTexto;
     tarjetaSaldo?.classList.remove('hidden');
+    recalcularPrincipal();
   };
 
   selectEmpleado?.addEventListener('change', () => consultarSaldoEmpleado(selectEmpleado.value));
 
-  const actualizarDiasHabiles = () => {
-    const dias = calcularDiasHabiles(inputInicio?.value, inputFin?.value);
-    if (inputDias) inputDias.value = dias > 0 ? String(dias) : '';
-  };
-
-  inicializarRangoFechas(inputInicio, inputFin, {
+  const calInicio = inicializarCalendario(inputInicio, {
     soloHabiles: true,
-    alCambiarRango: actualizarDiasHabiles,
+    alSeleccionar: recalcularPrincipal,
   });
-  inputInicio?.addEventListener('change', actualizarDiasHabiles);
-  inputFin?.addEventListener('change', actualizarDiasHabiles);
+
+  inputInicio?.addEventListener('input', recalcularPrincipal);
+  inputInicio?.addEventListener('change', recalcularPrincipal);
+  inputDias?.addEventListener('input', recalcularPrincipal);
+  inputDias?.addEventListener('change', recalcularPrincipal);
+
+  const cargarFeriadosLocales = async () => {
+    const anioActual = new Date().getFullYear();
+    const res = await Solicitud.get('/api/vacaciones/feriados', {
+      params: { anio_inicio: anioActual - 1, anio_fin: anioActual + 2 },
+      claveCancelacion: 'feriados-vacaciones',
+    });
+
+    if (!res.ok || !res.data?.ok) return;
+    const fechas = Array.isArray(res.data.data?.fechas) ? res.data.data.fechas : [];
+    if (fechas.length === 0) return;
+
+    establecerFeriadosRemotos(fechas);
+    refrescarReglasCalendario(calInicio);
+    if (calEditInicioActivo) {
+      refrescarReglasCalendario(calEditInicioActivo);
+    }
+    recalcularPrincipal();
+    recalcularEditActivo?.();
+  };
 
   const ejecutarCambioEstatus = async (id, payload) => {
     const res = await Solicitud.post(`/api/vacaciones/${id}/estatus`, payload);
@@ -265,6 +405,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const abrirModalEditar = (registro) => {
     const id = registro.solicitud_vacaciones_id;
+    let saldoEditMaximo = null;
+
     modalAccion.abrir({
       titulo: `Editar solicitud #${id}`,
       subtitulo: `${registro.nombre_completo} · ${registro.cedula}`,
@@ -274,24 +416,38 @@ document.addEventListener('DOMContentLoaded', () => {
       varianteConfirmar: 'marca',
       alConfirmar: async (dlg) => {
         const form = dlg.querySelector('#form-editar-vacaciones');
-        const inicio = form?.elements?.fecha_inicio?.value || '';
-        const fin = form?.elements?.fecha_final?.value || '';
-        const dias = calcularDiasHabiles(inicio, fin);
+        const editInicio = form?.elements?.fecha_inicio;
+        const editDias = form?.elements?.dias_solicitados;
+        const editFin = form?.elements?.fecha_final;
+        const editReinc = dlg.querySelector('#edit-vac-reincorporacion');
+        const editErrIni = dlg.querySelector('#edit-vac-inicio-error');
+        const editErrDias = dlg.querySelector('#edit-vac-dias-error');
+
+        const calculo = actualizarCalculoVacaciones({
+          inputInicio: editInicio,
+          inputDias: editDias,
+          inputFin: editFin,
+          nodoReincorporacion: editReinc,
+          nodoErrorInicio: editErrIni,
+          nodoErrorDias: editErrDias,
+          saldoMaximo: saldoEditMaximo,
+        });
+
+        if (!calculo.valido) {
+          const msg =
+            editErrIni?.textContent ||
+            editErrDias?.textContent ||
+            'Verifica la fecha de inicio hábil y la cantidad de días a disfrutar.';
+          notificarErrorFormulario(form, msg);
+          return false;
+        }
+
         const gerencia = Boolean(form?.elements?.gerencia?.checked);
 
-        if (!validarRangoFechas(inicio, fin)) {
-          notificarErrorFormulario(form, 'La fecha final debe ser mayor o igual a la fecha de inicio.');
-          return false;
-        }
-        if (dias <= 0) {
-          notificarErrorFormulario(form, 'El rango seleccionado debe contener al menos un día hábil INCES.');
-          return false;
-        }
-
         const res = await Solicitud.put(`/api/vacaciones/${id}`, {
-          fecha_inicio: inicio,
-          fecha_final: fin,
-          dias_solicitados: dias,
+          fecha_inicio: calculo.inicio,
+          fecha_final: calculo.fechaFinal,
+          dias_solicitados: calculo.dias,
           gerencia,
         });
 
@@ -309,15 +465,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (modalAccion.dialogo) {
       const editInicio = modalAccion.dialogo.querySelector('#edit-vac-inicio');
-      const editFin = modalAccion.dialogo.querySelector('#edit-vac-fin');
       const editDias = modalAccion.dialogo.querySelector('#edit-vac-dias');
-      const recalcularEdit = () => {
-        if (editDias) editDias.value = String(calcularDiasHabiles(editInicio?.value, editFin?.value));
-      };
-      inicializarRangoFechas(editInicio, editFin, {
+      const editFin = modalAccion.dialogo.querySelector('#edit-vac-fin');
+      const editReinc = modalAccion.dialogo.querySelector('#edit-vac-reincorporacion');
+      const editErrIni = modalAccion.dialogo.querySelector('#edit-vac-inicio-error');
+      const editErrDias = modalAccion.dialogo.querySelector('#edit-vac-dias-error');
+
+      const recalcularEdit = () =>
+        actualizarCalculoVacaciones({
+          inputInicio: editInicio,
+          inputDias: editDias,
+          inputFin: editFin,
+          nodoReincorporacion: editReinc,
+          nodoErrorInicio: editErrIni,
+          nodoErrorDias: editErrDias,
+          saldoMaximo: saldoEditMaximo,
+        });
+
+      recalcularEditActivo = recalcularEdit;
+      calEditInicioActivo = inicializarCalendario(editInicio, {
         soloHabiles: true,
-        alCambiarRango: recalcularEdit,
+        alSeleccionar: recalcularEdit,
       });
+
+      editInicio?.addEventListener('input', recalcularEdit);
+      editInicio?.addEventListener('change', recalcularEdit);
+      editDias?.addEventListener('input', recalcularEdit);
+      editDias?.addEventListener('change', recalcularEdit);
+
+      recalcularEdit();
+
+      if (registro.empleado_id) {
+        Solicitud.get(`/api/vacaciones/saldo/${registro.empleado_id}`, {
+          claveCancelacion: 'saldo-vacaciones-editar',
+        }).then((resSaldo) => {
+          if (resSaldo.aborted || !resSaldo.ok || !resSaldo.data?.ok) return;
+          const disponibles = Number(resSaldo.data.data?.dias_pendientes || 0);
+          const estatusNum = Number(registro.estatus);
+          const yaDescontada = estatusNum === 2 || estatusNum === 4;
+          saldoEditMaximo = yaDescontada
+            ? disponibles + Number(registro.dias_solicitado || 0)
+            : disponibles;
+          if (editDias && saldoEditMaximo > 0) {
+            editDias.max = String(saldoEditMaximo);
+          }
+          recalcularEdit();
+        });
+      }
     }
   };
 
@@ -392,9 +586,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (enviando) return;
 
     const empleadoId = Number(selectEmpleado?.value || 0);
-    const inicio = inputInicio?.value || '';
-    const fin = inputFin?.value || '';
-    const dias = calcularDiasHabiles(inicio, fin);
     const gerencia = Boolean(document.getElementById('gerencia')?.checked);
 
     if (!empleadoId) {
@@ -402,21 +593,37 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (!validarRangoFechas(inicio, fin)) {
-      notificarErrorFormulario(formulario, 'La fecha final debe ser mayor o igual a la fecha de inicio.');
+    const calculo = recalcularPrincipal();
+    if (!calculo.inicio) {
+      notificarErrorFormulario(formulario, 'Selecciona una fecha de inicio válida.');
       return;
     }
 
-    if (dias <= 0) {
-      notificarErrorFormulario(formulario, 'El rango elegido no contiene días hábiles laborables según la normativa INCES.');
+    if (!esFechaIsoValida(calculo.inicio) || !esDiaHabilInces(calculo.inicio)) {
+      notificarErrorFormulario(
+        formulario,
+        'La fecha de inicio debe ser un día hábil laborable (lunes a viernes, no feriado).'
+      );
       return;
     }
 
+    const diasRaw = String(inputDias?.value || '').trim();
+    if (!/^\d+$/.test(diasRaw) || Number(diasRaw) < 1) {
+      notificarErrorFormulario(formulario, 'Ingresa una cantidad entera de días mayor o igual a 1.');
+      return;
+    }
+
+    const dias = Number(diasRaw);
     if (saldoActualEmpleado !== null && saldoActualEmpleado < dias) {
       notificarErrorFormulario(
         formulario,
         `El trabajador dispone de ${saldoActualEmpleado} días pendientes y está solicitando ${dias} días hábiles.`
       );
+      return;
+    }
+
+    if (!calculo.valido || !calculo.fechaFinal) {
+      notificarErrorFormulario(formulario, 'No se pudo calcular la fecha final de vacaciones.');
       return;
     }
 
@@ -428,8 +635,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await Solicitud.post('/api/vacaciones', {
         empleado_id: empleadoId,
         dias_solicitados: dias,
-        fecha_inicio: inicio,
-        fecha_final: fin,
+        fecha_inicio: calculo.inicio,
+        fecha_final: calculo.fechaFinal,
         gerencia,
       });
 
@@ -440,6 +647,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       notificarExitoFormulario(formulario, res.data.message || 'Solicitud de vacaciones registrada correctamente.');
       formulario.reset();
+      if (inputFin) inputFin.value = '';
+      if (inputDias) inputDias.removeAttribute('max');
+      if (nodoReincorporacion) {
+        nodoReincorporacion.textContent = '';
+        nodoReincorporacion.classList.add('hidden');
+      }
+      toggleMensajeCampo(nodoErrorInicio, '');
+      toggleMensajeCampo(nodoErrorDias, '');
       limpiarAlertaFormulario(formulario);
       tarjetaSaldo?.classList.add('hidden');
       saldoActualEmpleado = null;
@@ -450,5 +665,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  cargarFeriadosLocales();
   cargarSolicitudes();
 });

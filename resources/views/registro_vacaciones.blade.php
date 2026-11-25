@@ -111,25 +111,29 @@
                 @endcomponent
 
                 @component('components.input', [
-                    'label' => 'Fecha final',
-                    'id' => 'fecha_final',
-                    'name' => 'fecha_final',
-                    'type' => 'date',
+                    'label' => 'Días a disfrutar',
+                    'id' => 'dias_solicitado',
+                    'name' => 'dias_solicitado',
+                    'type' => 'number',
+                    'placeholder' => 'Ej. 5',
                     'required' => true,
                 ])
                 @endcomponent
             </div>
 
-            @component('components.input', [
-                'label' => 'Días hábiles solicitados (cálculo automático)',
-                'id' => 'dias_solicitado',
-                'name' => 'dias_solicitado',
-                'type' => 'number',
-                'placeholder' => '0',
-                'readonly' => true,
-                'required' => true,
-            ])
-            @endcomponent
+            <div>
+                @component('components.input', [
+                    'label' => 'Fecha final (último día hábil)',
+                    'id' => 'fecha_final',
+                    'name' => 'fecha_final',
+                    'type' => 'text',
+                    'placeholder' => 'Se calcula automáticamente',
+                    'readonly' => true,
+                    'required' => true,
+                ])
+                @endcomponent
+                <p id="texto-reincorporacion-vacaciones" class="hidden mt-1.5 text-xs font-medium text-zinc-500"></p>
+            </div>
 
             {{-- Switch / checkbox de autorización gerencial --}}
             <label class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer">

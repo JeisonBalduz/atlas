@@ -14,6 +14,9 @@ use InvalidArgumentException;
  */
 final class VacacionesService extends BaseVistaService
 {
+    /** @var array<int, list<string>> */
+    private array $feriadosPorAnioCache = [];
+
     private const FERIADOS_FIJOS_MM_DD = [
         '01-01',
         '03-19',
@@ -29,6 +32,92 @@ final class VacacionesService extends BaseVistaService
         '12-25',
         '12-31',
     ];
+
+    /**
+     * Indica si una fecha `YYYY-MM-DD` es día hábil laborable según normativa INCES (lunes a viernes no feriado).
+     */
+    public function esDiaHabilInces(string $fecha): bool
+    {
+        $fechaObj = DateTimeImmutable::createFromFormat('!Y-m-d', trim($fecha));
+        if (!$fechaObj instanceof DateTimeImmutable) {
+            return false;
+        }
+
+        if ((int) $fechaObj->format('N') > 5) {
+            return false;
+        }
+
+        $anio = (int) $fechaObj->format('Y');
+        $feriados = $this->feriadosIncesPorAnio($anio);
+
+        return !in_array($fechaObj->format('Y-m-d'), $feriados, true);
+    }
+
+    /**
+     * Calcula la fecha final (último día hábil de disfrute inclusive) y la fecha de reincorporación
+     * (siguiente día hábil) a partir de una fecha de inicio hábil y una cantidad de días hábiles >= 1.
+     *
+     * @return array{fecha_final: string, fecha_reincorporacion: string}
+     */
+    public function calcularFechaFinYReincorporacion(string $fechaInicio, int $diasHabiles): array
+    {
+        $cursor = DateTimeImmutable::createFromFormat('!Y-m-d', trim($fechaInicio));
+        if (!$cursor instanceof DateTimeImmutable || $diasHabiles < 1 || !$this->esDiaHabilInces($cursor->format('Y-m-d'))) {
+            return [
+                'fecha_final' => '',
+                'fecha_reincorporacion' => '',
+            ];
+        }
+
+        $contados = 1;
+        while ($contados < $diasHabiles) {
+            $cursor = $cursor->modify('+1 day');
+            if ($this->esDiaHabilInces($cursor->format('Y-m-d'))) {
+                $contados++;
+            }
+        }
+
+        $fechaFinal = $cursor->format('Y-m-d');
+
+        $reincorporacion = $cursor->modify('+1 day');
+        while (!$this->esDiaHabilInces($reincorporacion->format('Y-m-d'))) {
+            $reincorporacion = $reincorporacion->modify('+1 day');
+        }
+
+        return [
+            'fecha_final' => $fechaFinal,
+            'fecha_reincorporacion' => $reincorporacion->format('Y-m-d'),
+        ];
+    }
+
+    /**
+     * Devuelve los feriados aplicables (desde `dias_feriados` con respaldo offline) para un rango de años.
+     *
+     * @return array{
+     *     fechas: list<string>,
+     *     detalle: list<array{fecha: string, tipo: string, descripcion: string}>
+     * }
+     */
+    public function obtenerCatalogoFeriados(int $anioInicio, int $anioFin): array
+    {
+        $desde = max(1930, min($anioInicio, $anioFin));
+        $hasta = min($desde + 5, max($anioInicio, $anioFin));
+
+        $mapaDetalle = [];
+        for ($anio = $desde; $anio <= $hasta; $anio++) {
+            foreach ($this->feriadosDetalladosPorAnio($anio) as $item) {
+                $mapaDetalle[$item['fecha']] = $item;
+            }
+        }
+
+        ksort($mapaDetalle);
+        $fechas = array_keys($mapaDetalle);
+
+        return [
+            'fechas' => $fechas,
+            'detalle' => array_values($mapaDetalle),
+        ];
+    }
 
     /**
      * Calcula los días hábiles INCES (Cláusulas 6, 7 y 29) entre dos fechas `YYYY-MM-DD`.
@@ -512,17 +601,104 @@ final class VacacionesService extends BaseVistaService
      */
     private function feriadosIncesPorAnio(int $anio): array
     {
-        $feriados = array_map(
-            static fn (string $mmdd): string => sprintf('%04d-%s', $anio, $mmdd),
-            self::FERIADOS_FIJOS_MM_DD
-        );
-
-        $pascua = $this->calcularDomingoPascua($anio);
-        foreach ([-48, -47, -3, -2] as $offset) {
-            $feriados[] = $pascua->modify("{$offset} days")->format('Y-m-d');
+        if (isset($this->feriadosPorAnioCache[$anio])) {
+            return $this->feriadosPorAnioCache[$anio];
         }
 
-        return $feriados;
+        $fechas = array_map(
+            static fn (array $item): string => $item['fecha'],
+            $this->feriadosDetalladosPorAnio($anio)
+        );
+
+        return $this->feriadosPorAnioCache[$anio] = array_values(array_unique($fechas));
+    }
+
+    /**
+     * Consulta `dias_feriados` para un año específico (recurrentes + fechas específicas),
+     * manteniendo cálculo local de respaldo si la tabla aún no existe en entornos de prueba.
+     *
+     * @return list<array{fecha: string, tipo: string, descripcion: string}>
+     */
+    private function feriadosDetalladosPorAnio(int $anio): array
+    {
+        $items = [];
+        $tieneMovilesEnTabla = false;
+
+        try {
+            $filas = DB::table('dias_feriados')
+                ->where('activo', true)
+                ->where(static function ($q) use ($anio): void {
+                    $q->where('es_recurrente', true)
+                        ->orWhere(static function ($sub) use ($anio): void {
+                            $sub->where('es_recurrente', false)
+                                ->where('fecha', '>=', sprintf('%04d-01-01', $anio))
+                                ->where('fecha', '<=', sprintf('%04d-12-31', $anio));
+                        });
+                })
+                ->get(['fecha', 'mes', 'dia', 'tipo', 'descripcion', 'es_recurrente']);
+
+            foreach ($filas as $fila) {
+                $esRecurrente = (bool) ($fila->es_recurrente ?? false);
+                if ($esRecurrente) {
+                    $mes = (int) ($fila->mes ?? 0);
+                    $dia = (int) ($fila->dia ?? 0);
+                    if ($mes < 1 || $mes > 12 || $dia < 1 || $dia > 31) {
+                        continue;
+                    }
+                    $fechaIso = sprintf('%04d-%02d-%02d', $anio, $mes, $dia);
+                } else {
+                    $fechaRaw = substr((string) ($fila->fecha ?? ''), 0, 10);
+                    if ($fechaRaw === '') {
+                        continue;
+                    }
+                    $fechaIso = $fechaRaw;
+                    $tieneMovilesEnTabla = true;
+                }
+
+                $items[$fechaIso] = [
+                    'fecha' => $fechaIso,
+                    'tipo' => (string) ($fila->tipo ?? 'Nacional'),
+                    'descripcion' => (string) ($fila->descripcion ?? 'Día feriado'),
+                ];
+            }
+        } catch (\Throwable) {
+            $items = [];
+        }
+
+        if ($items === []) {
+            foreach (self::FERIADOS_FIJOS_MM_DD as $mmdd) {
+                $fechaIso = sprintf('%04d-%s', $anio, $mmdd);
+                $items[$fechaIso] = [
+                    'fecha' => $fechaIso,
+                    'tipo' => 'Fijo',
+                    'descripcion' => 'Día feriado INCES',
+                ];
+            }
+        }
+
+        if (!$tieneMovilesEnTabla) {
+            $pascua = $this->calcularDomingoPascua($anio);
+            $moviles = [
+                -48 => 'Lunes de Carnaval',
+                -47 => 'Martes de Carnaval',
+                -3 => 'Jueves Santo',
+                -2 => 'Viernes Santo',
+            ];
+            foreach ($moviles as $offset => $desc) {
+                $fechaIso = $pascua->modify("{$offset} days")->format('Y-m-d');
+                if (!isset($items[$fechaIso])) {
+                    $items[$fechaIso] = [
+                        'fecha' => $fechaIso,
+                        'tipo' => 'Móvil',
+                        'descripcion' => $desc,
+                    ];
+                }
+            }
+        }
+
+        ksort($items);
+
+        return array_values($items);
     }
 
     private function calcularDomingoPascua(int $anio): DateTimeImmutable
