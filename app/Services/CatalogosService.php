@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Model\Asistencia\TipoInstitucionEmisoraModel;
 use App\Model\Asistencia\TipoPermisosModel;
 use App\Model\Asistencia\TipoRepososModel;
+use App\Model\Beneficios\DetalleDiscapacidadModel;
 use App\Model\Beneficios\GradoDiscapacidadModel;
 use App\Model\Beneficios\TipoBeneficiosModel;
 use App\Model\Beneficios\TipoDiscapacidadModel;
@@ -888,7 +889,60 @@ final class CatalogosService
             'grupo' => 'opcional',
         ];
 
+        // 6. Condicional por Discapacidad registrada (recaudo unificado INCES, opcional)
+        if ($personaId > 0 && $this->personaTieneDiscapacidad($personaId)) {
+            $reglas[] = [
+                'id' => 10,
+                'etiqueta' => 'Certificado CONAPDIS / Informe Médico IVSS',
+                'obligatorio' => false,
+                'condicion' => 'Opcional · Soporte único de discapacidad registrada (CONAPDIS / IVSS)',
+                'grupo' => 'discapacidad',
+            ];
+        }
+
         return $this->construirListaRecaudos($reglas, $tipos, $vigentes);
+    }
+
+    /**
+     * Comprueba si una persona posee al menos un registro en `detalle_discapacidad`.
+     * Recibe el ID de persona y retorna true cuando tiene discapacidad registrada.
+     */
+    public function personaTieneDiscapacidad(int $personaId): bool
+    {
+        if ($personaId <= 0) {
+            return false;
+        }
+
+        try {
+            return DetalleDiscapacidadModel::query()
+                ->where('persona_id', $personaId)
+                ->exists();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Construye el descriptor del recaudo único opcional de discapacidad (ID 10) para una persona.
+     * Recibe el ID de persona opcional y retorna el recaudo con su estado vigente actual.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function recaudoDiscapacidadUnificado(int $personaId = 0): ?array
+    {
+        $tipos = $this->tiposDocumentos();
+        $vigentes = $this->documentosVigentesPorPersona($personaId);
+        $lista = $this->construirListaRecaudos([
+            [
+                'id' => 10,
+                'etiqueta' => 'Certificado CONAPDIS / Informe Médico IVSS',
+                'obligatorio' => false,
+                'condicion' => 'Opcional · Soporte único de discapacidad registrada (CONAPDIS / IVSS)',
+                'grupo' => 'discapacidad',
+            ],
+        ], $tipos, $vigentes);
+
+        return $lista[0] ?? null;
     }
 
     /**
@@ -976,7 +1030,7 @@ final class CatalogosService
             $reglas[] = ['id' => 3, 'obligatorio' => true, 'condicion' => 'Obligatorio · Filiación de hijo/hija', 'grupo' => 'familiar'];
             $reglas[] = ['id' => 1, 'obligatorio' => false, 'condicion' => 'Opcional si es menor sin cédula', 'grupo' => 'familiar'];
             $reglas[] = ['id' => 6, 'obligatorio' => false, 'condicion' => 'Condicional · Estudios / Becas / HCM (hasta 27 años)', 'grupo' => 'familiar'];
-            $reglas[] = ['id' => 10, 'obligatorio' => false, 'condicion' => 'Condicional · Discapacidad sin límite de edad (Cláusula 49)', 'grupo' => 'familiar'];
+            $reglas[] = ['id' => 10, 'etiqueta' => 'Certificado CONAPDIS / Informe Médico IVSS', 'obligatorio' => false, 'condicion' => 'Opcional · Soporte de discapacidad (CONAPDIS / IVSS)', 'grupo' => 'discapacidad'];
             $reglas[] = ['id' => 14, 'obligatorio' => false, 'condicion' => 'Condicional · Sentencia de adopción o tutela (Cláusula 46)', 'grupo' => 'familiar'];
         } elseif (in_array($parentescoId, [1, 2], true)) {
             $reglas[] = ['id' => 1, 'obligatorio' => true, 'condicion' => 'Obligatorio · Cédula del padre/madre', 'grupo' => 'familiar'];
@@ -988,7 +1042,7 @@ final class CatalogosService
         } elseif ($parentescoId === 5) {
             $reglas[] = ['id' => 1, 'obligatorio' => true, 'condicion' => 'Obligatorio · Cédula del familiar', 'grupo' => 'familiar'];
             $reglas[] = ['id' => 14, 'obligatorio' => true, 'condicion' => 'Decisión judicial de tutela / dependencia (Cláusula 49)', 'grupo' => 'familiar'];
-            $reglas[] = ['id' => 10, 'obligatorio' => true, 'condicion' => 'Certificación CONAPDIS (Cláusula 49)', 'grupo' => 'familiar'];
+            $reglas[] = ['id' => 10, 'etiqueta' => 'Certificado CONAPDIS / Informe Médico IVSS', 'obligatorio' => false, 'condicion' => 'Opcional · Soporte de discapacidad (CONAPDIS / IVSS)', 'grupo' => 'discapacidad'];
         } else {
             $reglas[] = ['id' => 1, 'obligatorio' => true, 'condicion' => 'Identificación del familiar', 'grupo' => 'familiar'];
         }

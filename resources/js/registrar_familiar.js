@@ -7,8 +7,15 @@ import {
   notificarExitoFormulario,
 } from "/js/components/alerta/alerta.js";
 import { crearBadge } from "/js/components/badge/crearBadge.js";
-// import { //inicializarCalendariosContenedor } from '/js/components/calendario/calendario.js';
+import { inicializarCalendariosContenedor } from "/js/components/calendario/calendario.js";
 import { inicializarSelectsPersonalizados } from "/js/components/select/selectPersonalizado.js";
+import {
+  filtrarRecaudosPorDiscapacidad,
+  sincronizarPanelDiscapacidad,
+  sincronizarReglaCedulaMenor,
+  sincronizarVisibilidadTomoFolio,
+  validarBloqueDiscapacidadFamiliar,
+} from "/js/utils/reglasFamiliar.js";
 
 const renderTarjetaRecaudoFamiliar = (rec) => {
   const badge = crearBadge(
@@ -64,9 +71,21 @@ const leerMapaRecaudos = (formulario) => {
   }
 };
 
+// Recibe el formulario; lee el descriptor JSON del recaudo único de discapacidad desde data-recaudo-discapacidad.
+const leerRecaudoDiscapacidadBase = (formulario) => {
+  if (!formulario?.dataset?.recaudoDiscapacidad) return null;
+  try {
+    return JSON.parse(formulario.dataset.recaudoDiscapacidad) || null;
+  } catch {
+    return null;
+  }
+};
+
+// Recibe el formulario; valida campos obligatorios visibles y bloque condicional de discapacidad.
 const validarCamposRequeridos = (formulario) => {
   let valido = true;
   formulario.querySelectorAll("[required]").forEach((campo) => {
+    if (campo.closest(".hidden")) return;
     if (!String(campo.value || "").trim()) {
       InputUI.establecerInvalido(campo, "Este campo es obligatorio");
       valido = false;
@@ -78,10 +97,19 @@ const validarCamposRequeridos = (formulario) => {
       formulario,
       "Completa todos los campos obligatorios del familiar.",
     );
+    return false;
   }
-  return valido;
+
+  const errorDisc = validarBloqueDiscapacidadFamiliar(formulario);
+  if (errorDisc) {
+    notificarErrorFormulario(formulario, errorDisc);
+    return false;
+  }
+
+  return true;
 };
 
+// Recibe ninguno; configura las validaciones en tiempo real de nombre, cédula, tomo y folio.
 const configurarValidaciones = () => {
   InputValidador.soloLetras(
     "#primer_nombre, #segundo_nombre, #primer_apellido, #segundo_apellido",
@@ -94,12 +122,12 @@ const configurarValidaciones = () => {
   InputValidador.soloNumeros("#cedula", {
     minimo: 6,
     limite: 9,
-    requerido: true,
+    requerido: false,
   });
   InputValidador.soloNumeros("#tomo, #folio", {
     minimo: 1,
     limite: 6,
-    requerido: true,
+    requerido: false,
   });
   InputValidador.requerido(
     "#formulario-registrar-familiar select, #fecha_nacimiento",
@@ -108,25 +136,67 @@ const configurarValidaciones = () => {
 
 document.addEventListener("DOMContentLoaded", () => {
   inicializarSelectsPersonalizados();
-  //inicializarCalendariosContenedor();
+  inicializarCalendariosContenedor();
   configurarValidaciones();
 
   const selectEmpleado = document.getElementById("empleado_id");
   const selectParentesco = document.getElementById("parentesco_id");
+  const inputFechaNac = document.getElementById("fecha_nacimiento");
+  const inputCedula = document.getElementById("cedula");
+  const avisoCedulaMenor = document.getElementById("aviso-cedula-menor");
+  const inputTomo = document.getElementById("tomo");
+  const inputFolio = document.getElementById("folio");
+  const bloquesTomoFolio = Array.from(
+    document.querySelectorAll("[data-bloque-tomo-folio]"),
+  );
+  const btnToggleDisc = document.getElementById("btn-toggle-discapacidad-familiar");
+  const inputTieneDisc = document.getElementById("tiene_discapacidad");
+  const panelDisc = document.getElementById("panel-discapacidad-familiar");
+  const camposRequeridosDisc = [
+    document.getElementById("grado_discapacidad_id"),
+    document.getElementById("numero_carnet"),
+    document.getElementById("entidad_emisora"),
+  ];
   const contenedorRecaudos = document.getElementById(
     "contenedor-recaudos-familiar",
   );
   const tarjetaTitular = document.getElementById("tarjeta-resumen-titular");
   const formulario = document.getElementById("formulario-registrar-familiar");
   const recaudosPorParentesco = leerMapaRecaudos(formulario);
+  const recaudoDiscapacidadBase = leerRecaudoDiscapacidadBase(formulario);
 
+  // Recibe el ID de parentesco; renderiza los recaudos filtrando el documento de discapacidad según estado activo.
   const actualizarRecaudos = (parentescoId) => {
     if (!contenedorRecaudos) return;
-    const lista = recaudosPorParentesco[String(parentescoId || "")] || [];
+    const base = recaudosPorParentesco[String(parentescoId || "")] || [];
+    const tieneDiscapacidad = inputTieneDisc?.value === "1";
+    const lista =
+      base.length > 0
+        ? filtrarRecaudosPorDiscapacidad(
+            base,
+            tieneDiscapacidad,
+            recaudoDiscapacidadBase,
+          )
+        : [];
     contenedorRecaudos.innerHTML = renderRecaudosFamiliar(lista);
     if (Array.isArray(lista) && lista.length > 0) {
       InputValidador.archivo(".atlas-doc-fam-input", { tamanoMaximoMB: 5 });
     }
+  };
+
+  // Recibe ninguno; aplica regla de cédula para < 9 años, visibilidad de tomo/folio y recaudos.
+  const sincronizarReglasDinamicas = () => {
+    sincronizarReglaCedulaMenor({
+      inputFecha: inputFechaNac,
+      inputCedula,
+      avisoCedula: avisoCedulaMenor,
+    });
+    sincronizarVisibilidadTomoFolio({
+      selectParentesco,
+      bloquesTomoFolio,
+      inputTomo,
+      inputFolio,
+    });
   };
 
   const cargarResumenTitular = async (empleadoId) => {
@@ -163,9 +233,26 @@ document.addEventListener("DOMContentLoaded", () => {
     tarjetaTitular?.classList.remove("hidden");
   };
 
-  selectParentesco?.addEventListener("change", () =>
-    actualizarRecaudos(selectParentesco.value),
-  );
+  selectParentesco?.addEventListener("change", () => {
+    sincronizarReglasDinamicas();
+    actualizarRecaudos(selectParentesco.value);
+  });
+  inputFechaNac?.addEventListener("change", sincronizarReglasDinamicas);
+  inputFechaNac?.addEventListener("input", sincronizarReglasDinamicas);
+
+  btnToggleDisc?.addEventListener("click", () => {
+    const proximo = inputTieneDisc?.value !== "1";
+    sincronizarPanelDiscapacidad({
+      activo: proximo,
+      inputHiddenActivo: inputTieneDisc,
+      panelDiscapacidad: panelDisc,
+      botonToggle: btnToggleDisc,
+      camposRequeridos: camposRequeridosDisc,
+    });
+    actualizarRecaudos(selectParentesco?.value);
+  });
+
+  sincronizarReglasDinamicas();
   if (selectParentesco?.value) actualizarRecaudos(selectParentesco.value);
 
   selectEmpleado?.addEventListener("change", () =>
@@ -219,5 +306,16 @@ document.addEventListener("DOMContentLoaded", () => {
     ?.addEventListener("click", () => {
       limpiarAlertaFormulario(formulario);
       tarjetaTitular?.classList.add("hidden");
+      sincronizarPanelDiscapacidad({
+        activo: false,
+        inputHiddenActivo: inputTieneDisc,
+        panelDiscapacidad: panelDisc,
+        botonToggle: btnToggleDisc,
+        camposRequeridos: camposRequeridosDisc,
+      });
+      setTimeout(() => {
+        sincronizarReglasDinamicas();
+        actualizarRecaudos(selectParentesco?.value);
+      }, 0);
     });
 });

@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Http\LimpiarInputs;
+use App\Model\Beneficios\DetalleDiscapacidadModel;
+use App\Model\Beneficios\GradoDiscapacidadModel;
 use App\Model\Catalogos\TipoParentescoModel;
+use App\Model\Personas\DocumentosModel;
 use App\Model\Personas\FamiliaresModel;
 use App\Model\Personas\PersonasModel;
 use App\Services\CatalogosService;
 use App\Services\DataTableEloquent;
+use App\Services\GestorDocumentos;
 use App\Utils\Config;
 use DateTimeImmutable;
 use flight\Engine;
@@ -20,10 +25,14 @@ use Throwable;
  */
 class RegistrosFamiliaresController extends BaseController
 {
+    /**
+     * Recibe Engine, Config, CatalogosService y GestorDocumentos opcional para la gestión de familiares.
+     */
     public function __construct(
         Engine $app,
         Config $config,
         private CatalogosService $catalogos,
+        private ?GestorDocumentos $gestorDocumentos = null,
     ) {
         parent::__construct($app, $config);
     }
@@ -42,7 +51,13 @@ class RegistrosFamiliaresController extends BaseController
 
         try {
             $query = FamiliaresModel::query()
-                ->with(['persona', 'tipoParentesco', 'empleado.persona', 'empleado.cargo']);
+                ->with([
+                    'persona.detallesDiscapacidad.gradoDiscapacidad',
+                    'persona.documentos',
+                    'tipoParentesco',
+                    'empleado.persona',
+                    'empleado.cargo',
+                ]);
 
             $columnasOrdenables = [
                 'cedula_titular' => static fn (Builder $q, string $dir): Builder => $q->orderBy(
@@ -112,6 +127,46 @@ class RegistrosFamiliaresController extends BaseController
                         ? (string) $personaFam->genero
                         : (string) ($familiar->genero ?? '');
 
+                    $detalleDisc = $personaFam instanceof PersonasModel
+                        ? $personaFam->detallesDiscapacidad->sortByDesc('dt_discapacidad_id')->first()
+                        : null;
+                    $docDiscVigente = $personaFam instanceof PersonasModel
+                        ? $personaFam->documentos
+                            ->filter(static fn (DocumentosModel $d): bool => (int) $d->tipo_documento_id === 10 && strcasecmp((string) $d->estatus_documento, 'Vigente') === 0)
+                            ->sortByDesc('documentos_id')
+                            ->first()
+                        : null;
+
+                    $discapacidad = null;
+                    if ($detalleDisc instanceof DetalleDiscapacidadModel) {
+                        $gradoNombre = (string) ($detalleDisc->gradoDiscapacidad?->nombre_gradodis ?? '');
+                        $tipoNombre = trim((string) ($detalleDisc->dirigido ?? ''));
+                        $discapacidad = [
+                            'dt_discapacidad_id' => (int) $detalleDisc->dt_discapacidad_id,
+                            'grado_discapacidad_id' => (int) $detalleDisc->grado_discapacidad_id,
+                            'grado' => $gradoNombre,
+                            'tipo' => $tipoNombre,
+                            'numero_carnet' => (string) $detalleDisc->numero_carnet,
+                            'entidad_emisora' => (string) $detalleDisc->entidad_emisora,
+                            'descripcion' => (string) ($detalleDisc->descripcion ?? ''),
+                            'fecha_emision_carnet' => $detalleDisc->fecha_emision_carnet->format('Y-m-d'),
+                            'fecha_vencimiento_carnet' => $detalleDisc->fecha_vencimiento_carnet->format('Y-m-d'),
+                            'documento' => $docDiscVigente instanceof DocumentosModel
+                                ? [
+                                    'documentos_id' => (int) $docDiscVigente->documentos_id,
+                                    'nombre_original' => (string) $docDiscVigente->nombre_original,
+                                    'url_descarga' => '/documentos/' . (int) $docDiscVigente->documentos_id,
+                                ]
+                                : null,
+                        ];
+                    }
+
+                    $tomo = (int) $familiar->tomo;
+                    $folio = (int) $familiar->folio;
+                    $tomoFolio = ($tomo === 0 && $folio === 0)
+                        ? '—'
+                        : 'T-' . (string) $tomo . ' / F-' . (string) $folio;
+
                     return [
                         'familia_id' => (int) $familiar->familia_id,
                         'empleado_id' => (int) $familiar->empleado_id,
@@ -131,9 +186,10 @@ class RegistrosFamiliaresController extends BaseController
                         'edad' => $edad,
                         'fecha_nacimiento' => $fechaNac,
                         'genero' => $genero,
-                        'tomo' => (int) $familiar->tomo,
-                        'folio' => (int) $familiar->folio,
-                        'tomo_folio' => 'T-' . (string) $familiar->tomo . ' / F-' . (string) $familiar->folio,
+                        'tomo' => $tomo,
+                        'folio' => $folio,
+                        'tomo_folio' => $tomoFolio,
+                        'discapacidad' => $discapacidad,
                     ];
                 },
                 aplicarFiltros: static function (Builder $q, array $filtros): void {
@@ -245,6 +301,105 @@ class RegistrosFamiliaresController extends BaseController
             $this->jsonOk(['familia_id' => $familiaId], 'Carga familiar eliminada correctamente.');
         } catch (Throwable) {
             $this->jsonError('No se puede eliminar el familiar porque tiene registros vinculados en el sistema.', 409);
+        }
+    }
+
+    /**
+     * Recibe el ID del familiar y los datos CONAPDIS; crea o actualiza su discapacidad y adjunta soporte opcional.
+     */
+    public function asignarDiscapacidad(string $id): void
+    {
+        $familiaId = $this->idPositivo($id, 'familiar');
+        if ($familiaId === null) {
+            return;
+        }
+
+        $familiar = FamiliaresModel::query()->with('persona')->find($familiaId);
+        $personaRel = $familiar instanceof FamiliaresModel ? $familiar->getRelationValue('persona') : null;
+        if (!$familiar instanceof FamiliaresModel || !$personaRel instanceof PersonasModel) {
+            $this->jsonError('Familiar no encontrado.', 404);
+            return;
+        }
+
+        $input = new LimpiarInputs();
+        $gradoRaw = $input->get('grado_discapacidad_id');
+        $gradoId = is_numeric($gradoRaw) && (int) $gradoRaw > 0 ? (int) $gradoRaw : null;
+        $tipoNombre = trim((string) $input->get('tipo_discapacidad', ''));
+        $numeroCarnet = trim((string) $input->get('numero_carnet', ''));
+        $entidadEmisora = trim((string) $input->get('entidad_emisora', 'CONAPDIS')) ?: 'CONAPDIS';
+        $descripcion = trim((string) $input->get('descripcion', ''));
+        $emisionRaw = trim((string) $input->get('fecha_emision_carnet', ''));
+        $vencimientoRaw = trim((string) $input->get('fecha_vencimiento_carnet', ''));
+        $fechaEmision = preg_match('/^\d{4}-\d{2}-\d{2}$/', $emisionRaw) === 1 ? $emisionRaw : date('Y-m-d');
+        $fechaVencimiento = preg_match('/^\d{4}-\d{2}-\d{2}$/', $vencimientoRaw) === 1
+            ? $vencimientoRaw
+            : date('Y-m-d', strtotime('+5 years'));
+
+        if ($gradoId === null || !GradoDiscapacidadModel::query()->whereKey($gradoId)->exists()) {
+            $this->jsonError('Debe seleccionar un grado de discapacidad válido.', 422);
+            return;
+        }
+        if ($numeroCarnet === '') {
+            $this->jsonError('El número de carnet CONAPDIS es obligatorio.', 422);
+            return;
+        }
+        if ($fechaVencimiento < $fechaEmision) {
+            $this->jsonError('La fecha de vencimiento del carnet no puede ser menor que la fecha de emisión.', 422);
+            return;
+        }
+
+        try {
+            $datosDisc = [
+                'persona_id' => (int) $familiar->persona_id,
+                'grado_discapacidad_id' => $gradoId,
+                'numero_carnet' => substr($numeroCarnet, 0, 30),
+                'entidad_emisora' => substr($entidadEmisora, 0, 100),
+                'descripcion' => $descripcion !== '' ? $descripcion : null,
+                'dirigido' => $tipoNombre !== '' ? substr($tipoNombre, 0, 30) : 'Familiar',
+                'fecha_emision_carnet' => $fechaEmision,
+                'fecha_vencimiento_carnet' => $fechaVencimiento,
+            ];
+
+            $existente = DetalleDiscapacidadModel::query()
+                ->where('persona_id', (int) $familiar->persona_id)
+                ->orderByDesc('dt_discapacidad_id')
+                ->first();
+
+            if ($existente instanceof DetalleDiscapacidadModel) {
+                $existente->fill($datosDisc);
+                $existente->save();
+                $detalle = $existente;
+                $codigoHttp = 200;
+                $mensaje = 'Discapacidad actualizada correctamente para el familiar.';
+            } else {
+                $detalle = DetalleDiscapacidadModel::query()->create($datosDisc);
+                $codigoHttp = 201;
+                $mensaje = 'Discapacidad asignada correctamente al familiar.';
+            }
+
+            $archivo = $this->app->request()->files->getData()['archivo'] ?? null;
+            $documentoId = null;
+            if (
+                $this->gestorDocumentos !== null
+                && is_array($archivo)
+                && ($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
+            ) {
+                $doc = $this->gestorDocumentos->subir($archivo, 10, (int) $familiar->empleado_id, $familiaId);
+                $documentoId = (int) $doc->documentos_id;
+            }
+
+            $this->jsonOk([
+                'dt_discapacidad_id' => (int) $detalle->dt_discapacidad_id,
+                'persona_id' => (int) $familiar->persona_id,
+                'familia_id' => $familiaId,
+                'documento_id' => $documentoId,
+            ], $mensaje, $codigoHttp);
+        } catch (Throwable $e) {
+            $codigo = (int) $e->getCode();
+            $this->jsonError(
+                $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo registrar la discapacidad del familiar.',
+                $codigo >= 400 && $codigo < 600 ? $codigo : 500
+            );
         }
     }
 

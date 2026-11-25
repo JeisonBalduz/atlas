@@ -6,7 +6,7 @@ import {
   notificarExitoFormulario,
 } from '/js/components/alerta/alerta.js';
 import { crearBadge } from '/js/components/badge/crearBadge.js';
-// import { inicializarCalendario } from '/js/components/calendario/calendario.js';
+import { inicializarCalendario } from '/js/components/calendario/calendario.js';
 import { crearListaDetalle, Modal } from '/js/components/modal/Modal.js';
 import { inicializarSelectsPersonalizados } from '/js/components/select/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast/toast.js';
@@ -37,11 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let estadoActualTrabajador = null;
   let procesando = false;
 
-  // inicializarCalendario(inputFecha);
-  // const calFiltro = inicializarCalendario(inputFiltroFecha, {
-  //   placeholder: 'Filtrar por fecha...',
-  //   alSeleccionar: () => cargarAsistencias(),
-  // });
+  inicializarCalendario(inputFecha);
+  const calFiltro = inicializarCalendario(inputFiltroFecha, {
+    placeholder: 'Filtrar por fecha...',
+    alSeleccionar: () => cargarAsistencias(),
+  });
 
   const actualizarResumenCards = (resumen) => {
     if (!resumen) return;
@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnLimpiarFiltro?.addEventListener('click', () => {
     if (inputFiltroFecha) inputFiltroFecha.value = '';
-    calFiltro?.set({ selectedDates: [] }, { dates: true });
+    calFiltro?.clear(false);
     cargarAsistencias();
   });
 

@@ -6,15 +6,15 @@
 --}}
 <div class="space-y-1.5" data-custom-select id="{{ $id }}-wrapper" @if (!empty($remoteUrl)) data-remote-url="{{ $remoteUrl }}" @endif>
     @if (!empty($label))
-    <label for="{{ $id }}" class="block text-sm font-medium text-zinc-900">
+    <label for="{{ $id }}-trigger" data-select-label class="block text-sm font-medium text-zinc-900 cursor-pointer">
         {{ $label }}
     </label>
     @endif
 
     <div class="relative">
-        {{-- Select nativo (oculto pero interactivo con el DOM/Forms/Validadores) --}}
+        {{-- Select nativo (oculto y sin eventos de puntero, mantiene su valor al enviar FormData) --}}
         <select id="{{ $id }}" name="{{ $name }}" data-placeholder="{{ $placeholder ?? 'Seleccionar opción...' }}"
-            class="custom-select-native sr-only" tabindex="-1" aria-hidden="true" {{ $required ?? false ? 'required'
+            class="custom-select-native sr-only pointer-events-none" tabindex="-1" aria-hidden="true" {{ $required ?? false ? 'required'
             : '' }} {{ $disabled ?? false ? 'disabled' : '' }}>
             <option value="">{{ $placeholder ?? 'Seleccionar opción...' }}</option>
             @foreach (($options ?? []) as $val => $opt)
@@ -34,6 +34,7 @@
 
         {{-- Botón Disparador del Select  bg-slate-50--}}
         <button type="button"
+            id="{{ $id }}-trigger"
             class="custom-select-trigger w-full flex items-center justify-between px-3.5 py-2.5  border border-slate-300 rounded-lg  hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black transition duration-200 cursor-pointer"
             {{ $disabled ?? false ? 'disabled' : '' }}>
             <div class="custom-select-display flex items-center gap-2.5 truncate">

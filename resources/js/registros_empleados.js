@@ -5,7 +5,9 @@ import {
   notificarErrorFormulario,
   notificarExitoFormulario,
 } from '/js/components/alerta/alerta.js';
-
+import { crearBadge } from '/js/components/badge/crearBadge.js';
+import { inicializarRangoFechas } from '/js/components/calendario/calendario.js';
+import { inicializarDropdownsAcciones } from '/js/components/dropdown/crearDropdownAcciones.js';
 import { abrirModalFamiliaresEmpleado } from '/js/components/modal/abrirModalFamiliaresEmpleado.js';
 import { Modal } from '/js/components/modal/Modal.js';
 import {
@@ -27,7 +29,8 @@ const actualizarContadores = (resumen) => {
   if (inactivosEl && resumen.inactivos !== undefined) inactivosEl.textContent = String(resumen.inactivos);
 };
 
-const renderFormularioDiscapacidad = (catalogos) => {
+// Recibe catálogos de discapacidad y registro opcional existente; construye el formulario del modal precargado.
+const renderFormularioDiscapacidad = (catalogos, existente = null) => {
   const hoy = new Date().toISOString().slice(0, 10);
   const enCincoAnios = new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
@@ -41,6 +44,7 @@ const renderFormularioDiscapacidad = (catalogos) => {
     nombre: 'tipo_discapacidad',
     etiqueta: 'Tipo de discapacidad',
     opciones: mapaTipos,
+    valorSeleccionado: existente?.tipo || '',
     placeholder: 'Seleccionar tipo...',
   });
 
@@ -49,9 +53,21 @@ const renderFormularioDiscapacidad = (catalogos) => {
     nombre: 'grado_discapacidad_id',
     etiqueta: 'Grado de discapacidad *',
     opciones: catalogos?.grados || {},
+    valorSeleccionado: existente?.grado_discapacidad_id ? String(existente.grado_discapacidad_id) : '',
     placeholder: 'Seleccionar grado...',
     requerido: true,
   });
+
+  const docActualHtml = existente?.documento?.url_descarga
+    ? `
+      <div class="mb-2 flex items-center justify-between gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800">
+        <span class="truncate font-medium">Documento vigente: ${existente.documento.nombre_original || 'Soporte cargado'}</span>
+        <a href="${existente.documento.url_descarga}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-semibold text-marca hover:underline whitespace-nowrap">
+          <i data-lucide="external-link" class="h-3.5 w-3.5" aria-hidden="true"></i>
+          <span>Ver</span>
+        </a>
+      </div>`
+    : '';
 
   return `
     <form id="form-asignar-discapacidad" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" enctype="multipart/form-data">
@@ -59,38 +75,76 @@ const renderFormularioDiscapacidad = (catalogos) => {
       <div>${selectGradoHtml}</div>
       <div>
         <label for="disc-carnet" class="block text-sm font-medium text-zinc-900 mb-1.5">N.° de Carnet CONAPDIS *</label>
-        <input id="disc-carnet" name="numero_carnet" type="text" maxlength="30" required placeholder="Ej. CONAPDIS-123456" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
+        <input id="disc-carnet" name="numero_carnet" type="text" maxlength="30" required value="${existente?.numero_carnet || ''}" placeholder="Ej. CONAPDIS-123456" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
       </div>
       <div>
         <label for="disc-entidad" class="block text-sm font-medium text-zinc-900 mb-1.5">Entidad emisora *</label>
-        <input id="disc-entidad" name="entidad_emisora" type="text" maxlength="100" required value="CONAPDIS" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
+        <input id="disc-entidad" name="entidad_emisora" type="text" maxlength="100" required value="${existente?.entidad_emisora || 'CONAPDIS'}" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
       </div>
       <div>
         <label for="disc-emision" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha de emisión</label>
-        <input id="disc-emision" name="fecha_emision_carnet" type="date" value="${hoy}" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
+        <input id="disc-emision" name="fecha_emision_carnet" type="date" value="${existente?.fecha_emision_carnet || hoy}" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
       </div>
       <div>
         <label for="disc-vencimiento" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha de vencimiento</label>
-        <input id="disc-vencimiento" name="fecha_vencimiento_carnet" type="date" value="${enCincoAnios}" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
+        <input id="disc-vencimiento" name="fecha_vencimiento_carnet" type="date" value="${existente?.fecha_vencimiento_carnet || enCincoAnios}" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
       </div>
       <div class="md:col-span-2">
         <label for="disc-descripcion" class="block text-sm font-medium text-zinc-900 mb-1.5">Descripción / Observaciones</label>
-        <textarea id="disc-descripcion" name="descripcion" rows="2" placeholder="Detalles médicos o indicaciones relevantes..." class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2"></textarea>
+        <textarea id="disc-descripcion" name="descripcion" rows="2" placeholder="Detalles médicos o indicaciones relevantes..." class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2">${existente?.descripcion || ''}</textarea>
       </div>
       <div class="md:col-span-2">
-        <label for="disc-archivo" class="block text-sm font-medium text-zinc-900 mb-1.5">Certificado / Carnet CONAPDIS (PDF o imagen, opcional)</label>
+        ${docActualHtml}
+        <label for="disc-archivo" class="block text-sm font-medium text-zinc-900 mb-1.5">Certificado CONAPDIS / Informe Médico IVSS (PDF o imagen, opcional)</label>
         <input id="disc-archivo" name="archivo" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-zinc-800 cursor-pointer" />
       </div>
     </form>
   `;
 };
 
+// Recibe el arreglo de teléfonos del empleado; construye la lista compacta para el modal de Teléfonos.
+const renderListaTelefonosModal = (telefonos = []) => {
+  if (!Array.isArray(telefonos) || telefonos.length === 0) {
+    return `
+      <div class="flex flex-col items-center justify-center gap-2.5 py-6 text-center">
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-zinc-500">
+          <i data-lucide="phone-off" class="h-5 w-5" aria-hidden="true"></i>
+        </div>
+        <p class="text-sm font-medium text-zinc-900">Sin teléfonos registrados</p>
+        <p class="text-xs text-zinc-500">Puedes registrar líneas de contacto desde la vista de edición del trabajador.</p>
+      </div>
+    `;
+  }
+
+  return `
+    <ul class="space-y-2.5">
+      ${telefonos
+        .map(
+          (tel) => `
+            <li class="flex items-center justify-between gap-3 rounded-xl border ${tel.emergencia ? 'border-marca-200 bg-marca-50/50' : 'border-slate-200 bg-slate-50'} px-4 py-3">
+              <div class="flex items-center gap-2.5">
+                <span class="flex h-8 w-8 items-center justify-center rounded-lg ${tel.emergencia ? 'bg-marca text-white' : 'bg-white border border-slate-200 text-zinc-700'}">
+                  <i data-lucide="phone" class="h-4 w-4" aria-hidden="true"></i>
+                </span>
+                <span class="text-sm font-semibold text-zinc-900 tracking-wide">${tel.numero_telefono}</span>
+              </div>
+              ${crearBadge(tel.emergencia ? 'Emergencia' : 'Personal', tel.emergencia ? 'marca' : 'neutro')}
+            </li>
+          `
+        )
+        .join('')}
+    </ul>
+  `;
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
+  inicializarDropdownsAcciones();
 
   const filtroEstatus = document.getElementById('filtro-estatus-empleado');
   const filtroActivo = document.getElementById('filtro-activo-empleado');
   const modalFamiliares = new Modal('#modal-familiares-empleado');
+  const modalTelefonos = new Modal('#modal-telefonos-empleado');
   const modalEstado = new Modal('#modal-eliminar-empleado');
   const modalDiscapacidad = new Modal('#modal-discapacidad-empleado');
 
@@ -153,14 +207,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  // Recibe el registro de empleado; despliega el modal compacto con sus teléfonos de contacto.
+  const verTelefonos = (empleado) => {
+    modalTelefonos.abrir({
+      titulo: `Teléfonos · ${empleado.nombre_completo || 'Trabajador'}`,
+      subtitulo: `${empleado.codigo_empleado || ''} · ${empleado.cedula || ''}`,
+      contenidoHtml: renderListaTelefonosModal(empleado.telefonos || []),
+    });
+  };
+
+  // Recibe el empleado; abre el modal de discapacidad vacío (Asignar) o precargado (Ver/Actualizar).
   const abrirModalDiscapacidad = async (empleado) => {
     const catalogos = await cargarCatalogosDiscapacidad();
+    const existente = empleado.discapacidad && typeof empleado.discapacidad === 'object' ? empleado.discapacidad : null;
 
     modalDiscapacidad.abrir({
-      titulo: `Asignar discapacidad · ${empleado.nombre_completo || 'Trabajador'}`,
+      titulo: existente
+        ? `Discapacidad registrada · ${empleado.nombre_completo || 'Trabajador'}`
+        : `Asignar discapacidad · ${empleado.nombre_completo || 'Trabajador'}`,
       subtitulo: `${empleado.codigo_empleado || ''} · ${empleado.cedula || ''}`,
-      contenidoHtml: renderFormularioDiscapacidad(catalogos),
-      textoConfirmar: 'Guardar discapacidad',
+      contenidoHtml: renderFormularioDiscapacidad(catalogos, existente),
+      textoConfirmar: existente ? 'Actualizar discapacidad' : 'Guardar discapacidad',
       textoCargando: 'Guardando...',
       alConfirmar: async (dialogo) => {
         const form = dialogo.querySelector('#form-asignar-discapacidad');
@@ -185,14 +252,14 @@ document.addEventListener('DOMContentLoaded', () => {
           return false;
         }
 
-        notificarExitoFormulario(form, res.data.message || 'Discapacidad asignada correctamente.');
+        notificarExitoFormulario(form, res.data.message || 'Discapacidad guardada correctamente.');
         tabla?.recargar(true);
         return true;
       },
     });
 
     if (modalDiscapacidad.dialogo) {
-      // inicializarRangoFechas('#disc-emision', '#disc-vencimiento');
+      inicializarRangoFechas('#disc-emision', '#disc-vencimiento');
     }
   };
 
@@ -204,7 +271,10 @@ document.addEventListener('DOMContentLoaded', () => {
     columnas: columnasTablaEmpleados(),
     alAccionar: (accion, empleado) => {
       if (accion === 'familiares') return verFamiliares(empleado);
-      if (accion === 'asignar-discapacidad') return abrirModalDiscapacidad(empleado);
+      if (accion === 'telefonos') return verTelefonos(empleado);
+      if (accion === 'asignar-discapacidad' || accion === 'ver-discapacidad') {
+        return abrirModalDiscapacidad(empleado);
+      }
       if (accion === 'activar') return confirmarCambioEstado(empleado, true);
       if (accion === 'eliminar') return confirmarCambioEstado(empleado, false);
     },

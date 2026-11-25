@@ -262,10 +262,33 @@ const vincularSelectIndividual = (contenedor, indice) => {
     }
   };
 
+  // Recibe el evento click del botón disparador; alterna el menú personalizado sin activar el select nativo.
   botonDisparador.addEventListener('click', (evento) => {
     evento.stopPropagation();
     estaAbierto ? cerrarDesplegable() : abrirDesplegable();
   });
+
+  // Intercepta el clic sobre cualquier <label> asociado para evitar abrir el <select> nativo del navegador.
+  const etiquetaSelect = contenedor.querySelector('label');
+  if (etiquetaSelect) {
+    if (selectNativo.id && !botonDisparador.id) {
+      botonDisparador.id = `${selectNativo.id}-trigger`;
+    }
+    if (botonDisparador.id) {
+      etiquetaSelect.setAttribute('for', botonDisparador.id);
+    }
+    etiquetaSelect.addEventListener('click', (evento) => {
+      evento.preventDefault();
+      evento.stopPropagation();
+      if (botonDisparador.disabled) return;
+      estaAbierto ? cerrarDesplegable() : abrirDesplegable();
+      botonDisparador.focus();
+    });
+  }
+
+  // Impide cualquier despliegue accidental del control nativo manteniendo el valor en el formulario.
+  selectNativo.classList.add('pointer-events-none');
+  selectNativo.addEventListener('mousedown', (evento) => evento.preventDefault());
 
   if (campoBusqueda) {
     campoBusqueda.addEventListener('input', (evento) => {
@@ -420,18 +443,18 @@ export const crearMarkupSelectPersonalizado = ({
     : '';
 
   const labelHtml = etiqueta
-    ? `<label for="${id}" class="block text-sm font-medium text-zinc-900">${etiqueta}</label>`
+    ? `<label for="${id}-trigger" data-select-label class="block text-sm font-medium text-zinc-900 cursor-pointer">${etiqueta}</label>`
     : '';
 
   return `
     <div class="space-y-1.5" data-custom-select id="${id}-wrapper">
       ${labelHtml}
       <div class="relative">
-        <select id="${id}" name="${nombre}" data-placeholder="${placeholder}" class="custom-select-native sr-only" tabindex="-1" aria-hidden="true" ${requerido ? 'required' : ''}>
+        <select id="${id}" name="${nombre}" data-placeholder="${placeholder}" class="custom-select-native sr-only pointer-events-none" tabindex="-1" aria-hidden="true" ${requerido ? 'required' : ''}>
           <option value="">${placeholder}</option>
           ${opcionesNativas}
         </select>
-        <button type="button" class="custom-select-trigger w-full flex items-center justify-between px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black transition duration-200 cursor-pointer">
+        <button type="button" id="${id}-trigger" class="custom-select-trigger w-full flex items-center justify-between px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black transition duration-200 cursor-pointer">
           <div class="custom-select-display flex items-center gap-2.5 truncate">
             <span class="text-xs text-zinc-400 truncate">${placeholder}</span>
           </div>

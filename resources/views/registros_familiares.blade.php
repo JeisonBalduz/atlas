@@ -109,6 +109,7 @@
                     <th class="text-center">Edad</th>
                     <th class="text-center">Género</th>
                     <th class="text-center">Tomo / Folio</th>
+                    <th class="text-center">Discapacidad</th>
                     <th class="text-right">Acciones</th>
                 </tr>
             </thead>
@@ -122,6 +123,17 @@
     'id' => 'modal-detalle-familiar',
     'titulo' => 'Detalle del familiar',
     'subtitulo' => 'Datos personales y registro de acta.',
+])
+@endcomponent
+
+{{-- Modal de gestión de discapacidad del familiar --}}
+@component('components.modal', [
+    'id' => 'modal-discapacidad-familiar',
+    'titulo' => 'Asignar discapacidad',
+    'subtitulo' => 'Registra o actualiza los datos CONAPDIS y certificado del familiar.',
+    'tamano' => 'lg',
+    'textoConfirmar' => 'Guardar discapacidad',
+    'varianteConfirmar' => 'marca',
 ])
 @endcomponent
 

@@ -168,6 +168,15 @@
 ])
 @endcomponent
 
+{{-- Modal compacto para consultar teléfonos de contacto del trabajador --}}
+@component('components.modal_detalle', [
+    'id' => 'modal-telefonos-empleado',
+    'titulo' => 'Teléfonos de contacto',
+    'subtitulo' => 'Líneas registradas para el trabajador.',
+    'tamano' => 'sm',
+])
+@endcomponent
+
 {{-- Modal de confirmación para desactivar/eliminar empleado --}}
 @component('components.modal_confirmacion', [
     'id' => 'modal-eliminar-empleado',

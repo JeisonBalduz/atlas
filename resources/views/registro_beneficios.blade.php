@@ -62,7 +62,7 @@
     {{-- Bloque 1: Formulario de asignación de beneficio (DetalleBeneficioModel + Reglas Contrato Colectivo) --}}
     <section class="col-span-full lg:col-span-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
         <header class="mb-5">
-            <h2 class="text-lg font-semibold text-zinc-900">Asignar Beneficio</h2>
+            <h2 id="titulo-form-beneficio" class="text-lg font-semibold text-zinc-900">Asignar Beneficio</h2>
             <p class="text-sm text-zinc-500">Evalúa automáticamente la cláusula, periodicidad y soporte documental.</p>
         </header>
 
@@ -71,6 +71,8 @@
             data-reglas="{{ htmlspecialchars(json_encode($reglas_beneficios ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}"
             class="space-y-4"
             novalidate>
+            <input type="hidden" id="dtbeneficio_id" name="dtbeneficio_id" value="">
+
             @component('components.alerta_formulario')
             @endcomponent
 
@@ -142,13 +144,24 @@
             ])
             @endcomponent
 
-            <button
-                type="submit"
-                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-marca px-5 py-2.5 text-sm font-medium text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-marca-700 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 active:scale-[0.98] cursor-pointer"
-            >
-                <i data-lucide="gift" class="h-4 w-4" aria-hidden="true"></i>
-                <span>Registrar Beneficio</span>
-            </button>
+            <div class="flex flex-col gap-2">
+                <button
+                    type="submit"
+                    class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-marca px-5 py-2.5 text-sm font-medium text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-marca-700 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 active:scale-[0.98] cursor-pointer"
+                >
+                    <i data-lucide="gift" class="h-4 w-4" aria-hidden="true"></i>
+                    <span id="texto-btn-submit-beneficio">Registrar Beneficio</span>
+                </button>
+
+                <button
+                    type="button"
+                    id="btn-cancelar-edicion-beneficio"
+                    class="hidden w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2 text-sm font-medium text-zinc-700 transition-all hover:bg-slate-50 cursor-pointer"
+                >
+                    <i data-lucide="x" class="h-4 w-4" aria-hidden="true"></i>
+                    <span>Cancelar edición</span>
+                </button>
+            </div>
         </form>
     </section>
 

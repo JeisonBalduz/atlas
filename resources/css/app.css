@@ -388,42 +388,146 @@
 }
 
 /* ==========================================================================
-   3. Personalización Vanilla Calendar Pro v3 (Paleta Atlas Marca #052659)
+   3. Personalización Flatpickr (Estética Minimalista Flux / Paleta Atlas #052659)
    ========================================================================== */
-[data-vc-theme="light"].vc {
-  --vc-bg: #ffffff;
-  --vc-color: #18181b;
-  --vc-header-color: #18181b;
-  --vc-title-color: #18181b;
-  --vc-title-color-hover: #052659;
-  --vc-week-day-color: #71717a;
-  --vc-week-day-off-color: #dc2626;
-  --vc-date-bg: #ffffff;
-  --vc-date-color: #18181b;
-  --vc-date-bg-hover: #f1f5f9;
-  --vc-date-today-bg: #eff6ff;
-  --vc-date-today-color: #052659;
-  --vc-date-selected-bg: #052659;
-  --vc-date-selected-color: #ffffff;
-  --vc-date-weekend-selected-bg: #052659;
-  --vc-date-weekend-selected-color: #ffffff;
-  --vc-date-range-middle-bg: rgba(5, 38, 89, 0.12);
-  --vc-date-range-middle-color: #052659;
-  --vc-months-years-bg-selected: #052659;
-  --vc-months-years-color-selected: #ffffff;
-  --vc-months-years-bg-hover: #f1f5f9;
-  --vc-date-disabled-color: #cbd5e1;
-  --vc-date-weekend-disabled-color: #cbd5e1;
-  --vc-focus-outline-color: #052659;
+.flatpickr-calendar {
+  font-family: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 1rem;
-  padding: 1rem 1.125rem;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08) !important;
-  z-index: 9995;
-  font-family: "Inter", sans-serif;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.05) !important;
+  padding: 0.75rem;
+  width: 19.5rem;
+  z-index: 9996;
 }
 
-[data-vc-theme="light"].vc [data-vc-date-btn] {
+.flatpickr-calendar::before,
+.flatpickr-calendar::after {
+  display: none;
+}
+
+.flatpickr-months {
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.flatpickr-months .flatpickr-month {
+  color: #18181b;
+  fill: #18181b;
+  height: 2.25rem;
+}
+
+.flatpickr-current-month {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #18181b;
+  padding-top: 0.25rem;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year {
+  font-family: "Instrument Sans", system-ui, sans-serif;
+  font-weight: 600;
+  color: #18181b;
+  border-radius: 0.5rem;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover {
+  background: #f8fafc;
+}
+
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+  color: #52525b;
+  fill: #52525b;
+  border-radius: 0.5rem;
+  padding: 0.35rem;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.flatpickr-months .flatpickr-prev-month:hover,
+.flatpickr-months .flatpickr-next-month:hover {
+  background: #f8fafc;
+  color: #052659;
+}
+
+.flatpickr-months .flatpickr-prev-month:hover svg,
+.flatpickr-months .flatpickr-next-month:hover svg {
+  fill: #052659;
+}
+
+.flatpickr-weekdays {
+  background: transparent;
+  margin-bottom: 0.25rem;
+}
+
+span.flatpickr-weekday {
+  color: #71717a;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.flatpickr-days,
+.dayContainer {
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
+}
+
+.flatpickr-day {
+  color: #18181b;
+  font-size: 0.8125rem;
   font-weight: 500;
   border-radius: 0.625rem;
+  border: 1px solid transparent;
+  height: 2.25rem;
+  line-height: 2.25rem;
+  max-width: 2.4rem;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.flatpickr-day:hover,
+.flatpickr-day:focus {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #052659;
+}
+
+.flatpickr-day.today {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #052659;
+  font-weight: 600;
+}
+
+.flatpickr-day.today:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #052659;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover {
+  background: #052659;
+  border-color: #052659;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+  color: #a1a1aa;
+}
+
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover {
+  color: #cbd5e1;
+  background: transparent;
+  border-color: transparent;
 }

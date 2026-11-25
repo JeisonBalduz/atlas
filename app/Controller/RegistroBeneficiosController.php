@@ -129,6 +129,63 @@ class RegistroBeneficiosController extends BaseController
         }
     }
 
+    /**
+     * Recibe el ID del beneficio asignado y los datos enviados; actualiza beneficiario, tipo, fechas y soporte.
+     */
+    public function update(string $id): void
+    {
+        $dtId = $this->idPositivo($id, 'beneficio');
+        if ($dtId === null) {
+            return;
+        }
+
+        $input = new LimpiarInputs();
+        $error = $input->validar(['persona_id', 'beneficio_id', 'fecha_solicitud']);
+        if ($error !== null) {
+            $this->jsonError($error, 422);
+            return;
+        }
+
+        try {
+            $aprobadaRaw = $input->get('fecha_aprobada');
+            $fechaAprobada = is_string($aprobadaRaw) && trim($aprobadaRaw) !== '' ? trim($aprobadaRaw) : null;
+            $tipoDocRaw = $input->get('tipo_documento_id');
+            $tipoDocId = is_numeric($tipoDocRaw) && (int) $tipoDocRaw > 0 ? (int) $tipoDocRaw : null;
+
+            $archivos = $this->app->request()->getUploadedFiles();
+            /** @var array<string, mixed>|null $archivoSoporte */
+            $archivoSoporte = $_FILES['archivo_soporte'] ?? ($archivos['archivo_soporte'] ?? null);
+
+            $gestor = $this->gestorDocumentos ?? new GestorDocumentos(
+                DB::connection(),
+                dirname(__DIR__, 2) . '/app/storage/DocumentosInces'
+            );
+
+            $registro = $this->beneficiosService->actualizar(
+                $dtId,
+                (int) $input->get('persona_id'),
+                (int) $input->get('beneficio_id'),
+                trim((string) $input->get('fecha_solicitud')),
+                $fechaAprobada,
+                is_array($archivoSoporte) ? $archivoSoporte : null,
+                $tipoDocId,
+                $gestor
+            );
+
+            $this->jsonOk([
+                'dtbeneficio_id' => (int) $registro->dtbeneficio_id,
+                'persona_id' => (int) $registro->persona_id,
+                'beneficio_id' => (int) $registro->beneficio_id,
+            ], 'Beneficio actualizado correctamente.');
+        } catch (Throwable $e) {
+            $codigo = (int) $e->getCode();
+            $this->jsonError(
+                $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo actualizar el beneficio.',
+                $codigo >= 400 && $codigo < 600 ? $codigo : 500
+            );
+        }
+    }
+
     public function aprobar(string $id): void
     {
         $dtId = $this->idPositivo($id, 'beneficio');

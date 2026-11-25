@@ -23,7 +23,18 @@
             'opcionales_cargados' => 0,
             'completos' => false,
         ];
-        $listaTelefonos = $telefonos ?? [['telefono_id' => null, 'numero_telefono' => '', 'emergencia' => false]];
+        $listaTelefonos = $telefonos ?? [['telefono_id' => null, 'numero_telefono' => '', 'operadora' => '', 'digitos' => '', 'emergencia' => false]];
+        $operadorasTel = $operadoras_telefono ?? [
+            '0412' => '0412',
+            '0416' => '0416',
+            '0424' => '0424',
+            '0422' => '0422',
+            '0414' => '0414',
+            '0243' => '0243',
+        ];
+        $viviendaActual = $vivienda_seleccionada ?? '';
+        $esDepartamento = $viviendaActual === 'Departamento';
+        $tieneDiscapacidad = isset($discapacidad) && $discapacidad !== null;
     @endphp
 
     <form id="formulario-editar-empleado"
@@ -75,7 +86,7 @@
             </div>
             <div class="mt-4 flex flex-wrap items-end justify-between gap-2">
                 <div>
-                    <p class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                    <p id="codigo-empleado-header" class="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                         {{ $empleado->codigo_empleado ?? 'SIN-COD' }}
                     </p>
                     <p class="mt-1 text-xs font-medium text-marca-100">
@@ -209,7 +220,7 @@
                     'name' => 'codigo_empleado',
                     'value' => $empleado->codigo_empleado ?? '',
                     'maxlength' => 10,
-                    'readonly' => true,
+                    'required' => true,
                 ])
                 @endcomponent
                 @component('components.input', [
@@ -331,13 +342,17 @@
                     'selected' => $direccion->parroquia_id ?? '',
                 ])
                 @endcomponent
-                @component('components.input', [
+                @component('components.select', [
                     'label' => 'Tipo de vivienda',
                     'id' => 'vivienda',
                     'name' => 'vivienda',
-                    'value' => $direccion->vivienda ?? '',
-                    'maxlength' => 30,
+                    'placeholder' => 'Seleccionar tipo...',
                     'required' => true,
+                    'options' => [
+                        'Casa' => 'Casa',
+                        'Departamento' => 'Departamento',
+                    ],
+                    'selected' => $viviendaActual,
                 ])
                 @endcomponent
                 @component('components.input', [
@@ -349,31 +364,35 @@
                     'required' => true,
                 ])
                 @endcomponent
-                @component('components.input', [
-                    'label' => 'Urbanización / Sector',
-                    'id' => 'nombre_urb',
-                    'name' => 'nombre_urb',
-                    'value' => $direccion->nombre_urb ?? '',
-                    'maxlength' => 100,
-                    'required' => true,
-                ])
-                @endcomponent
-                @component('components.input', [
-                    'label' => 'Piso / Edificio',
-                    'id' => 'piso_edificio',
-                    'name' => 'piso_edificio',
-                    'value' => $direccion->piso_edificio ?? '',
-                    'maxlength' => 10,
-                    'required' => true,
-                ])
-                @endcomponent
+                <div id="campo-nombre-urb" data-campo-departamento class="{{ $esDepartamento ? '' : 'hidden' }}">
+                    @component('components.input', [
+                        'label' => 'Nombre de la urbanización',
+                        'id' => 'nombre_urb',
+                        'name' => 'nombre_urb',
+                        'value' => ($direccion->nombre_urb ?? '') === 'N/A' ? '' : ($direccion->nombre_urb ?? ''),
+                        'maxlength' => 100,
+                        'required' => $esDepartamento,
+                    ])
+                    @endcomponent
+                </div>
+                <div id="campo-piso-edificio" data-campo-departamento class="{{ $esDepartamento ? '' : 'hidden' }}">
+                    @component('components.input', [
+                        'label' => 'Piso / Edificio',
+                        'id' => 'piso_edificio',
+                        'name' => 'piso_edificio',
+                        'value' => ($direccion->piso_edificio ?? '') === 'N/A' ? '' : ($direccion->piso_edificio ?? ''),
+                        'maxlength' => 10,
+                        'required' => $esDepartamento,
+                    ])
+                    @endcomponent
+                </div>
                 @component('components.input', [
                     'label' => 'Número de vivienda',
                     'id' => 'numero_vivienda',
                     'name' => 'numero_vivienda',
                     'value' => $direccion->numero_vivienda ?? '',
                     'maxlength' => 10,
-                    'required' => true,
+                    'required' => false,
                 ])
                 @endcomponent
                 <div class="sm:col-span-2">
@@ -409,22 +428,38 @@
                     @foreach ($listaTelefonos as $idx => $tel)
                         @php
                             $esEmergencia = !empty($tel['emergencia']);
+                            $opActual = $tel['operadora'] ?? '';
+                            $digActual = $tel['digitos'] ?? '';
                         @endphp
                         <div data-fila-telefono class="rounded-2xl border {{ $esEmergencia ? 'border-marca-200 bg-marca-50/40' : 'border-slate-200 bg-slate-50/70' }} p-3.5 space-y-2.5 transition-colors">
-                            <div class="flex items-center gap-2">
-                                <div class="relative flex-1">
-                                    <i data-lucide="phone" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-                                    <input type="text"
-                                        name="telefonos_numero[]"
-                                        value="{{ $tel['numero_telefono'] ?? '' }}"
-                                        maxlength="20"
-                                        placeholder="Ej: 0412-1234567"
-                                        class="input-telefono-empleado w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-black focus:ring-2 focus:ring-black focus:ring-offset-1" />
+                            <div class="flex items-start gap-2">
+                                <div class="grid grid-cols-[6.75rem_1fr] gap-2 flex-1">
+                                    <div>
+                                        @component('components.select', [
+                                            'id' => 'tel-operadora-' . $idx,
+                                            'name' => 'telefonos_operadora[]',
+                                            'placeholder' => 'Cód.',
+                                            'options' => $operadorasTel,
+                                            'selected' => $opActual,
+                                        ])
+                                        @endcomponent
+                                    </div>
+                                    <div class="relative">
+                                        <i data-lucide="phone" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
+                                        <input type="text"
+                                            name="telefonos_digitos[]"
+                                            value="{{ $digActual }}"
+                                            maxlength="7"
+                                            inputmode="numeric"
+                                            placeholder="1234567"
+                                            class="input-telefono-digitos w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-black focus:ring-2 focus:ring-black focus:ring-offset-1" />
+                                        <input type="hidden" name="telefonos_numero[]" value="{{ $tel['numero_telefono'] ?? '' }}" data-hidden-telefono-completo />
+                                    </div>
                                 </div>
                                 <button type="button"
                                     data-eliminar-telefono
                                     title="Eliminar teléfono"
-                                    class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 transition-colors hover:bg-red-100 cursor-pointer">
+                                    class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 transition-colors hover:bg-red-100 cursor-pointer">
                                     <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
                                 </button>
                             </div>
@@ -443,8 +478,93 @@
             </div>
 
             <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-zinc-500">
-                Al marcar un número como contacto de emergencia, cualquier otro teléfono quedará automáticamente como línea personal.
+                Selecciona la operadora e ingresa 7 dígitos. Solo un teléfono puede quedar como contacto de emergencia.
             </p>
+        </section>
+
+        {{-- Sección 4B: Card de Discapacidad (solo visible si el trabajador tiene discapacidad registrada) --}}
+        <section id="card-discapacidad-empleado"
+            class="col-span-full rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5 {{ $tieneDiscapacidad ? '' : 'hidden' }}">
+            <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-zinc-900">Datos de Discapacidad</h2>
+                    <p class="text-sm text-zinc-500">Registro CONAPDIS / evaluación médica asociada al expediente del trabajador.</p>
+                </div>
+                <span class="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-800">
+                    <i data-lucide="accessibility" class="h-3.5 w-3.5" aria-hidden="true"></i>
+                    <span>Discapacidad Registrada</span>
+                </span>
+            </header>
+
+            <input type="hidden" id="discapacidad_activa" name="discapacidad_activa" value="{{ $tieneDiscapacidad ? '1' : '0' }}" />
+            <input type="hidden" id="dt_discapacidad_id" name="dt_discapacidad_id" value="{{ $discapacidad->dt_discapacidad_id ?? '' }}" />
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                @component('components.select', [
+                    'label' => 'Tipo de discapacidad',
+                    'id' => 'tipo_discapacidad',
+                    'name' => 'tipo_discapacidad',
+                    'placeholder' => 'Seleccionar tipo...',
+                    'options' => $tipos_discapacidad ?? [],
+                    'selected' => $discapacidad->dirigido ?? '',
+                ])
+                @endcomponent
+                @component('components.select', [
+                    'label' => 'Grado de discapacidad',
+                    'id' => 'grado_discapacidad_id',
+                    'name' => 'grado_discapacidad_id',
+                    'placeholder' => 'Seleccionar grado...',
+                    'required' => $tieneDiscapacidad,
+                    'options' => $grados_discapacidad ?? [],
+                    'selected' => $discapacidad->grado_discapacidad_id ?? '',
+                ])
+                @endcomponent
+                @component('components.input', [
+                    'label' => 'N.° de Carnet CONAPDIS',
+                    'id' => 'numero_carnet',
+                    'name' => 'numero_carnet',
+                    'value' => $discapacidad->numero_carnet ?? '',
+                    'placeholder' => 'Ej. CONAPDIS-123456',
+                    'maxlength' => 30,
+                    'required' => $tieneDiscapacidad,
+                ])
+                @endcomponent
+                @component('components.input', [
+                    'label' => 'Entidad emisora',
+                    'id' => 'entidad_emisora',
+                    'name' => 'entidad_emisora',
+                    'value' => $discapacidad->entidad_emisora ?? 'CONAPDIS',
+                    'maxlength' => 100,
+                    'required' => $tieneDiscapacidad,
+                ])
+                @endcomponent
+                @component('components.input', [
+                    'label' => 'Fecha de emisión del carnet',
+                    'id' => 'fecha_emision_carnet',
+                    'name' => 'fecha_emision_carnet',
+                    'type' => 'date',
+                    'value' => isset($discapacidad->fecha_emision_carnet) ? $discapacidad->fecha_emision_carnet->format('Y-m-d') : '',
+                ])
+                @endcomponent
+                @component('components.input', [
+                    'label' => 'Fecha de vencimiento del carnet',
+                    'id' => 'fecha_vencimiento_carnet',
+                    'name' => 'fecha_vencimiento_carnet',
+                    'type' => 'date',
+                    'value' => isset($discapacidad->fecha_vencimiento_carnet) ? $discapacidad->fecha_vencimiento_carnet->format('Y-m-d') : '',
+                ])
+                @endcomponent
+                <div class="md:col-span-2 lg:col-span-3 space-y-1.5">
+                    <label for="descripcion_discapacidad" class="block text-sm font-medium text-zinc-900">
+                        Descripción / Observaciones médicas
+                    </label>
+                    <textarea id="descripcion_discapacidad"
+                        name="descripcion_discapacidad"
+                        rows="2"
+                        placeholder="Detalles médicos o indicaciones relevantes..."
+                        class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none transition duration-200 focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2">{{ $discapacidad->descripcion ?? '' }}</textarea>
+                </div>
+            </div>
         </section>
 
         {{-- Sección 5: Expediente Documental del Trabajador (Evaluación dinámica + Vigencia) --}}

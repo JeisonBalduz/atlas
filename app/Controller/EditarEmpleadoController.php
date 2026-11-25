@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Http\LimpiarInputs;
+use App\Model\Beneficios\DetalleDiscapacidadModel;
+use App\Model\Beneficios\GradoDiscapacidadModel;
 use App\Model\Personas\DireccionModel;
 use App\Model\Personas\EmpleadosModel;
 use App\Model\Personas\PersonasModel;
@@ -25,6 +27,12 @@ use Throwable;
  */
 final class EditarEmpleadoController extends BaseController
 {
+    /** @var list<string> */
+    private const OPERADORAS_TELEFONO = ['0412', '0416', '0424', '0422', '0414', '0243'];
+
+    /** @var list<string> */
+    private const TIPOS_VIVIENDA = ['Casa', 'Departamento'];
+
     private EmpleadosService $empleadosService;
 
     public function __construct(
@@ -50,6 +58,7 @@ final class EditarEmpleadoController extends BaseController
         $empleado = EmpleadosModel::query()
             ->with([
                 'persona.telefonos',
+                'persona.detallesDiscapacidad.gradoDiscapacidad',
                 'direccion.parroquia.municipio',
             ])
             ->find($empleadoId);
@@ -85,13 +94,33 @@ final class EditarEmpleadoController extends BaseController
         );
         $resumenRecaudos = $this->catalogos->resumenRecaudos($recaudos);
 
+        $detallesDisc = $persona->getRelationValue('detallesDiscapacidad');
+        $discapacidadActual = $detallesDisc instanceof \Illuminate\Database\Eloquent\Collection
+            ? $detallesDisc->sortByDesc('dt_discapacidad_id')->first()
+            : null;
+        if (!$discapacidadActual instanceof DetalleDiscapacidadModel) {
+            $discapacidadActual = null;
+        }
+
+        $tiposDiscapacidadMap = [];
+        foreach ($this->catalogos->tiposDiscapacidad() as $nombreTipo) {
+            $tiposDiscapacidadMap[(string) $nombreTipo] = (string) $nombreTipo;
+        }
+        $operadorasMap = array_combine(self::OPERADORAS_TELEFONO, self::OPERADORAS_TELEFONO);
+        $viviendaSeleccionada = $this->normalizarTipoVivienda((string) ($direccion instanceof DireccionModel ? $direccion->vivienda : ''));
+
         $this->renderVista('editar_empleado', [
             'empleado' => $empleado,
             'persona' => $persona,
             'direccion' => $direccion,
+            'vivienda_seleccionada' => $viviendaSeleccionada,
             'telefonos' => $telefonos,
+            'operadoras_telefono' => $operadorasMap,
             'telefono_principal' => $telPrincipal,
             'telefono_emergencia' => $telEmergencia,
+            'discapacidad' => $discapacidadActual,
+            'tipos_discapacidad' => $tiposDiscapacidadMap,
+            'grados_discapacidad' => $this->catalogos->gradosDiscapacidad(),
             'estados_civiles' => $this->catalogos->estadosCiviles(),
             'dependencias' => $this->catalogos->dependencias(true),
             'departamentos' => $this->catalogos->departamentos(true),
@@ -217,8 +246,22 @@ final class EditarEmpleadoController extends BaseController
         $carreraRaw = $input->get('carrera_id', $empleado->carrera_id);
         $carreraId = is_numeric($carreraRaw) && (int) $carreraRaw > 0 ? (int) $carreraRaw : null;
 
-        $codigoRaw = (string) $input->get('codigo_empleado', (string) ($empleado->codigo_empleado ?? $cedula));
+        $codigoRaw = trim((string) $input->get('codigo_empleado', (string) ($empleado->codigo_empleado ?? $cedula)));
         $codigoEmpleado = substr($codigoRaw !== '' ? $codigoRaw : (string) $cedula, 0, 10);
+        if ($codigoEmpleado === '') {
+            $this->jsonError('El código de empleado es obligatorio.', 422);
+            return;
+        }
+
+        $codigoDuplicado = EmpleadosModel::query()
+            ->where('codigo_empleado', $codigoEmpleado)
+            ->where('empleado_id', '!=', $empleadoId)
+            ->exists();
+
+        if ($codigoDuplicado) {
+            $this->jsonError('El código de empleado ya está asignado a otro trabajador.', 422);
+            return;
+        }
 
         $estatusActualRaw = $input->get('estatus_actual', $empleado->estatus_actual);
         $estatusActual = in_array((int) $estatusActualRaw, [0, 1, 3], true)
@@ -233,11 +276,22 @@ final class EditarEmpleadoController extends BaseController
         $parroquiaRaw = $input->get('parroquia_id', $dirActual?->parroquia_id);
         $parroquiaId = is_numeric($parroquiaRaw) && (int) $parroquiaRaw > 0 ? (int) $parroquiaRaw : null;
 
+        $direccionValidada = $this->validarDireccionEntrada($input, $dirActual);
+        if (isset($direccionValidada['error'])) {
+            $this->jsonError($direccionValidada['error'], 422);
+            return;
+        }
+
+        $discapacidadValidada = $this->validarDiscapacidadEntrada($input);
+        if (isset($discapacidadValidada['error'])) {
+            $this->jsonError($discapacidadValidada['error'], 422);
+            return;
+        }
+
         try {
             $resultado = $empleado->getConnection()->transaction(function () use (
                 $persona,
                 $empleado,
-                $dirActual,
                 $primerNombre,
                 $segundoNombre,
                 $primerApellido,
@@ -257,7 +311,8 @@ final class EditarEmpleadoController extends BaseController
                 $estatusActual,
                 $correo,
                 $parroquiaId,
-                $input,
+                $direccionValidada,
+                $discapacidadValidada,
                 $telefonosEntrada,
                 $documentosPorTipo
             ): array {
@@ -287,21 +342,15 @@ final class EditarEmpleadoController extends BaseController
                 ]);
                 $empleado->save();
 
-                if ($parroquiaId !== null) {
+                if ($parroquiaId !== null && isset($direccionValidada['datos'])) {
                     DireccionModel::query()->updateOrCreate(
                         ['empleado_id' => (int) $empleado->empleado_id],
-                        [
-                            'parroquia_id' => $parroquiaId,
-                            'vivienda' => substr((string) $input->get('vivienda', $dirActual?->vivienda ?? 'Casa'), 0, 30),
-                            'calle' => substr((string) $input->get('calle', $dirActual?->calle ?? 'S/N'), 0, 30),
-                            'nombre_urb' => substr((string) $input->get('nombre_urb', $dirActual?->nombre_urb ?? 'N/A'), 0, 100),
-                            'piso_edificio' => substr((string) $input->get('piso_edificio', $dirActual?->piso_edificio ?? 'N/A'), 0, 10),
-                            'numero_vivienda' => substr((string) $input->get('numero_vivienda', $dirActual?->numero_vivienda ?? 'S/N'), 0, 10),
-                            'descripcion' => $input->get('descripcion', $dirActual?->descripcion)
-                                ? substr((string) $input->get('descripcion', $dirActual?->descripcion), 0, 255)
-                                : null,
-                        ]
+                        array_merge(['parroquia_id' => $parroquiaId], $direccionValidada['datos'])
                     );
+                }
+
+                if (isset($discapacidadValidada['datos'])) {
+                    $this->guardarDiscapacidadPersona((int) $persona->persona_id, $discapacidadValidada['datos']);
                 }
 
                 $this->sincronizarTelefonosPersona((int) $persona->persona_id, $telefonosEntrada);
@@ -352,9 +401,10 @@ final class EditarEmpleadoController extends BaseController
     }
 
     /**
-     * Obtiene la lista de teléfonos del trabajador integrando `fn_obtener_telefonos_empleado` con respaldo Eloquent.
+     * Obtiene los teléfonos del trabajador y los divide en operadora y número de 7 dígitos.
+     * Recibe el ID del empleado y el modelo Persona; retorna la lista normalizada para la vista.
      *
-     * @return list<array{telefono_id: int|null, numero_telefono: string, emergencia: bool}>
+     * @return list<array{telefono_id: int|null, numero_telefono: string, operadora: string, digitos: string, emergencia: bool}>
      */
     private function obtenerTelefonosNormalizados(int $empleadoId, PersonasModel $persona): array
     {
@@ -372,9 +422,12 @@ final class EditarEmpleadoController extends BaseController
                     if ($numero === '') {
                         continue;
                     }
+                    $partes = $this->dividirTelefono($numero);
                     $lista[] = [
                         'telefono_id' => isset($fila['telefono_id']) ? (int) $fila['telefono_id'] : null,
                         'numero_telefono' => $numero,
+                        'operadora' => $partes['operadora'],
+                        'digitos' => $partes['digitos'],
                         'emergencia' => (bool) ($fila['emergencia'] ?? false),
                     ];
                 }
@@ -388,9 +441,12 @@ final class EditarEmpleadoController extends BaseController
             if ($telefonosCol instanceof \Illuminate\Database\Eloquent\Collection) {
                 foreach ($telefonosCol->sortBy('telefono_id') as $tel) {
                     if ($tel instanceof TelefonoPersonasModel) {
+                        $partes = $this->dividirTelefono((string) $tel->numero_telefono);
                         $lista[] = [
                             'telefono_id' => (int) $tel->telefono_id,
                             'numero_telefono' => (string) $tel->numero_telefono,
+                            'operadora' => $partes['operadora'],
+                            'digitos' => $partes['digitos'],
                             'emergencia' => (bool) $tel->emergencia,
                         ];
                     }
@@ -402,6 +458,8 @@ final class EditarEmpleadoController extends BaseController
             $lista[] = [
                 'telefono_id' => null,
                 'numero_telefono' => '',
+                'operadora' => '',
+                'digitos' => '',
                 'emergencia' => false,
             ];
         }
@@ -410,8 +468,8 @@ final class EditarEmpleadoController extends BaseController
     }
 
     /**
-     * Extrae y valida la lista de teléfonos desde `telefonos_numero[]` o los campos simples de respaldo.
-     * Garantiza estrictamente que como máximo un (1) teléfono tenga `emergencia = true`.
+     * Extrae y valida teléfonos desde operadora+dígitos o `telefonos_numero[]` concatenando con guion.
+     * Recibe LimpiarInputs y retorna el arreglo validado o un mensaje de error.
      *
      * @return array{modo: 'lista'|'legacy'|'ninguno', items?: list<array{numero_telefono: string, emergencia: bool}>, principal?: string, emergencia?: string}|array{error: string}
      */
@@ -420,8 +478,47 @@ final class EditarEmpleadoController extends BaseController
         $todo = $input->todo();
         $datosReq = $this->app->request()->data->getData();
 
+        $operadorasRaw = $todo['telefonos_operadora'] ?? $datosReq['telefonos_operadora'] ?? null;
+        $digitosRaw = $todo['telefonos_digitos'] ?? $datosReq['telefonos_digitos'] ?? null;
         $numerosRaw = $todo['telefonos_numero'] ?? $datosReq['telefonos_numero'] ?? null;
         $emergenciasRaw = $todo['telefonos_emergencia'] ?? $datosReq['telefonos_emergencia'] ?? [];
+
+        if (is_array($operadorasRaw) && is_array($digitosRaw)) {
+            $items = [];
+            $totalEmergencia = 0;
+
+            foreach ($digitosRaw as $idx => $digRaw) {
+                $operadora = trim((string) ($operadorasRaw[$idx] ?? ''));
+                $digitos = trim((string) $digRaw);
+
+                if ($operadora === '' && $digitos === '') {
+                    continue;
+                }
+                if (!in_array($operadora, self::OPERADORAS_TELEFONO, true)) {
+                    return ['error' => 'Selecciona una operadora válida (0412, 0416, 0424, 0422, 0414 o 0243).'];
+                }
+                if (preg_match('/^\d{7}$/', $digitos) !== 1) {
+                    return ['error' => 'Cada número telefónico debe contener exactamente 7 dígitos numéricos.'];
+                }
+
+                $valorEmg = is_array($emergenciasRaw) ? ($emergenciasRaw[$idx] ?? false) : false;
+                $esEmergencia = $valorEmg === '1' || $valorEmg === 1 || $valorEmg === true || $valorEmg === 'true';
+                if ($esEmergencia) {
+                    $totalEmergencia++;
+                }
+
+                $items[] = [
+                    'numero_telefono' => "{$operadora}-{$digitos}",
+                    'emergencia' => $esEmergencia,
+                ];
+            }
+
+            if ($totalEmergencia > 1) {
+                return ['error' => 'Solo se permite registrar un (1) teléfono de emergencia por trabajador.'];
+            }
+
+            return ['modo' => 'lista', 'items' => $items];
+        }
 
         if (is_array($numerosRaw)) {
             $items = [];
@@ -517,5 +614,221 @@ final class EditarEmpleadoController extends BaseController
                 throw new InvalidArgumentException('Solo puede existir un teléfono de emergencia.', 422);
             }
         }
+    }
+
+    /**
+     * Normaliza el tipo de vivienda almacenado a las opciones válidas `Casa` o `Departamento`.
+     * Recibe el texto actual de vivienda y retorna el valor normalizado para el selector.
+     */
+    private function normalizarTipoVivienda(string $vivienda): string
+    {
+        $limpio = strtolower(trim($vivienda));
+        if ($limpio === 'departamento' || $limpio === 'apartamento') {
+            return 'Departamento';
+        }
+        if ($limpio === 'casa') {
+            return 'Casa';
+        }
+
+        return '';
+    }
+
+    /**
+     * Divide un teléfono con guion (ej. `0412-3456789`) en operadora y 7 dígitos.
+     * Recibe el número completo y retorna un arreglo con `operadora` y `digitos`.
+     *
+     * @return array{operadora: string, digitos: string}
+     */
+    private function dividirTelefono(string $numero): array
+    {
+        $limpio = trim($numero);
+        if (str_contains($limpio, '-')) {
+            [$op, $dig] = explode('-', $limpio, 2);
+            $opLimpia = preg_replace('/\D/', '', $op) ?? '';
+            $digLimpios = substr(preg_replace('/\D/', '', $dig) ?? '', 0, 7);
+
+            return [
+                'operadora' => in_array($opLimpia, self::OPERADORAS_TELEFONO, true) ? $opLimpia : '',
+                'digitos' => $digLimpios,
+            ];
+        }
+
+        $soloDigitos = preg_replace('/\D/', '', $limpio) ?? '';
+        if (strlen($soloDigitos) >= 11) {
+            $op = substr($soloDigitos, 0, 4);
+
+            return [
+                'operadora' => in_array($op, self::OPERADORAS_TELEFONO, true) ? $op : '',
+                'digitos' => substr($soloDigitos, 4, 7),
+            ];
+        }
+
+        return ['operadora' => '', 'digitos' => substr($soloDigitos, 0, 7)];
+    }
+
+    /**
+     * Valida los campos de dirección según el tipo de vivienda (`Casa` o `Departamento`).
+     * Recibe LimpiarInputs y la dirección actual; retorna datos listos para BD o error 422.
+     *
+     * @return array{datos?: array<string, mixed>, error?: string}
+     */
+    private function validarDireccionEntrada(LimpiarInputs $input, ?DireccionModel $dirActual): array
+    {
+        $hayCamposDireccion = $input->get('vivienda') !== null
+            || $input->get('calle') !== null
+            || $input->get('nombre_urb') !== null
+            || $input->get('piso_edificio') !== null
+            || $input->get('numero_vivienda') !== null
+            || $input->get('descripcion') !== null;
+
+        if (!$hayCamposDireccion) {
+            if ($dirActual === null) {
+                return [];
+            }
+
+            return [
+                'datos' => [
+                    'vivienda' => substr((string) $dirActual->vivienda, 0, 30),
+                    'calle' => substr((string) $dirActual->calle, 0, 30),
+                    'nombre_urb' => substr((string) $dirActual->nombre_urb, 0, 100),
+                    'piso_edificio' => substr((string) $dirActual->piso_edificio, 0, 10),
+                    'numero_vivienda' => substr((string) $dirActual->numero_vivienda, 0, 10),
+                    'descripcion' => $dirActual->descripcion !== null ? substr((string) $dirActual->descripcion, 0, 255) : null,
+                ],
+            ];
+        }
+
+        $vivienda = trim((string) $input->get('vivienda', $dirActual?->vivienda ?? ''));
+        if (!in_array($vivienda, self::TIPOS_VIVIENDA, true)) {
+            return ['error' => 'El tipo de vivienda debe ser Casa o Departamento.'];
+        }
+
+        $regexSoloTexto = '/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/u';
+        $regexTextoNumeros = '/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s]+$/u';
+        $regexDireccionBasica = '/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s\/]+$/u';
+
+        $calle = trim((string) $input->get('calle', $dirActual?->calle ?? ''));
+        if ($calle === '' || preg_match($regexTextoNumeros, $calle) !== 1) {
+            return ['error' => 'La Calle / Avenida es obligatoria y solo permite texto y números.'];
+        }
+
+        $numeroVivienda = trim((string) $input->get('numero_vivienda', $dirActual?->numero_vivienda ?? ''));
+        if ($numeroVivienda === '' || preg_match($regexDireccionBasica, $numeroVivienda) !== 1) {
+            return ['error' => 'El Número de vivienda es obligatorio y solo permite texto y números.'];
+        }
+
+        $esDepartamento = $vivienda === 'Departamento';
+        $nombreUrb = trim((string) $input->get('nombre_urb', $esDepartamento ? ($dirActual?->nombre_urb ?? '') : ''));
+        $pisoEdificio = trim((string) $input->get('piso_edificio', $esDepartamento ? ($dirActual?->piso_edificio ?? '') : ''));
+
+        if ($esDepartamento) {
+            if ($nombreUrb === '' || preg_match($regexSoloTexto, $nombreUrb) !== 1) {
+                return ['error' => 'El Nombre de la urbanización es obligatorio para Departamento y solo permite texto.'];
+            }
+            if ($pisoEdificio === '' || preg_match($regexTextoNumeros, $pisoEdificio) !== 1) {
+                return ['error' => 'El Piso / Edificio es obligatorio para Departamento y solo permite texto y números.'];
+            }
+        } else {
+            if ($nombreUrb !== '' && strtoupper($nombreUrb) !== 'N/A' && preg_match($regexSoloTexto, $nombreUrb) !== 1) {
+                return ['error' => 'La Urbanización / Sector solo permite texto.'];
+            }
+            $nombreUrb = $nombreUrb !== '' ? $nombreUrb : 'N/A';
+            $pisoEdificio = 'N/A';
+        }
+
+        $descripcion = trim((string) $input->get('descripcion', (string) ($dirActual?->descripcion ?? '')));
+        if ($descripcion !== '' && preg_match($regexSoloTexto, $descripcion) !== 1) {
+            return ['error' => 'El Punto de referencia / Descripción solo permite texto.'];
+        }
+
+        return [
+            'datos' => [
+                'vivienda' => substr($vivienda, 0, 30),
+                'calle' => substr($calle, 0, 30),
+                'nombre_urb' => substr($nombreUrb, 0, 100),
+                'piso_edificio' => substr($pisoEdificio, 0, 10),
+                'numero_vivienda' => substr($numeroVivienda, 0, 10),
+                'descripcion' => $descripcion !== '' ? substr($descripcion, 0, 255) : null,
+            ],
+        ];
+    }
+
+    /**
+     * Valida los datos de la card de discapacidad cuando está activa en la edición.
+     * Recibe LimpiarInputs y retorna el payload validado o un error 422.
+     *
+     * @return array{datos?: array<string, mixed>, error?: string}
+     */
+    private function validarDiscapacidadEntrada(LimpiarInputs $input): array
+    {
+        $activa = (string) $input->get('discapacidad_activa', '0') === '1';
+        if (!$activa) {
+            return [];
+        }
+
+        $gradoRaw = $input->get('grado_discapacidad_id');
+        $gradoId = is_numeric($gradoRaw) && (int) $gradoRaw > 0 ? (int) $gradoRaw : null;
+        $tipoNombre = trim((string) $input->get('tipo_discapacidad', ''));
+        $numeroCarnet = trim((string) $input->get('numero_carnet', ''));
+        $entidadEmisora = trim((string) $input->get('entidad_emisora', ''));
+        $descripcion = trim((string) $input->get('descripcion_discapacidad', ''));
+        $fechaEmision = trim((string) $input->get('fecha_emision_carnet', ''));
+        $fechaVencimiento = trim((string) $input->get('fecha_vencimiento_carnet', ''));
+
+        if ($gradoId === null || !GradoDiscapacidadModel::query()->whereKey($gradoId)->exists()) {
+            return ['error' => 'Debe seleccionar un grado de discapacidad válido.'];
+        }
+        if ($numeroCarnet === '') {
+            return ['error' => 'El número de carnet CONAPDIS es obligatorio.'];
+        }
+        if ($entidadEmisora === '') {
+            return ['error' => 'La entidad emisora del carnet de discapacidad es obligatoria.'];
+        }
+        if ($fechaEmision !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaEmision) !== 1) {
+            return ['error' => 'La fecha de emisión del carnet no tiene un formato válido.'];
+        }
+        if ($fechaVencimiento !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaVencimiento) !== 1) {
+            return ['error' => 'La fecha de vencimiento del carnet no tiene un formato válido.'];
+        }
+        if ($fechaEmision !== '' && $fechaVencimiento !== '' && $fechaVencimiento < $fechaEmision) {
+            return ['error' => 'La fecha de vencimiento del carnet no puede ser menor que la fecha de emisión.'];
+        }
+
+        return [
+            'datos' => [
+                'dt_discapacidad_id' => is_numeric($input->get('dt_discapacidad_id')) ? (int) $input->get('dt_discapacidad_id') : 0,
+                'grado_discapacidad_id' => $gradoId,
+                'numero_carnet' => substr($numeroCarnet, 0, 30),
+                'entidad_emisora' => substr($entidadEmisora, 0, 100),
+                'descripcion' => $descripcion !== '' ? $descripcion : null,
+                'dirigido' => $tipoNombre !== '' ? substr($tipoNombre, 0, 30) : 'Trabajador',
+                'fecha_emision_carnet' => $fechaEmision !== '' ? $fechaEmision : date('Y-m-d'),
+                'fecha_vencimiento_carnet' => $fechaVencimiento !== '' ? $fechaVencimiento : date('Y-m-d', strtotime('+5 years')),
+            ],
+        ];
+    }
+
+    /**
+     * Actualiza o crea el registro de discapacidad de una persona en `detalle_discapacidad`.
+     * Recibe el ID de persona y el arreglo validado de discapacidad.
+     *
+     * @param array<string, mixed> $datos
+     */
+    private function guardarDiscapacidadPersona(int $personaId, array $datos): void
+    {
+        $dtId = (int) ($datos['dt_discapacidad_id'] ?? 0);
+        unset($datos['dt_discapacidad_id']);
+
+        $existente = $dtId > 0
+            ? DetalleDiscapacidadModel::query()->where('dt_discapacidad_id', $dtId)->where('persona_id', $personaId)->first()
+            : DetalleDiscapacidadModel::query()->where('persona_id', $personaId)->orderByDesc('dt_discapacidad_id')->first();
+
+        if ($existente instanceof DetalleDiscapacidadModel) {
+            $existente->fill($datos);
+            $existente->save();
+            return;
+        }
+
+        DetalleDiscapacidadModel::query()->create(array_merge(['persona_id' => $personaId], $datos));
     }
 }

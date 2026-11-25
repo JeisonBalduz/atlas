@@ -90,6 +90,8 @@ class RegistrosEmpleadosController extends BaseController
             $query = EmpleadosModel::query()
                 ->with([
                     'persona.detallesDiscapacidad.gradoDiscapacidad',
+                    'persona.telefonos',
+                    'persona.documentos',
                     'cargo',
                     'departamento',
                     'dependencia',
@@ -155,6 +157,13 @@ class RegistrosEmpleadosController extends BaseController
                     $detalleDisc = $persona instanceof PersonasModel
                         ? $persona->detallesDiscapacidad->sortByDesc('dt_discapacidad_id')->first()
                         : null;
+                    $docDiscVigente = $persona instanceof PersonasModel
+                        ? $persona->documentos
+                            ->filter(static fn (DocumentosModel $d): bool => (int) $d->tipo_documento_id === 10 && strcasecmp((string) $d->estatus_documento, 'Vigente') === 0)
+                            ->sortByDesc('documentos_id')
+                            ->first()
+                        : null;
+
                     $discapacidad = null;
                     if ($detalleDisc instanceof DetalleDiscapacidadModel) {
                         $gradoNombre = (string) ($detalleDisc->gradoDiscapacidad?->nombre_gradodis ?? '');
@@ -169,8 +178,29 @@ class RegistrosEmpleadosController extends BaseController
                             'tipo' => $tipoNombre,
                             'numero_carnet' => (string) $detalleDisc->numero_carnet,
                             'entidad_emisora' => (string) $detalleDisc->entidad_emisora,
+                            'descripcion' => (string) ($detalleDisc->descripcion ?? ''),
+                            'fecha_emision_carnet' => $detalleDisc->fecha_emision_carnet->format('Y-m-d'),
+                            'fecha_vencimiento_carnet' => $detalleDisc->fecha_vencimiento_carnet->format('Y-m-d'),
                             'etiqueta' => $etiqueta,
+                            'documento' => $docDiscVigente instanceof DocumentosModel
+                                ? [
+                                    'documentos_id' => (int) $docDiscVigente->documentos_id,
+                                    'nombre_original' => (string) $docDiscVigente->nombre_original,
+                                    'url_descarga' => '/documentos/' . (int) $docDiscVigente->documentos_id,
+                                ]
+                                : null,
                         ];
+                    }
+
+                    $telefonosLista = [];
+                    if ($persona instanceof PersonasModel) {
+                        foreach ($persona->telefonos as $tel) {
+                            $telefonosLista[] = [
+                                'telefono_id' => (int) $tel->telefono_id,
+                                'numero_telefono' => (string) $tel->numero_telefono,
+                                'emergencia' => (bool) ($tel->emergencia ?? false),
+                            ];
+                        }
                     }
 
                     return [
@@ -192,6 +222,7 @@ class RegistrosEmpleadosController extends BaseController
                         'activo' => (int) $empleado->estatus_actual === 1,
                         'pendiente' => (int) $empleado->estatus_actual === 3,
                         'discapacidad' => $discapacidad,
+                        'telefonos' => $telefonosLista,
                         'nivel_academico' => (string) ($empleado->nivelAcademico?->nivel_academico ?? ''),
                         'carrera' => (string) ($empleado->carrera?->carrera ?? ''),
                         'correo' => (string) ($empleado->correo ?? ''),
@@ -627,7 +658,7 @@ class RegistrosEmpleadosController extends BaseController
         }
 
         try {
-            $detalle = DetalleDiscapacidadModel::query()->create([
+            $datosDisc = [
                 'persona_id' => (int) $empleado->persona_id,
                 'grado_discapacidad_id' => $gradoId,
                 'numero_carnet' => substr($numeroCarnet, 0, 30),
@@ -636,7 +667,24 @@ class RegistrosEmpleadosController extends BaseController
                 'dirigido' => $tipoNombre !== '' ? substr($tipoNombre, 0, 30) : 'Trabajador',
                 'fecha_emision_carnet' => $fechaEmision,
                 'fecha_vencimiento_carnet' => $fechaVencimiento,
-            ]);
+            ];
+
+            $existente = DetalleDiscapacidadModel::query()
+                ->where('persona_id', (int) $empleado->persona_id)
+                ->orderByDesc('dt_discapacidad_id')
+                ->first();
+
+            if ($existente instanceof DetalleDiscapacidadModel) {
+                $existente->fill($datosDisc);
+                $existente->save();
+                $detalle = $existente;
+                $codigoHttp = 200;
+                $mensaje = 'Discapacidad actualizada correctamente para el trabajador.';
+            } else {
+                $detalle = DetalleDiscapacidadModel::query()->create($datosDisc);
+                $codigoHttp = 201;
+                $mensaje = 'Discapacidad asignada correctamente al trabajador.';
+            }
 
             $archivo = $this->app->request()->files->getData()['archivo'] ?? null;
             $documentoId = null;
@@ -653,7 +701,7 @@ class RegistrosEmpleadosController extends BaseController
                 'dt_discapacidad_id' => (int) $detalle->dt_discapacidad_id,
                 'persona_id' => (int) $empleado->persona_id,
                 'documento_id' => $documentoId,
-            ], 'Discapacidad asignada correctamente al trabajador.', 201);
+            ], $mensaje, $codigoHttp);
         } catch (Throwable $e) {
             $codigo = (int) $e->getCode();
             $this->jsonError(

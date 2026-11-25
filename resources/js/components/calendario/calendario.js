@@ -1,20 +1,21 @@
-// import { Calendar } from '/lib/vanilla-calendar-pro/index.mjs';
 import { obtenerListaFeriadosInces } from '/js/utils/calcularDiasHabiles.js';
 
 const instanciasPorInput = new WeakMap();
+const REGEX_FECHA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
+// Recibe un selector CSS o elemento input; devuelve el HTMLInputElement encontrado o null.
 const resolverInput = (selectorOElemento) => {
   if (!selectorOElemento) return null;
   if (typeof selectorOElemento === 'string') return document.querySelector(selectorOElemento);
   return selectorOElemento instanceof HTMLInputElement ? selectorOElemento : null;
 };
 
-const prepararInputCalendario = (input, placeholder = 'AAAA-MM-DD') => {
+// Recibe el input de fecha y placeholder; prepara sus atributos visuales e ícono sin romper el layout.
+const prepararInputCalendario = (input, placeholder = 'Seleccionar fecha...') => {
   if (!input) return;
   if (input.type === 'date') {
     input.type = 'text';
   }
-  input.readOnly = true;
   input.autocomplete = 'off';
   if (!input.placeholder) {
     input.placeholder = placeholder;
@@ -33,148 +34,139 @@ const prepararInputCalendario = (input, placeholder = 'AAAA-MM-DD') => {
   }
 };
 
-const elevarPopupEnTopLayer = (self) => {
-  const popup = self?.context?.mainElement;
-  if (!popup) return;
-  if (!popup.hasAttribute('popover')) {
-    popup.setAttribute('popover', 'manual');
-    popup.style.margin = '0';
-    popup.style.inset = 'auto';
+// Recibe opciones de inicialización; construye la lista de reglas disable de Flatpickr (fines de semana y feriados).
+const construirDeshabilitados = (opciones = {}) => {
+  const reglas = [];
+  const diasBloqueados = opciones.soloHabiles
+    ? [0, 6]
+    : Array.isArray(opciones.disableWeekdays)
+      ? opciones.disableWeekdays
+      : [];
+
+  if (diasBloqueados.length > 0) {
+    reglas.push((fecha) => diasBloqueados.includes(fecha.getDay()));
   }
-  try {
-    if (!popup.matches(':popover-open')) {
-      popup.showPopover();
-    }
-  } catch {
-    // Fallback automático si el navegador no soporta popover manual
+
+  if (opciones.soloHabiles) {
+    obtenerListaFeriadosInces().forEach((feriado) => reglas.push(feriado));
   }
+
+  if (Array.isArray(opciones.disableDates) && opciones.disableDates.length > 0) {
+    opciones.disableDates.forEach((f) => reglas.push(f));
+  }
+
+  return reglas;
 };
 
-const ocultarPopupDeTopLayer = (self) => {
-  const popup = self?.context?.mainElement;
-  if (!popup || !popup.hasAttribute('popover')) return;
-  try {
-    if (popup.matches(':popover-open')) {
-      popup.hidePopover();
-    }
-  } catch {
-    // Ignorar si ya estaba cerrado
+// Resuelve la configuración regional en español para Flatpickr con semana iniciando el lunes.
+const obtenerLocaleEs = () => {
+  const localeEs = window.flatpickr?.l10ns?.es;
+  if (localeEs && typeof localeEs === 'object') {
+    return { ...localeEs, firstDayOfWeek: 1 };
   }
+  return { firstDayOfWeek: 1 };
 };
 
-/**
- * Valida que ambas fechas existan (`YYYY-MM-DD`) y que `fechaFin >= fechaInicio`.
- * @param {string} fechaInicio
- * @param {string} fechaFin
- * @returns {boolean}
- */
+// Recibe dos fechas ISO YYYY-MM-DD; valida formato y que fechaFin sea mayor o igual que fechaInicio.
 export const validarRangoFechas = (fechaInicio, fechaFin) => {
   const inicio = String(fechaInicio || '').trim();
   const fin = String(fechaFin || '').trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fin)) {
+  if (!REGEX_FECHA_ISO.test(inicio) || !REGEX_FECHA_ISO.test(fin)) {
     return false;
   }
   return fin >= inicio;
 };
 
-/**
- * Inicializa Vanilla Calendar Pro sobre un `<input>` individual manteniendo formato `YYYY-MM-DD`.
- * @param {HTMLInputElement|string} selectorOElemento
- * @param {Object} [opciones]
- * @returns {Calendar|null}
- */
+// Recibe un selector o input y opciones; inicializa Flatpickr en formato YYYY-MM-DD con soporte para <dialog>.
 export const inicializarCalendario = (selectorOElemento, opciones = {}) => {
   const input = resolverInput(selectorOElemento);
-  if (!input) return null;
+  if (!input || typeof window.flatpickr !== 'function') return null;
 
   const existente = instanciasPorInput.get(input);
   if (existente) {
     try {
       existente.destroy();
     } catch {
-      // Ignorar si ya fue destruida
+      // Ignorar si la instancia previa ya fue destruida
     }
     instanciasPorInput.delete(input);
   }
 
   prepararInputCalendario(input, opciones.placeholder || 'Seleccionar fecha...');
 
-  const valorInicial = /^\d{4}-\d{2}-\d{2}$/.test(input.value) ? input.value : '';
-  const feriados = opciones.soloHabiles ? obtenerListaFeriadosInces() : [];
+  const valorInicial = REGEX_FECHA_ISO.test(input.value) ? input.value : '';
+  const dialogoPadre = input.closest('dialog');
+  const deshabilitados = construirDeshabilitados(opciones);
 
-  const calendario = new Calendar(input, {
-    inputMode: true,
-    positionToInput: opciones.positionToInput || 'auto',
-    locale: 'es-VE',
-    firstWeekday: 1,
-    selectedTheme: 'light',
-    dateMin: opciones.dateMin || '1930-01-01',
-    dateMax: opciones.dateMax || '2099-12-31',
-    displayDateMin: opciones.minDate || opciones.dateMin || '1930-01-01',
-    displayDateMax: opciones.maxDate || opciones.dateMax || '2099-12-31',
-    disableWeekdays: opciones.soloHabiles ? [0, 6] : opciones.disableWeekdays || [],
-    disableDates: opciones.soloHabiles ? [...feriados, ...(opciones.disableDates || [])] : opciones.disableDates || [],
-    selectedHolidays: feriados,
-    selectedDates: valorInicial ? [valorInicial] : [],
-    onShow(self) {
-      elevarPopupEnTopLayer(self);
-    },
-    onHide(self) {
-      ocultarPopupDeTopLayer(self);
-    },
-    onChangeToInput(self) {
-      const fecha = self.context.selectedDates?.[0] || '';
-      if (!fecha) return;
-      input.value = fecha;
+  const configuracion = {
+    locale: obtenerLocaleEs(),
+    dateFormat: 'Y-m-d',
+    defaultDate: valorInicial || undefined,
+    minDate: opciones.minDate || opciones.dateMin || '1930-01-01',
+    maxDate: opciones.maxDate || opciones.dateMax || '2099-12-31',
+    disableMobile: true,
+    allowInput: Boolean(opciones.allowInput ?? false),
+    clickOpens: true,
+    monthSelectorType: 'dropdown',
+    disable: deshabilitados,
+    onChange(_fechasSeleccionadas, fechaStr, instancia) {
+      if (input.value !== fechaStr) {
+        input.value = fechaStr;
+      }
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
       if (typeof opciones.alSeleccionar === 'function') {
-        opciones.alSeleccionar(fecha, self);
+        opciones.alSeleccionar(fechaStr, instancia);
       }
-      self.hide();
     },
-  });
+  };
 
-  calendario.init();
-  instanciasPorInput.set(input, calendario);
+  if (opciones.appendTo) {
+    configuracion.appendTo = opciones.appendTo;
+  } else if (dialogoPadre) {
+    configuracion.appendTo = dialogoPadre;
+  }
 
-  // Al resetear el formulario limpiamos la selección interna del calendario
-  input.form?.addEventListener('reset', () => {
-    setTimeout(() => {
-      if (!input.value) {
-        calendario.set({ selectedDates: [] }, { dates: true });
-      }
-    }, 0);
-  });
+  const instancia = window.flatpickr(input, configuracion);
+  instanciasPorInput.set(input, instancia);
 
-  return calendario;
+  if (input.form && !input.dataset.fpResetVinculado) {
+    input.dataset.fpResetVinculado = '1';
+    input.form.addEventListener('reset', () => {
+      setTimeout(() => {
+        const instActual = instanciasPorInput.get(input);
+        if (!instActual) return;
+        if (!input.value) {
+          instActual.clear(false);
+        } else if (REGEX_FECHA_ISO.test(input.value)) {
+          instActual.setDate(input.value, false);
+        }
+      }, 0);
+    });
+  }
+
+  return instancia;
 };
 
-/**
- * Vincula dos inputs (`inicio` y `fin`) garantizando en UI y valor que `fecha_fin >= fecha_inicio`.
- * @param {HTMLInputElement|string} selectorInicio
- * @param {HTMLInputElement|string} selectorFin
- * @param {Object} [opciones]
- */
+// Recibe selectores/inputs de inicio y fin más opciones; enlaza ambos Flatpickr garantizando fechaFin >= fechaInicio.
 export const inicializarRangoFechas = (selectorInicio, selectorFin, opciones = {}) => {
   const inputInicio = resolverInput(selectorInicio);
   const inputFin = resolverInput(selectorFin);
-  if (!inputInicio || !inputFin) return { calInicio: null, calFin: null };
+  if (!inputInicio || !inputFin) {
+    return { calInicio: null, calFin: null, inicio: null, fin: null };
+  }
 
+  const minBase = opciones.minDate || opciones.dateMin || '1930-01-01';
   let calFin = null;
 
+  // Recibe la fecha inicial seleccionada; ajusta minDate y corrige el campo final si quedó menor.
   const sincronizarMinimoFin = (fechaInicio) => {
     if (!calFin) return;
-    const min = /^\d{4}-\d{2}-\d{2}$/.test(fechaInicio)
-      ? fechaInicio
-      : opciones.minDate || opciones.dateMin || '1930-01-01';
+    const minEfectivo = REGEX_FECHA_ISO.test(fechaInicio) ? fechaInicio : minBase;
+    calFin.set('minDate', minEfectivo);
 
-    if (inputFin.value && fechaInicio && inputFin.value < fechaInicio) {
-      inputFin.value = fechaInicio;
-      calFin.set({ displayDateMin: min, selectedDates: [fechaInicio] }, { dates: true });
-      inputFin.dispatchEvent(new Event('change', { bubbles: true }));
-    } else {
-      calFin.set({ displayDateMin: min }, { dates: false });
+    if (inputFin.value && REGEX_FECHA_ISO.test(fechaInicio) && inputFin.value < fechaInicio) {
+      calFin.setDate(fechaInicio, true);
     }
   };
 
@@ -190,9 +182,10 @@ export const inicializarRangoFechas = (selectorInicio, selectorFin, opciones = {
 
   calFin = inicializarCalendario(inputFin, {
     ...opciones,
-    minDate: inputInicio.value || opciones.minDate,
+    minDate: REGEX_FECHA_ISO.test(inputInicio.value) ? inputInicio.value : minBase,
     alSeleccionar: (fecha) => {
-      if (inputInicio.value && fecha < inputInicio.value) {
+      if (REGEX_FECHA_ISO.test(inputInicio.value) && fecha && fecha < inputInicio.value) {
+        calFin?.setDate(inputInicio.value, false);
         inputFin.value = inputInicio.value;
       }
       if (typeof opciones.alCambiarRango === 'function') {
@@ -201,26 +194,22 @@ export const inicializarRangoFechas = (selectorInicio, selectorFin, opciones = {
     },
   });
 
-  inputInicio.form?.addEventListener('reset', () => {
-    setTimeout(() => {
-      calFin?.set(
-        {
-          displayDateMin: opciones.minDate || opciones.dateMin || '1930-01-01',
-          selectedDates: [],
-        },
-        { dates: true }
-      );
-    }, 0);
-  });
+  if (inputInicio.form && !inputInicio.dataset.fpRangoResetVinculado) {
+    inputInicio.dataset.fpRangoResetVinculado = '1';
+    inputInicio.form.addEventListener('reset', () => {
+      setTimeout(() => {
+        calFin?.set('minDate', minBase);
+        calFin?.clear(false);
+      }, 0);
+    });
+  }
 
-  return { calInicio, calFin };
+  return { calInicio, calFin, inicio: calInicio, fin: calFin };
 };
 
-/**
- * Inicializa automáticamente todos los `<input type="date">` dentro de un contenedor o documento.
- * @param {ParentNode} [raiz=document]
- */
+// Recibe un contenedor raíz; inicializa Flatpickr sobre todos los inputs de tipo date no vinculados aún.
 export const inicializarCalendariosContenedor = (raiz = document) => {
+  if (!raiz || typeof raiz.querySelectorAll !== 'function') return;
   raiz.querySelectorAll('input[type="date"]').forEach((input) => {
     if (!instanciasPorInput.has(input)) {
       inicializarCalendario(input);

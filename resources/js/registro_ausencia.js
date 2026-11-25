@@ -7,11 +7,11 @@ import {
   notificarExitoFormulario,
 } from '/js/components/alerta/alerta.js';
 import { crearBadge } from '/js/components/badge/crearBadge.js';
-// import {
-//   inicializarCalendario,
-//   inicializarRangoFechas,
-//   validarRangoFechas,
-// } from '/js/components/calendario/calendario.js';
+import {
+  inicializarCalendario,
+  inicializarRangoFechas,
+  validarRangoFechas,
+} from '/js/components/calendario/calendario.js';
 import { crearListaDetalle, Modal } from '/js/components/modal/Modal.js';
 import {
   crearMarkupSelectPersonalizado,
@@ -243,9 +243,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inputDias) inputDias.value = dias > 0 ? String(dias) : '';
   };
 
-  // inicializarRangoFechas(inputInicio, inputFin, {
-  //   alCambiarRango: actualizarDias,
-  // });
+  inicializarRangoFechas(inputInicio, inputFin, {
+    alCambiarRango: actualizarDias,
+  });
   inputInicio?.addEventListener('change', actualizarDias);
   inputFin?.addEventListener('change', actualizarDias);
 
@@ -324,10 +324,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const fin = form?.elements?.fecha_fin?.value || '';
         const dias = calcularDiasEntreFechas(inicio, fin);
 
-        // if (!validarRangoFechas(inicio, fin) || dias <= 0) {
-        //   notificarErrorFormulario(form, 'La fecha fin debe ser mayor o igual a la fecha de inicio.');
-        //   return false;
-        // }
+        if (!validarRangoFechas(inicio, fin) || dias <= 0) {
+          notificarErrorFormulario(form, 'La fecha fin debe ser mayor o igual a la fecha de inicio.');
+          return false;
+        }
 
         const payload = {
           fecha_inicio: inicio,
@@ -397,13 +397,13 @@ document.addEventListener('DOMContentLoaded', () => {
       },
     });
 
-    // if (modalAccion.dialogo) {
-    //   const inputRean = modalAccion.dialogo.querySelector('#reanudar-fecha');
-    //   inicializarCalendario(inputRean, {
-    //     minDate: registro.fecha_inicio || undefined,
-    //     maxDate: registro.fecha_fin || undefined,
-    //   });
-    // }
+    if (modalAccion.dialogo) {
+      const inputRean = modalAccion.dialogo.querySelector('#reanudar-fecha');
+      inicializarCalendario(inputRean, {
+        minDate: registro.fecha_inicio || undefined,
+        maxDate: registro.fecha_fin || undefined,
+      });
+    }
   };
 
   const tabla = new GestorDataTable('#tabla-ausencias', {

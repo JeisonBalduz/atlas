@@ -13,7 +13,11 @@
 @endsection
 
 @section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
-<form id="formulario-registrar-familiar" enctype="multipart/form-data" data-recaudos-parentesco="{{ json_encode($recaudos_por_parentesco ?? [], JSON_UNESCAPED_UNICODE) }}" class="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-6" novalidate>
+<form id="formulario-registrar-familiar"
+    enctype="multipart/form-data"
+    data-recaudos-parentesco="{{ json_encode($recaudos_por_parentesco ?? [], JSON_UNESCAPED_UNICODE) }}"
+    data-recaudo-discapacidad="{{ htmlspecialchars(json_encode($recaudo_discapacidad ?? null, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}"
+    class="mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-12 gap-6" novalidate>
 
     {{-- Cabecera con enlace de retorno --}}
     <header class="col-span-full flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -108,6 +112,10 @@
                 @endcomponent
             </div>
 
+            <p id="aviso-cedula-menor" class="hidden sm:col-span-2 rounded-xl border border-sky-200 bg-sky-50 px-3.5 py-2 text-xs font-medium text-sky-800">
+                Menor de 9 años: la cédula no es obligatoria. Si la dejas vacía, se generará automáticamente una cédula temporal única usando Tomo y Folio.
+            </p>
+
             @component('components.input', [
                 'label' => 'Primer nombre',
                 'id' => 'primer_nombre',
@@ -185,27 +193,108 @@
             ])
             @endcomponent
 
-            @component('components.input', [
-                'label' => 'Tomo (Acta)',
-                'id' => 'tomo',
-                'name' => 'tomo',
-                'placeholder' => 'Ej: 4',
-                'maxlength' => 6,
-                'leftIcon' => 'book-open',
-                'required' => true,
-            ])
-            @endcomponent
+            <div data-bloque-tomo-folio>
+                @component('components.input', [
+                    'label' => 'Tomo (Acta)',
+                    'id' => 'tomo',
+                    'name' => 'tomo',
+                    'placeholder' => 'Ej: 4',
+                    'maxlength' => 6,
+                    'leftIcon' => 'book-open',
+                    'required' => true,
+                ])
+                @endcomponent
+            </div>
 
-            @component('components.input', [
-                'label' => 'Folio (Acta)',
-                'id' => 'folio',
-                'name' => 'folio',
-                'placeholder' => 'Ej: 128',
-                'maxlength' => 6,
-                'leftIcon' => 'file-text',
-                'required' => true,
-            ])
-            @endcomponent
+            <div data-bloque-tomo-folio>
+                @component('components.input', [
+                    'label' => 'Folio (Acta)',
+                    'id' => 'folio',
+                    'name' => 'folio',
+                    'placeholder' => 'Ej: 128',
+                    'maxlength' => 6,
+                    'leftIcon' => 'file-text',
+                    'required' => true,
+                ])
+                @endcomponent
+            </div>
+        </div>
+
+        {{-- Apartado condicional de Discapacidad --}}
+        <div class="border-t border-slate-200 pt-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-zinc-900">Discapacidad (Opcional)</h3>
+                    <p class="text-xs text-zinc-500">Activa este apartado solo si el familiar posee una discapacidad certificada.</p>
+                </div>
+                <button type="button"
+                    id="btn-toggle-discapacidad-familiar"
+                    class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-marca px-4 py-2 text-xs font-semibold text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-marca-700 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 cursor-pointer">
+                    <i data-lucide="accessibility" class="h-4 w-4" aria-hidden="true"></i>
+                    <span data-texto-toggle-disc>Asignar discapacidad</span>
+                </button>
+            </div>
+
+            <input type="hidden" id="tiene_discapacidad" name="tiene_discapacidad" value="0" />
+
+            <div id="panel-discapacidad-familiar" class="hidden rounded-2xl border border-slate-200 bg-slate-50/70 p-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                @component('components.select', [
+                    'label' => 'Tipo de discapacidad',
+                    'id' => 'tipo_discapacidad',
+                    'name' => 'tipo_discapacidad',
+                    'placeholder' => 'Seleccionar tipo...',
+                    'options' => $tipos_discapacidad ?? [],
+                ])
+                @endcomponent
+                @component('components.select', [
+                    'label' => 'Grado de discapacidad',
+                    'id' => 'grado_discapacidad_id',
+                    'name' => 'grado_discapacidad_id',
+                    'placeholder' => 'Seleccionar grado...',
+                    'options' => $grados_discapacidad ?? [],
+                ])
+                @endcomponent
+                @component('components.input', [
+                    'label' => 'N.° de Carnet CONAPDIS',
+                    'id' => 'numero_carnet',
+                    'name' => 'numero_carnet',
+                    'placeholder' => 'Ej. CONAPDIS-123456',
+                    'maxlength' => 30,
+                ])
+                @endcomponent
+                @component('components.input', [
+                    'label' => 'Entidad emisora',
+                    'id' => 'entidad_emisora',
+                    'name' => 'entidad_emisora',
+                    'value' => 'CONAPDIS',
+                    'maxlength' => 100,
+                ])
+                @endcomponent
+                @component('components.input', [
+                    'label' => 'Fecha de emisión',
+                    'id' => 'fecha_emision_carnet',
+                    'name' => 'fecha_emision_carnet',
+                    'type' => 'date',
+                ])
+                @endcomponent
+                @component('components.input', [
+                    'label' => 'Fecha de vencimiento',
+                    'id' => 'fecha_vencimiento_carnet',
+                    'name' => 'fecha_vencimiento_carnet',
+                    'type' => 'date',
+                ])
+                @endcomponent
+                <div class="sm:col-span-2 space-y-1.5">
+                    <label for="descripcion_discapacidad" class="block text-sm font-medium text-zinc-900">
+                        Descripción / Observaciones
+                    </label>
+                    <textarea id="descripcion_discapacidad"
+                        name="descripcion_discapacidad"
+                        rows="2"
+                        placeholder="Detalles médicos o indicaciones relevantes..."
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none transition duration-200 focus:border-black focus:ring-2 focus:ring-black focus:ring-offset-2"></textarea>
+                </div>
+            </div>
         </div>
     </section>
 

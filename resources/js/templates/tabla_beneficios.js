@@ -3,9 +3,18 @@ import { crearBotonAccion } from '/js/components/botones/crearBotonAccion.js';
 import { crearGrupoBotones } from '/js/components/botones/crearGrupoBotones.js';
 import { formatearFecha } from '/js/utils/formatearFecha.js';
 
+// Recibe una fila de beneficio asignado; construye los botones de acción (Ver, Editar y Aprobar si está pendiente).
 const renderAccionesBeneficio = (fila) =>
   crearGrupoBotones([
     crearBotonAccion({ accion: 'mostrar', id: fila.dtbeneficio_id, etiqueta: 'Ver', icono: 'eye', variante: 'marca' }),
+    crearBotonAccion({
+      accion: 'editar',
+      id: fila.dtbeneficio_id,
+      etiqueta: 'Editar',
+      icono: 'pencil',
+      variante: 'zinc',
+      titulo: `Editar beneficio de ${fila.beneficiario || 'beneficiario'}`,
+    }),
     fila.estatus === 'Pendiente'
       ? crearBotonAccion({ accion: 'aprobar', id: fila.dtbeneficio_id, etiqueta: 'Aprobar', icono: 'check', variante: 'green' })
       : '',

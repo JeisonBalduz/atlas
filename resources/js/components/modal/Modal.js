@@ -1,4 +1,4 @@
-// import { //inicializarCalendariosContenedor } from '/js/components/calendario/calendario.js';
+import { inicializarCalendariosContenedor } from "/js/components/calendario/calendario.js";
 import { inicializarSelectsPersonalizados } from "/js/components/select/selectPersonalizado.js";
 import { VARIANTES_BOTON_MODAL } from "/js/components/variantes.js";
 
@@ -85,7 +85,7 @@ export class Modal {
     if (!this.nodoCuerpo) return;
     this.nodoCuerpo.innerHTML = html;
     inicializarSelectsPersonalizados(this.nodoCuerpo);
-    //inicializarCalendariosContenedor(this.nodoCuerpo);
+    inicializarCalendariosContenedor(this.nodoCuerpo);
     window.lucide?.createIcons();
   }
 

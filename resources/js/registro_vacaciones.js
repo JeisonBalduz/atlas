@@ -7,10 +7,10 @@ import {
   notificarExitoFormulario,
 } from '/js/components/alerta/alerta.js';
 import { crearBadge } from '/js/components/badge/crearBadge.js';
-// import {
-//   inicializarRangoFechas,
-//   validarRangoFechas,
-// } from '/js/components/calendario/calendario.js';
+import {
+  inicializarRangoFechas,
+  validarRangoFechas,
+} from '/js/components/calendario/calendario.js';
 import { Modal } from '/js/components/modal/Modal.js';
 import { inicializarSelectsPersonalizados } from '/js/components/select/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast/toast.js';
@@ -185,10 +185,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inputDias) inputDias.value = dias > 0 ? String(dias) : '';
   };
 
-  // inicializarRangoFechas(inputInicio, inputFin, {
-  //   soloHabiles: true,
-  //   alCambiarRango: actualizarDiasHabiles,
-  // });
+  inicializarRangoFechas(inputInicio, inputFin, {
+    soloHabiles: true,
+    alCambiarRango: actualizarDiasHabiles,
+  });
   inputInicio?.addEventListener('change', actualizarDiasHabiles);
   inputFin?.addEventListener('change', actualizarDiasHabiles);
 
@@ -402,10 +402,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // if (!validarRangoFechas(inicio, fin)) {
-    //   notificarErrorFormulario(formulario, 'La fecha final debe ser mayor o igual a la fecha de inicio.');
-    //   return;
-    // }
+    if (!validarRangoFechas(inicio, fin)) {
+      notificarErrorFormulario(formulario, 'La fecha final debe ser mayor o igual a la fecha de inicio.');
+      return;
+    }
 
     if (dias <= 0) {
       notificarErrorFormulario(formulario, 'El rango elegido no contiene días hábiles laborables según la normativa INCES.');

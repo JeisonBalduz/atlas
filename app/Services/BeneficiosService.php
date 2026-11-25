@@ -272,6 +272,63 @@ final class BeneficiosService
         return $registro;
     }
 
+    /**
+     * Recibe dtBeneficioId y nuevos datos; actualiza un beneficio asignado excluyéndolo del conteo de periodicidad.
+     *
+     * @param array<string, mixed>|null $archivoSoporte
+     */
+    public function actualizar(
+        int $dtBeneficioId,
+        int $personaId,
+        int $beneficioId,
+        string $fechaSolicitud,
+        ?string $fechaAprobada = null,
+        ?array $archivoSoporte = null,
+        ?int $tipoDocumentoId = null,
+        ?GestorDocumentos $gestorDocumentos = null,
+        bool $requiereUploadHttp = true
+    ): DetalleBeneficioModel {
+        $registro = DetalleBeneficioModel::query()->find($dtBeneficioId);
+        if (!$registro instanceof DetalleBeneficioModel) {
+            throw new InvalidArgumentException('El registro de beneficio no existe.', 404);
+        }
+
+        if ($personaId <= 0 || !PersonasModel::query()->where('persona_id', $personaId)->exists()) {
+            throw new InvalidArgumentException('La persona seleccionada no existe.', 422);
+        }
+
+        if ($beneficioId <= 0 || !TipoBeneficiosModel::query()->where('tpbeneficio_id', $beneficioId)->exists()) {
+            throw new InvalidArgumentException('El tipo de beneficio seleccionado no existe.', 422);
+        }
+
+        $solicitudLimpia = trim($fechaSolicitud);
+        $fechaObj = DateTimeImmutable::createFromFormat('!Y-m-d', $solicitudLimpia);
+        if (!$fechaObj instanceof DateTimeImmutable) {
+            throw new InvalidArgumentException('La fecha de solicitud es obligatoria y debe tener formato válido.', 422);
+        }
+
+        $aprobadaLimpia = $fechaAprobada !== null && trim($fechaAprobada) !== '' ? trim($fechaAprobada) : null;
+        if ($aprobadaLimpia !== null && $aprobadaLimpia < $solicitudLimpia) {
+            throw new InvalidArgumentException('La fecha de aprobación no puede ser menor que la fecha de solicitud.', 422);
+        }
+
+        $regla = self::REGLAS_CONTRATO[$beneficioId] ?? null;
+        if ($regla !== null) {
+            $this->validarPeriodicidadContractual($personaId, $beneficioId, $fechaObj, $regla, $dtBeneficioId);
+            $this->procesarSoporteDocumental($personaId, $regla, $archivoSoporte, $tipoDocumentoId, $gestorDocumentos, $requiereUploadHttp);
+        }
+
+        $registro->fill([
+            'persona_id' => $personaId,
+            'beneficio_id' => $beneficioId,
+            'fecha_solicitud' => $solicitudLimpia,
+            'fecha_aprobada' => $aprobadaLimpia,
+        ]);
+        $registro->save();
+
+        return $registro;
+    }
+
     public function aprobar(int $dtBeneficioId, ?string $fechaAprobada = null): DetalleBeneficioModel
     {
         $registro = DetalleBeneficioModel::query()->find($dtBeneficioId);
@@ -297,7 +354,7 @@ final class BeneficiosService
     }
 
     /**
-     * Valida límites por periodicidad contractual permitiendo entregas múltiples según corresponda.
+     * Valida límites por periodicidad contractual permitiendo excluir un registro en edición.
      *
      * @param array{clausula: string, periodicidad: string, etiqueta_periodicidad: string, max_anio: int, documentos: list<int>, nota: string} $regla
      */
@@ -305,7 +362,8 @@ final class BeneficiosService
         int $personaId,
         int $beneficioId,
         DateTimeImmutable $fecha,
-        array $regla
+        array $regla,
+        ?int $excluirDtId = null
     ): void {
         $anio = $fecha->format('Y');
         $mes = $fecha->format('m');
@@ -315,11 +373,14 @@ final class BeneficiosService
         if ($periodicidad === 'mensual') {
             $inicioMes = "{$anio}-{$mes}-01";
             $finMes = $fecha->format('Y-m-t');
-            $yaEnMes = DetalleBeneficioModel::query()
+            $consultaMensual = DetalleBeneficioModel::query()
                 ->where('persona_id', $personaId)
                 ->where('beneficio_id', $beneficioId)
-                ->whereBetween('fecha_solicitud', [$inicioMes, $finMes])
-                ->exists();
+                ->whereBetween('fecha_solicitud', [$inicioMes, $finMes]);
+            if ($excluirDtId !== null) {
+                $consultaMensual->where('dtbeneficio_id', '!=', $excluirDtId);
+            }
+            $yaEnMes = $consultaMensual->exists();
 
             if ($yaEnMes) {
                 throw new InvalidArgumentException(
@@ -332,11 +393,14 @@ final class BeneficiosService
 
         if ($periodicidad === 'quinquenal') {
             $haceCincoAnios = $fecha->modify('-5 years')->modify('+1 day')->format('Y-m-d');
-            $reciente = DetalleBeneficioModel::query()
+            $consultaQuinquenal = DetalleBeneficioModel::query()
                 ->where('persona_id', $personaId)
                 ->where('beneficio_id', $beneficioId)
-                ->where('fecha_solicitud', '>=', $haceCincoAnios)
-                ->exists();
+                ->where('fecha_solicitud', '>=', $haceCincoAnios);
+            if ($excluirDtId !== null) {
+                $consultaQuinquenal->where('dtbeneficio_id', '!=', $excluirDtId);
+            }
+            $reciente = $consultaQuinquenal->exists();
 
             if ($reciente) {
                 throw new InvalidArgumentException(
@@ -348,11 +412,14 @@ final class BeneficiosService
         }
 
         if ($maxAnio > 0) {
-            $entregasEnAnio = DetalleBeneficioModel::query()
+            $consultaAnual = DetalleBeneficioModel::query()
                 ->where('persona_id', $personaId)
                 ->where('beneficio_id', $beneficioId)
-                ->whereBetween('fecha_solicitud', ["{$anio}-01-01", "{$anio}-12-31"])
-                ->count();
+                ->whereBetween('fecha_solicitud', ["{$anio}-01-01", "{$anio}-12-31"]);
+            if ($excluirDtId !== null) {
+                $consultaAnual->where('dtbeneficio_id', '!=', $excluirDtId);
+            }
+            $entregasEnAnio = $consultaAnual->count();
 
             if ($entregasEnAnio >= $maxAnio) {
                 throw new InvalidArgumentException(

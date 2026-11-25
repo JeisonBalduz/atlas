@@ -55,6 +55,8 @@ $router->group('/api', function (Router $router): void {
     // --- Familiares ---
     $router->post('/familiares/datatable', [RegistrosFamiliaresController::class, 'datatable']);
     $router->get('/familiares/datatable', [RegistrosFamiliaresController::class, 'datatable']);
+    $router->get('/familiares/@id:[0-9]+/recaudos', [EditarFamiliarController::class, 'recaudos']);
+    $router->post('/familiares/@id:[0-9]+/discapacidad', [RegistrosFamiliaresController::class, 'asignarDiscapacidad']);
     $router->get('/familiares/@id:[0-9]+', [RegistrosFamiliaresController::class, 'show']);
     $router->post('/familiares', [RegistrarFamiliarController::class, 'store']);
     $router->put('/familiares/@id:[0-9]+', [EditarFamiliarController::class, 'update']);
@@ -87,6 +89,8 @@ $router->group('/api', function (Router $router): void {
     $router->get('/beneficios', [RegistroBeneficiosController::class, 'listar']);
     $router->get('/beneficios/estado-documental', [RegistroBeneficiosController::class, 'estadoDocumental']);
     $router->post('/beneficios', [RegistroBeneficiosController::class, 'store']);
+    $router->put('/beneficios/@id:[0-9]+', [RegistroBeneficiosController::class, 'update']);
+    $router->post('/beneficios/@id:[0-9]+', [RegistroBeneficiosController::class, 'update']);
     $router->post('/beneficios/@id:[0-9]+/aprobar', [RegistroBeneficiosController::class, 'aprobar']);
 
     // --- Seguridad: Usuarios, Roles y Permisos ---

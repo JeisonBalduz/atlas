@@ -4,7 +4,7 @@ import {
   notificarErrorFormulario,
   notificarExitoFormulario,
 } from "/js/components/alerta/alerta.js";
-// import { //inicializarCalendariosContenedor } from '/js/components/calendario/calendario.js';
+import { inicializarCalendariosContenedor } from "/js/components/calendario/calendario.js";
 import { inicializarPasoMultiple } from "/js/components/pasoMultiple/pasoMultiple.js";
 import {
   actualizarOpcionesSelect,
@@ -32,7 +32,7 @@ const configurarValidaciones = () => {
 
 document.addEventListener("DOMContentLoaded", () => {
   inicializarSelectsPersonalizados();
-  //inicializarCalendariosContenedor();
+  inicializarCalendariosContenedor();
   configurarValidaciones();
 
   const selectAno = document.getElementById("ano");

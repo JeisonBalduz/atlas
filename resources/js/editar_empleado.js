@@ -1,48 +1,90 @@
 import { Solicitud } from "/js/class/Solicitud.js";
+import { InputUI } from "/js/class/validator/InputUI.js";
 import { InputValidador } from "/js/class/validator/InputValidador.js";
 import {
   notificarErrorFormulario,
   notificarExitoFormulario,
 } from "/js/components/alerta/alerta.js";
 import { crearBadge } from "/js/components/badge/crearBadge.js";
-// import { //inicializarCalendariosContenedor } from '/js/components/calendario/calendario.js';
+import { inicializarCalendariosContenedor } from "/js/components/calendario/calendario.js";
 import { abrirModalFamiliaresEmpleado } from "/js/components/modal/abrirModalFamiliaresEmpleado.js";
 import { Modal } from "/js/components/modal/Modal.js";
 import {
   actualizarOpcionesSelect,
+  crearMarkupSelectPersonalizado,
   inicializarSelectsPersonalizados,
 } from "/js/components/select/selectPersonalizado.js";
 import { mostrarToast } from "/js/components/toast/toast.js";
 
+const OPERADORAS_TELEFONO = {
+  "0412": "0412",
+  "0416": "0416",
+  "0424": "0424",
+  "0422": "0422",
+  "0414": "0414",
+  "0243": "0243",
+};
+
+const REGEX_SOLO_TEXTO = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/;
+const REGEX_TEXTO_NUMEROS = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ0-9\s]+$/;
+let contadorFilasTelefono = 100;
+
+// Recibe ninguno; sincroniza subtítulo y tarjeta de encabezado con nombre y código actuales.
 const actualizarSubtituloEdicion = () => {
   const codigo = document.getElementById("codigo_empleado")?.value || "";
   const primerNombre = document.getElementById("primer_nombre")?.value || "";
   const primerApellido =
     document.getElementById("primer_apellido")?.value || "";
   const subtitulo = document.getElementById("subtitulo-editar-empleado");
+  const codigoHeader = document.getElementById("codigo-empleado-header");
 
+  if (codigoHeader) {
+    codigoHeader.textContent = codigo.trim() || "SIN-COD";
+  }
   if (subtitulo && (primerNombre || codigo)) {
     subtitulo.textContent =
       `Editando ficha de ${primerNombre} ${primerApellido} (${codigo}).`.trim();
   }
 };
 
-const crearFilaTelefonoHtml = (numero = "", esEmergencia = false) => `
+// Recibe operadora, dígitos (7) y marca de emergencia; genera el HTML de una fila de teléfono dividida.
+const crearFilaTelefonoHtml = (
+  operadora = "",
+  digitos = "",
+  esEmergencia = false,
+) => {
+  contadorFilasTelefono += 1;
+  const idSelect = `tel-operadora-din-${contadorFilasTelefono}`;
+  const selectOperadoraHtml = crearMarkupSelectPersonalizado({
+    id: idSelect,
+    nombre: "telefonos_operadora[]",
+    opciones: OPERADORAS_TELEFONO,
+    valorSeleccionado: operadora,
+    placeholder: "Cód.",
+  });
+  const completo = operadora && digitos ? `${operadora}-${digitos}` : "";
+
+  return `
   <div data-fila-telefono class="rounded-2xl border ${esEmergencia ? "border-marca-200 bg-marca-50/40" : "border-slate-200 bg-slate-50/70"} p-3.5 space-y-2.5 transition-colors">
-    <div class="flex items-center gap-2">
-      <div class="relative flex-1">
-        <i data-lucide="phone" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
-        <input type="text"
-          name="telefonos_numero[]"
-          value="${numero}"
-          maxlength="20"
-          placeholder="Ej: 0412-1234567"
-          class="input-telefono-empleado w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-black focus:ring-2 focus:ring-black focus:ring-offset-1" />
+    <div class="flex items-start gap-2">
+      <div class="grid grid-cols-[6.75rem_1fr] gap-2 flex-1">
+        <div>${selectOperadoraHtml}</div>
+        <div class="relative">
+          <i data-lucide="phone" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
+          <input type="text"
+            name="telefonos_digitos[]"
+            value="${digitos}"
+            maxlength="7"
+            inputmode="numeric"
+            placeholder="1234567"
+            class="input-telefono-digitos w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-black focus:ring-2 focus:ring-black focus:ring-offset-1" />
+          <input type="hidden" name="telefonos_numero[]" value="${completo}" data-hidden-telefono-completo />
+        </div>
       </div>
       <button type="button"
         data-eliminar-telefono
         title="Eliminar teléfono"
-        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 transition-colors hover:bg-red-100 cursor-pointer">
+        class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-700 transition-colors hover:bg-red-100 cursor-pointer">
         <i data-lucide="trash-2" class="h-4 w-4" aria-hidden="true"></i>
       </button>
     </div>
@@ -57,6 +99,7 @@ const crearFilaTelefonoHtml = (numero = "", esEmergencia = false) => `
     </label>
   </div>
 `;
+};
 
 const renderTarjetaRecaudoEmpleado = (rec) => {
   const cargado = Boolean(rec.cargado);
@@ -145,10 +188,25 @@ const actualizarBadgesContadores = (resumen) => {
   }
 };
 
-const normalizarEntradaTelefono = (input) => {
-  input.value = input.value.replace(/[^0-9+\-\s]/g, "").slice(0, 20);
+// Recibe un input de dígitos telefónicos; restringe la entrada a máximo 7 dígitos numéricos.
+const normalizarDigitosTelefono = (input) => {
+  input.value = input.value.replace(/[^0-9]/g, "").slice(0, 7);
 };
 
+// Recibe una fila de teléfono; concatena operadora y dígitos con guion en el input oculto.
+const sincronizarTelefonoFila = (fila) => {
+  if (!fila) return;
+  const selectOp = fila.querySelector('select[name="telefonos_operadora[]"]');
+  const inputDig = fila.querySelector(".input-telefono-digitos");
+  const hiddenCompleto = fila.querySelector("[data-hidden-telefono-completo]");
+  if (!hiddenCompleto) return;
+
+  const op = String(selectOp?.value || "").trim();
+  const dig = String(inputDig?.value || "").trim();
+  hiddenCompleto.value = op && dig ? `${op}-${dig}` : "";
+};
+
+// Recibe ninguno; configura las validaciones en vivo de datos personales, dirección y archivos.
 const configurarValidaciones = () => {
   InputValidador.soloLetras(
     "#primer_nombre, #segundo_nombre, #primer_apellido, #segundo_apellido",
@@ -163,14 +221,153 @@ const configurarValidaciones = () => {
     limite: 9,
     requerido: true,
   });
+  InputValidador.soloLetras("#nombre_urb", {
+    minimo: 2,
+    limite: 100,
+    permitirNumeros: false,
+    mensajeError: "Solo se permite texto en urbanización / sector",
+  });
+  InputValidador.soloLetras("#descripcion", {
+    limite: 255,
+    permitirNumeros: false,
+    mensajeError: "Solo se permite texto en el punto de referencia",
+  });
+  InputValidador.soloLetras("#calle", {
+    minimo: 2,
+    limite: 30,
+    permitirNumeros: true,
+    requerido: true,
+    mensajeError: "Solo se permiten letras y números en calle / avenida",
+  });
+  InputValidador.soloLetras("#piso_edificio", {
+    minimo: 1,
+    limite: 10,
+    permitirNumeros: true,
+    mensajeError: "Solo se permiten letras y números en piso / edificio",
+  });
+  InputValidador.soloLetras("#numero_vivienda", {
+    minimo: 1,
+    limite: 10,
+    permitirNumeros: true,
+    requerido: false,
+    mensajeError: "Solo se permiten letras y números en número de vivienda",
+  });
   InputValidador.correoElectronico("#correo");
   InputValidador.requerido("#formulario-editar-empleado select");
   InputValidador.archivo(".atlas-doc-input", { tamanoMaximoMB: 5 });
 };
 
+// Recibe el formulario de edición; valida dirección, teléfonos divididos y card de discapacidad antes de enviar.
+const validarFormularioAntesDeEnviar = (formulario, listaTelefonos) => {
+  // const inputCodigo = document.getElementById("codigo_empleado");
+  // if (!String(inputCodigo?.value || "").trim()) {
+  //   InputUI.establecerInvalido(inputCodigo, "El código de empleado es obligatorio");
+  //   notificarErrorFormulario(formulario, "El código de empleado es obligatorio.");
+  //   return false;
+  // }
+
+  // const selectVivienda = document.getElementById("vivienda");
+  // const tipoVivienda = String(selectVivienda?.value || "").trim();
+  // if (tipoVivienda !== "Casa" && tipoVivienda !== "Departamento") {
+  //   InputUI.establecerInvalido(selectVivienda, "Seleccione Casa o Departamento");
+  //   notificarErrorFormulario(formulario, "Selecciona un tipo de vivienda válido (Casa o Departamento).");
+  //   return false;
+  // }
+
+  // const inputCalle = document.getElementById("calle");
+  // const calleVal = String(inputCalle?.value || "").trim();
+  // if (!calleVal || !REGEX_TEXTO_NUMEROS.test(calleVal)) {
+  //   InputUI.establecerInvalido(inputCalle, "Solo texto y números");
+  //   notificarErrorFormulario(formulario, "Calle / Avenida es obligatoria y solo permite texto y números.");
+  //   return false;
+  // }
+
+  // const inputNumViv = document.getElementById("numero_vivienda");
+  // const numVivVal = String(inputNumViv?.value || "").trim();
+  // if (!numVivVal || !REGEX_TEXTO_NUMEROS.test(numVivVal)) {
+  //   InputUI.establecerInvalido(inputNumViv, "Solo texto y números");
+  //   notificarErrorFormulario(formulario, "Número de vivienda es obligatorio y solo permite texto y números.");
+  //   return false;
+  // }
+
+  // if (tipoVivienda === "Departamento") {
+  //   const inputUrb = document.getElementById("nombre_urb");
+  //   const urbVal = String(inputUrb?.value || "").trim();
+  //   if (!urbVal || !REGEX_SOLO_TEXTO.test(urbVal)) {
+  //     InputUI.establecerInvalido(inputUrb, "Solo texto");
+  //     notificarErrorFormulario(formulario, "Nombre de la urbanización es obligatorio para Departamento y solo permite texto.");
+  //     return false;
+  //   }
+
+  //   const inputPiso = document.getElementById("piso_edificio");
+  //   const pisoVal = String(inputPiso?.value || "").trim();
+  //   if (!pisoVal || !REGEX_TEXTO_NUMEROS.test(pisoVal)) {
+  //     InputUI.establecerInvalido(inputPiso, "Solo texto y números");
+  //     notificarErrorFormulario(formulario, "Piso / Edificio es obligatorio para Departamento y solo permite texto y números.");
+  //     return false;
+  //   }
+  // }
+
+  // const inputDesc = document.getElementById("descripcion");
+  // const descVal = String(inputDesc?.value || "").trim();
+  // if (descVal && !REGEX_SOLO_TEXTO.test(descVal)) {
+  //   InputUI.establecerInvalido(inputDesc, "Solo texto");
+  //   notificarErrorFormulario(formulario, "El Punto de referencia / Descripción solo permite texto.");
+  //   return false;
+  // }
+
+  // let errorTelefono = "";
+  // listaTelefonos?.querySelectorAll("[data-fila-telefono]").forEach((fila) => {
+  //   sincronizarTelefonoFila(fila);
+  //   const selectOp = fila.querySelector('select[name="telefonos_operadora[]"]');
+  //   const inputDig = fila.querySelector(".input-telefono-digitos");
+  //   const op = String(selectOp?.value || "").trim();
+  //   const dig = String(inputDig?.value || "").trim();
+  //   if (!op && !dig) return;
+  //   if (!OPERADORAS_TELEFONO[op]) {
+  //     errorTelefono = "Selecciona una operadora válida (0412, 0416, 0424, 0422, 0414 o 0243).";
+  //     if (selectOp) InputUI.establecerInvalido(selectOp, "Operadora requerida");
+  //     return;
+  //   }
+  //   if (!/^\d{7}$/.test(dig)) {
+  //     errorTelefono = "Cada teléfono debe tener exactamente 7 dígitos numéricos.";
+  //     if (inputDig) InputUI.establecerInvalido(inputDig, "Debe tener 7 dígitos");
+  //   }
+  // });
+  // if (errorTelefono) {
+  //   notificarErrorFormulario(formulario, errorTelefono);
+  //   return false;
+  // }
+
+  // if (document.getElementById("discapacidad_activa")?.value === "1") {
+  //   const grado = String(document.getElementById("grado_discapacidad_id")?.value || "").trim();
+  //   const carnet = String(document.getElementById("numero_carnet")?.value || "").trim();
+  //   const entidad = String(document.getElementById("entidad_emisora")?.value || "").trim();
+  //   const emision = String(document.getElementById("fecha_emision_carnet")?.value || "").trim();
+  //   const vencimiento = String(document.getElementById("fecha_vencimiento_carnet")?.value || "").trim();
+
+  //   if (!grado || !carnet || !entidad) {
+  //     notificarErrorFormulario(
+  //       formulario,
+  //       "Completa el grado de discapacidad, número de carnet CONAPDIS y entidad emisora.",
+  //     );
+  //     return false;
+  //   }
+  //   if (emision && vencimiento && vencimiento < emision) {
+  //     notificarErrorFormulario(
+  //       formulario,
+  //       "La fecha de vencimiento del carnet no puede ser menor que la fecha de emisión.",
+  //     );
+  //     return false;
+  //   }
+  // }
+
+  return true;
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   inicializarSelectsPersonalizados();
-  // //inicializarCalendariosContenedor();
+  inicializarCalendariosContenedor();
   actualizarSubtituloEdicion();
   configurarValidaciones();
 
@@ -229,6 +426,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   const selectEstado = document.getElementById("estado");
   const selectMunicipio = document.getElementById("municipio");
+  const selectVivienda = document.getElementById("vivienda");
+  const inputCodigoEmpleado = document.getElementById("codigo_empleado");
   const selectEstadoCivil = document.getElementById("estado_civil_id");
   const selectNivelAcademico = document.getElementById("nivel_academico_id");
   const selectCargo = document.getElementById("cargo_id");
@@ -237,6 +436,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const contenedorRecaudos = document.getElementById(
     "contenedor-recaudos-empleado",
   );
+
+  inputCodigoEmpleado?.addEventListener("input", actualizarSubtituloEdicion);
+
+  // Recibe ninguno; muestra u oculta urbanización y piso/edificio según tipo de vivienda.
+  const sincronizarCamposVivienda = () => {
+    const esDepto = String(selectVivienda?.value || "").trim() === "Departamento";
+    const camposDepto = document.querySelectorAll("[data-campo-departamento]");
+    camposDepto.forEach((bloque) => {
+      bloque.classList.toggle("hidden", !esDepto);
+      const input = bloque.querySelector("input");
+      if (!input) return;
+      input.required = esDepto;
+      if (!esDepto) {
+        InputUI.establecerNeutral(input);
+      }
+    });
+  };
+
+  selectVivienda?.addEventListener("change", sincronizarCamposVivienda);
+  sincronizarCamposVivienda();
 
   // --- Ubicación geográfica activa ---
   selectEstado?.addEventListener("change", async () => {
@@ -286,19 +505,26 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!listaTelefonos) return;
     listaTelefonos.insertAdjacentHTML(
       "beforeend",
-      crearFilaTelefonoHtml("", false),
+      crearFilaTelefonoHtml("", "", false),
     );
+    const nuevaFila = listaTelefonos.lastElementChild;
+    if (nuevaFila) inicializarSelectsPersonalizados(nuevaFila);
     window.lucide?.createIcons();
   });
 
   listaTelefonos?.addEventListener("input", (evento) => {
-    const inputTel = evento.target.closest(".input-telefono-empleado");
-    if (inputTel) normalizarEntradaTelefono(inputTel);
+    const inputDig = evento.target.closest(".input-telefono-digitos");
+    if (!inputDig) return;
+    normalizarDigitosTelefono(inputDig);
+    sincronizarTelefonoFila(inputDig.closest("[data-fila-telefono]"));
   });
 
   listaTelefonos?.addEventListener("change", (evento) => {
     const checkEmg = evento.target.closest("[data-check-emergencia]");
     if (checkEmg) sincronizarEstilosEmergencia(checkEmg);
+
+    const selectOp = evento.target.closest('select[name="telefonos_operadora[]"]');
+    if (selectOp) sincronizarTelefonoFila(selectOp.closest("[data-fila-telefono]"));
   });
 
   listaTelefonos?.addEventListener("click", (evento) => {
@@ -310,10 +536,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!fila) return;
 
     if (filas.length <= 1) {
-      const input = fila.querySelector(".input-telefono-empleado");
+      const selectOp = fila.querySelector('select[name="telefonos_operadora[]"]');
+      const inputDig = fila.querySelector(".input-telefono-digitos");
       const check = fila.querySelector("[data-check-emergencia]");
-      if (input) input.value = "";
+      if (selectOp) actualizarOpcionesSelect(selectOp, OPERADORAS_TELEFONO, "");
+      if (inputDig) inputDig.value = "";
       if (check) check.checked = false;
+      sincronizarTelefonoFila(fila);
       sincronizarEstilosEmergencia();
       return;
     }
@@ -409,6 +638,10 @@ document.addEventListener("DOMContentLoaded", () => {
         formulario,
         "No se encontró el identificador del trabajador a actualizar.",
       );
+      return;
+    }
+
+    if (!validarFormularioAntesDeEnviar(formulario, listaTelefonos)) {
       return;
     }
 

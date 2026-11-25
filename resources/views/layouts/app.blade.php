@@ -9,8 +9,11 @@
     <script type="module" src="http://localhost:5173/@vite/client"></script>
     @endif
     <script defer src="/lib/js/lucideIcons/lucide.min.js"></script>
+    {{-- Flatpickr (CDN oficial + localización en español) --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
     {{-- Estilos globales de la aplicacion --}}
-    {{-- <link rel="stylesheet" href="/lib/vanilla-calendar-pro/core.css"> --}}
     <link rel="stylesheet" href="/css/app.css">
     <link rel="stylesheet" href="/css/output.css">
     {{-- FAVICON --}}

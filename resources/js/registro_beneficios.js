@@ -6,7 +6,7 @@ import {
   notificarExitoFormulario,
 } from '/js/components/alerta/alerta.js';
 import { crearBadge } from '/js/components/badge/crearBadge.js';
-// import { inicializarRangoFechas } from '/js/components/calendario/calendario.js';
+import { inicializarRangoFechas } from '/js/components/calendario/calendario.js';
 import { crearListaDetalle, Modal } from '/js/components/modal/Modal.js';
 import {
   crearMarkupSelectPersonalizado,
@@ -52,9 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const selectPersona = document.getElementById('persona_id');
   const selectBeneficio = document.getElementById('beneficio_id');
+  const inputDtBeneficioId = document.getElementById('dtbeneficio_id');
   const inputSolicitud = document.getElementById('fecha_solicitud');
   const inputAprobada = document.getElementById('fecha_aprobada');
   const inputArchivo = document.getElementById('archivo_soporte');
+  const tituloForm = document.getElementById('titulo-form-beneficio');
+  const textoBtnSubmit = document.getElementById('texto-btn-submit-beneficio');
+  const btnCancelarEdicion = document.getElementById('btn-cancelar-edicion-beneficio');
 
   const panelRegla = document.getElementById('panel-regla-beneficio');
   const nodoClausula = document.getElementById('regla-clausula');
@@ -66,8 +70,80 @@ document.addEventListener('DOMContentLoaded', () => {
   const contenedorTipoDoc = document.getElementById('contenedor-select-tipo-doc');
 
   let tieneDocumentoVigentePrevio = false;
+  let rangoFechas = inicializarRangoFechas(inputSolicitud, inputAprobada);
 
-  // inicializarRangoFechas(inputSolicitud, inputAprobada);
+  // Recibe el id de persona y su etiqueta; inyecta la opción en el select remoto y sincroniza la UI.
+  const seleccionarPersonaRemota = (personaId, nombre, subetiqueta = '') => {
+    if (!selectPersona || !personaId) return;
+    const valor = String(personaId);
+    let opcion = Array.from(selectPersona.options).find((op) => op.value === valor);
+    if (!opcion) {
+      opcion = document.createElement('option');
+      opcion.value = valor;
+      opcion.textContent = nombre || `Persona #${valor}`;
+      if (subetiqueta) opcion.dataset.sublabel = subetiqueta;
+      selectPersona.appendChild(opcion);
+    }
+    selectPersona.value = valor;
+    selectPersona.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  // Limpia el estado de edición y restaura el formulario de beneficios al modo de creación.
+  const salirModoEdicion = () => {
+    if (inputDtBeneficioId) inputDtBeneficioId.value = '';
+    if (tituloForm) tituloForm.textContent = 'Asignar Beneficio';
+    if (textoBtnSubmit) textoBtnSubmit.textContent = 'Registrar Beneficio';
+    btnCancelarEdicion?.classList.remove('inline-flex');
+    btnCancelarEdicion?.classList.add('hidden');
+    formulario?.reset();
+    rangoFechas?.inicio?.clear?.(false);
+    rangoFechas?.fin?.clear?.(false);
+    rangoFechas?.fin?.set?.('minDate', '1930-01-01');
+    limpiarAlertaFormulario(formulario);
+    panelRegla?.classList.add('hidden');
+    tieneDocumentoVigentePrevio = false;
+  };
+
+  // Recibe el registro seleccionado en la tabla; carga todos sus valores en el formulario para editarlo.
+  const cargarBeneficioEnFormulario = (registro) => {
+    if (!registro?.dtbeneficio_id) return;
+
+    limpiarAlertaFormulario(formulario);
+    if (inputDtBeneficioId) inputDtBeneficioId.value = String(registro.dtbeneficio_id);
+    if (tituloForm) tituloForm.textContent = 'Editar Beneficio';
+    if (textoBtnSubmit) textoBtnSubmit.textContent = 'Actualizar Beneficio';
+    btnCancelarEdicion?.classList.remove('hidden');
+    btnCancelarEdicion?.classList.add('inline-flex');
+
+    const subetiqueta = [registro.cedula, registro.rol_parentesco].filter(Boolean).join(' · ');
+    seleccionarPersonaRemota(registro.persona_id, registro.beneficiario, subetiqueta);
+
+    if (selectBeneficio) {
+      selectBeneficio.value = String(registro.beneficio_id || '');
+      selectBeneficio.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    if (inputSolicitud) {
+      inputSolicitud.value = registro.fecha_solicitud || '';
+      if (rangoFechas?.inicio?.setDate) {
+        rangoFechas.inicio.setDate(registro.fecha_solicitud || null, false);
+      }
+    }
+    if (rangoFechas?.fin?.set) {
+      rangoFechas.fin.set('minDate', registro.fecha_solicitud || '1930-01-01');
+    }
+    if (inputAprobada) {
+      inputAprobada.value = registro.fecha_aprobada || '';
+      if (rangoFechas?.fin?.setDate) {
+        rangoFechas.fin.setDate(registro.fecha_aprobada || null, false);
+      }
+    }
+    if (inputArchivo) inputArchivo.value = '';
+
+    formulario?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  btnCancelarEdicion?.addEventListener('click', salirModoEdicion);
 
   const consultarVigenciaPrevio = async () => {
     tieneDocumentoVigentePrevio = false;
@@ -175,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ordenInicial: [[4, 'desc']],
     columnas: columnasTablaBeneficios(),
     alAccionar: (accion, registro) => {
+      if (accion === 'editar') return cargarBeneficioEnFormulario(registro);
       if (accion === 'aprobar') return aprobarBeneficio(registro);
       abrirModalBeneficio(registro);
     },
@@ -209,6 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
     evento.preventDefault();
     if (enviando) return;
 
+    const dtBeneficioId = Number(inputDtBeneficioId?.value || 0);
+    const esEdicion = dtBeneficioId > 0;
     const personaId = Number(selectPersona?.value || 0);
     const beneficioId = Number(selectBeneficio?.value || 0);
     const fechaSolicitud = inputSolicitud?.value || '';
@@ -240,18 +319,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const formData = new FormData(formulario);
-      const res = await Solicitud.post('/api/beneficios', formData);
+      const endpoint = esEdicion ? `/api/beneficios/${dtBeneficioId}` : '/api/beneficios';
+      const res = await Solicitud.post(endpoint, formData);
 
       if (!res.ok || !res.data?.ok) {
-        notificarErrorFormulario(formulario, res.message || 'No se pudo asignar el beneficio.');
+        notificarErrorFormulario(formulario, res.message || 'No se pudo guardar el beneficio.');
         return;
       }
 
-      notificarExitoFormulario(formulario, res.data.message || 'Beneficio asignado correctamente.');
-      formulario.reset();
-      limpiarAlertaFormulario(formulario);
-      panelRegla?.classList.add('hidden');
-      tieneDocumentoVigentePrevio = false;
+      notificarExitoFormulario(
+        formulario,
+        res.data.message || (esEdicion ? 'Beneficio actualizado correctamente.' : 'Beneficio asignado correctamente.')
+      );
+      salirModoEdicion();
       await cargarBeneficios();
     } finally {
       enviando = false;

@@ -1,6 +1,7 @@
 import { crearBadge } from '/js/components/badge/crearBadge.js';
 import { crearBotonAccion } from '/js/components/botones/crearBotonAccion.js';
 import { crearGrupoBotones } from '/js/components/botones/crearGrupoBotones.js';
+import { crearDropdownAcciones } from '/js/components/dropdown/crearDropdownAcciones.js';
 import { formatearFecha } from '/js/utils/formatearFecha.js';
 
 const renderTextoSimple = (valor) => `<span class="font-medium text-zinc-900 whitespace-nowrap">${valor || '—'}</span>`;
@@ -10,10 +11,17 @@ const renderNombre = (nombre, fila) => {
   return `<div class="min-w-44"><span class="font-semibold text-zinc-900">${nombre || '—'}</span>${correo}</div>`;
 };
 
+// Recibe el objeto discapacidad y la fila; renderiza botón "Ver" si ya tiene discapacidad o "Asignar" si no.
 const renderDiscapacidad = (discapacidad, fila) => {
   if (discapacidad && typeof discapacidad === 'object') {
-    const carnet = discapacidad.numero_carnet ? `Carnet: ${discapacidad.numero_carnet}` : 'Discapacidad registrada';
-    return `<span title="${carnet}">${crearBadge(discapacidad.etiqueta || 'Con discapacidad', 'sky')}</span>`;
+    return crearBotonAccion({
+      accion: 'ver-discapacidad',
+      id: fila.empleado_id,
+      etiqueta: 'Ver',
+      icono: 'eye',
+      variante: 'marca',
+      titulo: `Ver discapacidad registrada de ${fila.nombre_completo || 'empleado'}`,
+    });
   }
 
   return crearBotonAccion({
@@ -38,7 +46,8 @@ const renderEstatus = (fila) => {
   return `<div class="inline-flex flex-wrap items-center justify-center gap-1">${badgePrincipal}${badgeInactivo}</div>`;
 };
 
-const renderAcciones = (fila) => {
+// Función original preservada: genera los botones individuales de acciones por fila sin eliminarlos.
+export const renderAcciones = (fila) => {
   if (Number(fila.estatus_actual) === 3) {
     return crearGrupoBotones([
       crearBotonAccion({
@@ -90,6 +99,83 @@ const renderAcciones = (fila) => {
   return crearGrupoBotones([btnFamiliares, btnEditar, btnEstado]);
 };
 
+// Recibe los datos de fila del empleado; genera el nuevo Dropdown con Familiares (con badge), Teléfonos, Editar y Eliminar/Activar.
+const renderAccionesDropdown = (fila) => {
+  if (Number(fila.estatus_actual) === 3) {
+    return crearDropdownAcciones({
+      etiqueta: 'Pendiente',
+      icono: 'clock',
+      variante: 'yellow',
+      items: [
+        {
+          etiqueta: 'Completar expediente',
+          icono: 'file-check',
+          variante: 'yellow',
+          href: `/empleado/editar/${fila.empleado_id}`,
+          titulo: `Completar documentos pendientes de ${fila.nombre_completo || 'empleado'}`,
+        },
+        {
+          accion: 'telefonos',
+          id: fila.empleado_id,
+          etiqueta: 'Teléfonos',
+          icono: 'phone',
+          variante: 'sky',
+          titulo: `Ver teléfonos de contacto de ${fila.nombre_completo || 'empleado'}`,
+        },
+      ],
+    });
+  }
+
+  return crearDropdownAcciones({
+    etiqueta: 'Acciones',
+    items: [
+      {
+        accion: 'familiares',
+        id: fila.empleado_id,
+        etiqueta: 'Familiares',
+        icono: 'users',
+        variante: 'marca',
+        contador: fila.total_familiares ?? 0,
+        titulo: `Ver familiares de ${fila.nombre_completo || 'empleado'}`,
+      },
+      {
+        accion: 'telefonos',
+        id: fila.empleado_id,
+        etiqueta: 'Teléfonos',
+        icono: 'phone',
+        variante: 'sky',
+        titulo: `Ver teléfonos de contacto de ${fila.nombre_completo || 'empleado'}`,
+      },
+      {
+        etiqueta: 'Editar',
+        icono: 'pencil',
+        variante: 'zinc',
+        href: `/empleado/editar/${fila.empleado_id}`,
+        titulo: `Editar ficha de ${fila.nombre_completo || 'empleado'}`,
+      },
+      fila.activo
+        ? {
+            accion: 'eliminar',
+            id: fila.empleado_id,
+            etiqueta: 'Eliminar',
+            icono: 'trash-2',
+            variante: 'red',
+            separadorSuperior: true,
+            titulo: `Desactivar a ${fila.nombre_completo || 'empleado'}`,
+          }
+        : {
+            accion: 'activar',
+            id: fila.empleado_id,
+            etiqueta: 'Activar',
+            icono: 'user-check',
+            variante: 'green',
+            separadorSuperior: true,
+            titulo: `Activar a ${fila.nombre_completo || 'empleado'}`,
+          },
+    ],
+  });
+};
+
 export const columnasTablaEmpleados = () => [
   { data: 'codigo_empleado', name: 'codigo_empleado', render: (valor) => renderTextoSimple(valor) },
   { data: 'cedula', name: 'cedula', render: (valor) => renderTextoSimple(valor) },
@@ -116,7 +202,7 @@ export const columnasTablaEmpleados = () => [
     orderable: false,
     searchable: false,
     className: 'text-right',
-    render: (_d, _t, fila) => renderAcciones(fila),
+    render: (_d, _t, fila) => renderAccionesDropdown(fila),
   },
 ];
 
