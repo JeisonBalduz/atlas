@@ -259,108 +259,108 @@ const configurarValidaciones = () => {
 
 // Recibe el formulario de edición; valida dirección, teléfonos divididos y card de discapacidad antes de enviar.
 const validarFormularioAntesDeEnviar = (formulario, listaTelefonos) => {
-  // const inputCodigo = document.getElementById("codigo_empleado");
-  // if (!String(inputCodigo?.value || "").trim()) {
-  //   InputUI.establecerInvalido(inputCodigo, "El código de empleado es obligatorio");
-  //   notificarErrorFormulario(formulario, "El código de empleado es obligatorio.");
-  //   return false;
-  // }
+  const inputCodigo = document.getElementById("codigo_empleado");
+  if (!String(inputCodigo?.value || "").trim()) {
+    InputUI.establecerInvalido(inputCodigo, "El código de empleado es obligatorio");
+    notificarErrorFormulario(formulario, "El código de empleado es obligatorio.");
+    return false;
+  }
 
-  // const selectVivienda = document.getElementById("vivienda");
-  // const tipoVivienda = String(selectVivienda?.value || "").trim();
-  // if (tipoVivienda !== "Casa" && tipoVivienda !== "Departamento") {
-  //   InputUI.establecerInvalido(selectVivienda, "Seleccione Casa o Departamento");
-  //   notificarErrorFormulario(formulario, "Selecciona un tipo de vivienda válido (Casa o Departamento).");
-  //   return false;
-  // }
+  const selectVivienda = document.getElementById("vivienda");
+  const tipoVivienda = String(selectVivienda?.value || "").trim();
+  if (tipoVivienda !== "Casa" && tipoVivienda !== "Departamento") {
+    InputUI.establecerInvalido(selectVivienda, "Seleccione Casa o Departamento");
+    notificarErrorFormulario(formulario, "Selecciona un tipo de vivienda válido (Casa o Departamento).");
+    return false;
+  }
 
-  // const inputCalle = document.getElementById("calle");
-  // const calleVal = String(inputCalle?.value || "").trim();
-  // if (!calleVal || !REGEX_TEXTO_NUMEROS.test(calleVal)) {
-  //   InputUI.establecerInvalido(inputCalle, "Solo texto y números");
-  //   notificarErrorFormulario(formulario, "Calle / Avenida es obligatoria y solo permite texto y números.");
-  //   return false;
-  // }
+  const inputCalle = document.getElementById("calle");
+  const calleVal = String(inputCalle?.value || "").trim();
+  if (!calleVal || !REGEX_TEXTO_NUMEROS.test(calleVal)) {
+    InputUI.establecerInvalido(inputCalle, "Solo texto y números");
+    notificarErrorFormulario(formulario, "Calle / Avenida es obligatoria y solo permite texto y números.");
+    return false;
+  }
 
-  // const inputNumViv = document.getElementById("numero_vivienda");
-  // const numVivVal = String(inputNumViv?.value || "").trim();
-  // if (!numVivVal || !REGEX_TEXTO_NUMEROS.test(numVivVal)) {
-  //   InputUI.establecerInvalido(inputNumViv, "Solo texto y números");
-  //   notificarErrorFormulario(formulario, "Número de vivienda es obligatorio y solo permite texto y números.");
-  //   return false;
-  // }
+  const inputNumViv = document.getElementById("numero_vivienda");
+  const numVivVal = String(inputNumViv?.value || "").trim();
+  if (!numVivVal || !REGEX_TEXTO_NUMEROS.test(numVivVal)) {
+    InputUI.establecerInvalido(inputNumViv, "Solo texto y números");
+    notificarErrorFormulario(formulario, "Número de vivienda es obligatorio y solo permite texto y números.");
+    return false;
+  }
 
-  // if (tipoVivienda === "Departamento") {
-  //   const inputUrb = document.getElementById("nombre_urb");
-  //   const urbVal = String(inputUrb?.value || "").trim();
-  //   if (!urbVal || !REGEX_SOLO_TEXTO.test(urbVal)) {
-  //     InputUI.establecerInvalido(inputUrb, "Solo texto");
-  //     notificarErrorFormulario(formulario, "Nombre de la urbanización es obligatorio para Departamento y solo permite texto.");
-  //     return false;
-  //   }
+  if (tipoVivienda === "Departamento") {
+    const inputUrb = document.getElementById("nombre_urb");
+    const urbVal = String(inputUrb?.value || "").trim();
+    if (!urbVal || !REGEX_SOLO_TEXTO.test(urbVal)) {
+      InputUI.establecerInvalido(inputUrb, "Solo texto");
+      notificarErrorFormulario(formulario, "Nombre de la urbanización es obligatorio para Departamento y solo permite texto.");
+      return false;
+    }
 
-  //   const inputPiso = document.getElementById("piso_edificio");
-  //   const pisoVal = String(inputPiso?.value || "").trim();
-  //   if (!pisoVal || !REGEX_TEXTO_NUMEROS.test(pisoVal)) {
-  //     InputUI.establecerInvalido(inputPiso, "Solo texto y números");
-  //     notificarErrorFormulario(formulario, "Piso / Edificio es obligatorio para Departamento y solo permite texto y números.");
-  //     return false;
-  //   }
-  // }
+    const inputPiso = document.getElementById("piso_edificio");
+    const pisoVal = String(inputPiso?.value || "").trim();
+    if (!pisoVal || !REGEX_TEXTO_NUMEROS.test(pisoVal)) {
+      InputUI.establecerInvalido(inputPiso, "Solo texto y números");
+      notificarErrorFormulario(formulario, "Piso / Edificio es obligatorio para Departamento y solo permite texto y números.");
+      return false;
+    }
+  }
 
-  // const inputDesc = document.getElementById("descripcion");
-  // const descVal = String(inputDesc?.value || "").trim();
-  // if (descVal && !REGEX_SOLO_TEXTO.test(descVal)) {
-  //   InputUI.establecerInvalido(inputDesc, "Solo texto");
-  //   notificarErrorFormulario(formulario, "El Punto de referencia / Descripción solo permite texto.");
-  //   return false;
-  // }
+  const inputDesc = document.getElementById("descripcion");
+  const descVal = String(inputDesc?.value || "").trim();
+  if (descVal && !REGEX_TEXTO_NUMEROS.test(descVal)) {
+    InputUI.establecerInvalido(inputDesc, "Solo texto");
+    notificarErrorFormulario(formulario, "El Punto de referencia / Descripción solo permite texto.");
+    return false;
+  }
 
-  // let errorTelefono = "";
-  // listaTelefonos?.querySelectorAll("[data-fila-telefono]").forEach((fila) => {
-  //   sincronizarTelefonoFila(fila);
-  //   const selectOp = fila.querySelector('select[name="telefonos_operadora[]"]');
-  //   const inputDig = fila.querySelector(".input-telefono-digitos");
-  //   const op = String(selectOp?.value || "").trim();
-  //   const dig = String(inputDig?.value || "").trim();
-  //   if (!op && !dig) return;
-  //   if (!OPERADORAS_TELEFONO[op]) {
-  //     errorTelefono = "Selecciona una operadora válida (0412, 0416, 0424, 0422, 0414 o 0243).";
-  //     if (selectOp) InputUI.establecerInvalido(selectOp, "Operadora requerida");
-  //     return;
-  //   }
-  //   if (!/^\d{7}$/.test(dig)) {
-  //     errorTelefono = "Cada teléfono debe tener exactamente 7 dígitos numéricos.";
-  //     if (inputDig) InputUI.establecerInvalido(inputDig, "Debe tener 7 dígitos");
-  //   }
-  // });
-  // if (errorTelefono) {
-  //   notificarErrorFormulario(formulario, errorTelefono);
-  //   return false;
-  // }
+  let errorTelefono = "";
+  listaTelefonos?.querySelectorAll("[data-fila-telefono]").forEach((fila) => {
+    sincronizarTelefonoFila(fila);
+    const selectOp = fila.querySelector('select[name="telefonos_operadora[]"]');
+    const inputDig = fila.querySelector(".input-telefono-digitos");
+    const op = String(selectOp?.value || "").trim();
+    const dig = String(inputDig?.value || "").trim();
+    if (!op && !dig) return;
+    if (!OPERADORAS_TELEFONO[op]) {
+      errorTelefono = "Selecciona una operadora válida (0412, 0416, 0424, 0422, 0414 o 0243).";
+      if (selectOp) InputUI.establecerInvalido(selectOp, "Operadora requerida");
+      return;
+    }
+    if (!/^\d{7}$/.test(dig)) {
+      errorTelefono = "Cada teléfono debe tener exactamente 7 dígitos numéricos.";
+      if (inputDig) InputUI.establecerInvalido(inputDig, "Debe tener 7 dígitos");
+    }
+  });
+  if (errorTelefono) {
+    notificarErrorFormulario(formulario, errorTelefono);
+    return false;
+  }
 
-  // if (document.getElementById("discapacidad_activa")?.value === "1") {
-  //   const grado = String(document.getElementById("grado_discapacidad_id")?.value || "").trim();
-  //   const carnet = String(document.getElementById("numero_carnet")?.value || "").trim();
-  //   const entidad = String(document.getElementById("entidad_emisora")?.value || "").trim();
-  //   const emision = String(document.getElementById("fecha_emision_carnet")?.value || "").trim();
-  //   const vencimiento = String(document.getElementById("fecha_vencimiento_carnet")?.value || "").trim();
+  if (document.getElementById("discapacidad_activa")?.value === "1") {
+    const grado = String(document.getElementById("grado_discapacidad_id")?.value || "").trim();
+    const carnet = String(document.getElementById("numero_carnet")?.value || "").trim();
+    const entidad = String(document.getElementById("entidad_emisora")?.value || "").trim();
+    const emision = String(document.getElementById("fecha_emision_carnet")?.value || "").trim();
+    const vencimiento = String(document.getElementById("fecha_vencimiento_carnet")?.value || "").trim();
 
-  //   if (!grado || !carnet || !entidad) {
-  //     notificarErrorFormulario(
-  //       formulario,
-  //       "Completa el grado de discapacidad, número de carnet CONAPDIS y entidad emisora.",
-  //     );
-  //     return false;
-  //   }
-  //   if (emision && vencimiento && vencimiento < emision) {
-  //     notificarErrorFormulario(
-  //       formulario,
-  //       "La fecha de vencimiento del carnet no puede ser menor que la fecha de emisión.",
-  //     );
-  //     return false;
-  //   }
-  // }
+    if (!grado || !carnet || !entidad) {
+      notificarErrorFormulario(
+        formulario,
+        "Completa el grado de discapacidad, número de carnet CONAPDIS y entidad emisora.",
+      );
+      return false;
+    }
+    if (emision && vencimiento && vencimiento < emision) {
+      notificarErrorFormulario(
+        formulario,
+        "La fecha de vencimiento del carnet no puede ser menor que la fecha de emisión.",
+      );
+      return false;
+    }
+  }
 
   return true;
 };
@@ -682,7 +682,7 @@ document.addEventListener("DOMContentLoaded", () => {
         res.data.message || "Datos del trabajador actualizados correctamente.",
       );
       setTimeout(() => {
-        window.location.href = "/empleado/registros";
+        window.location.reload();
       }, 650);
     } finally {
       enviando = false;

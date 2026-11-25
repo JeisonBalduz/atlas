@@ -135,7 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
           res.data.message || "Trabajador registrado en estado Pendiente.",
         );
         setTimeout(() => {
-          window.location.href = "/empleado/registros";
+          window.location.reload();
         }, 700);
       } finally {
         enviando = false;

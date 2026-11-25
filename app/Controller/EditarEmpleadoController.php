@@ -737,7 +737,7 @@ final class EditarEmpleadoController extends BaseController
         }
 
         $descripcion = trim((string) $input->get('descripcion', (string) ($dirActual?->descripcion ?? '')));
-        if ($descripcion !== '' && preg_match($regexSoloTexto, $descripcion) !== 1) {
+        if ($descripcion !== '' && preg_match($regexTextoNumeros, $descripcion) !== 1) {
             return ['error' => 'El Punto de referencia / Descripción solo permite texto.'];
         }
 

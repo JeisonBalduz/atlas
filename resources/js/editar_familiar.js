@@ -289,7 +289,7 @@ document.addEventListener("DOMContentLoaded", () => {
         res.data.message || "Familiar actualizado correctamente.",
       );
       setTimeout(() => {
-        window.location.href = "/empleado/registros/familiar";
+        window.location.reload();
       }, 650);
     } finally {
       enviando = false;
