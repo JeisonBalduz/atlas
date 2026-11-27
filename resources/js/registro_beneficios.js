@@ -29,7 +29,7 @@ const renderDetalleBeneficio = (registro) => {
   const esPendiente = registro.estatus === 'Pendiente';
   return crearListaDetalle([
     { etiqueta: 'Cédula', valorHtml: `<span class="font-semibold">${registro.cedula || '—'}</span>` },
-    { etiqueta: 'Rol / Parentesco', valorHtml: registro.rol_parentesco || 'Beneficiario' },
+    { etiqueta: 'Parentesco', valorHtml: registro.rol_parentesco || 'Beneficiario' },
     { etiqueta: 'Base contractual', valorHtml: registro.clausula || 'Contrato Colectivo' },
     { etiqueta: 'Periodicidad', valorHtml: registro.periodicidad || 'Según cláusula' },
     { etiqueta: 'Estatus actual', valorHtml: crearBadge(registro.estatus, esPendiente ? 'yellow' : 'green') },
@@ -343,6 +343,84 @@ document.addEventListener('DOMContentLoaded', () => {
   const formMasivo = document.getElementById('form-carga-masiva-beneficio');
   const chkEmpleados = document.getElementById('masivo_empleados');
   const chkFamiliares = document.getElementById('masivo_familiares');
+  const dialogConfirmarMasiva = document.getElementById('modal-confirmar-carga-masiva');
+  const btnCancelarConfirmarMasiva = document.getElementById('btn-cancelar-confirmar-masiva');
+  const btnAceptarConfirmarMasiva = document.getElementById('btn-aceptar-confirmar-masiva');
+  const btnAsignarMasivo = modalCargaMasiva.botonConfirmar;
+
+  let resolverConfirmacionMasiva = null;
+  let confirmacionMasivaAutorizada = false;
+
+  const solicitarConfirmacionCargaMasiva = () => {
+    if (!dialogConfirmarMasiva) return Promise.resolve(true);
+    if (resolverConfirmacionMasiva || dialogConfirmarMasiva.open) {
+      return Promise.resolve(false);
+    }
+
+    return new Promise((resolve) => {
+      resolverConfirmacionMasiva = resolve;
+      dialogConfirmarMasiva.returnValue = '';
+      dialogConfirmarMasiva.showModal();
+    });
+  };
+
+  dialogConfirmarMasiva?.addEventListener('close', () => {
+    const aceptado = dialogConfirmarMasiva.returnValue === 'aceptar';
+    dialogConfirmarMasiva.returnValue = '';
+    if (typeof resolverConfirmacionMasiva === 'function') {
+      const resolver = resolverConfirmacionMasiva;
+      resolverConfirmacionMasiva = null;
+      resolver(aceptado);
+    }
+  });
+
+  if (dialogConfirmarMasiva && !('closedBy' in HTMLDialogElement.prototype)) {
+    dialogConfirmarMasiva.addEventListener('click', (evento) => {
+      if (evento.target !== dialogConfirmarMasiva) return;
+      const rect = dialogConfirmarMasiva.getBoundingClientRect();
+      const dentro =
+        rect.top <= evento.clientY &&
+        evento.clientY <= rect.top + rect.height &&
+        rect.left <= evento.clientX &&
+        evento.clientX <= rect.left + rect.width;
+      if (!dentro) dialogConfirmarMasiva.close('cancelar');
+    });
+  }
+
+  btnCancelarConfirmarMasiva?.addEventListener('click', () => {
+    dialogConfirmarMasiva?.close('cancelar');
+  });
+
+  btnAceptarConfirmarMasiva?.addEventListener('click', () => {
+    dialogConfirmarMasiva?.close('aceptar');
+  });
+
+  btnAsignarMasivo?.addEventListener(
+    'click',
+    async (evento) => {
+      if (confirmacionMasivaAutorizada) {
+        confirmacionMasivaAutorizada = false;
+        return;
+      }
+
+      evento.preventDefault();
+      evento.stopImmediatePropagation();
+
+      if (formMasivo && !formMasivo.reportValidity()) {
+        return;
+      }
+
+      const confirmado = await solicitarConfirmacionCargaMasiva();
+      if (!confirmado) {
+        btnAsignarMasivo.focus();
+        return;
+      }
+
+      confirmacionMasivaAutorizada = true;
+      btnAsignarMasivo.click();
+    },
+    { capture: true },
+  );
 
   chkEmpleados?.addEventListener('change', () => {
     if (chkEmpleados.checked && chkFamiliares) chkFamiliares.checked = false;

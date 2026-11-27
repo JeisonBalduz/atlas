@@ -60,7 +60,7 @@
     </article>
 
     {{-- Bloque 1: Formulario de asignación de beneficio (DetalleBeneficioModel + Reglas Contrato Colectivo) --}}
-    <section class="col-span-full lg:col-span-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
+    <section class="col-span-full lg:col-span-4 self-start h-fit rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)]">
         <header class="mb-5">
             <h2 id="titulo-form-beneficio" class="text-lg font-semibold text-zinc-900">Asignar Beneficio</h2>
             <p class="text-sm text-zinc-500">Evalúa automáticamente la cláusula, periodicidad y soporte documental.</p>
@@ -68,7 +68,7 @@
 
         <form id="formulario-beneficios"
             enctype="multipart/form-data"
-            data-reglas="{{ htmlspecialchars(json_encode($reglas_beneficios ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}"
+            data-reglas="{{ json_encode($reglas_beneficios ?? [], JSON_UNESCAPED_UNICODE) }}"
             class="space-y-4"
             novalidate>
             <input type="hidden" id="dtbeneficio_id" name="dtbeneficio_id" value="">
@@ -171,7 +171,7 @@
         'idTitulo' => 'titulo-tabla-beneficios',
         'icono' => 'list-checks',
         'titulo' => 'Beneficios Asignados',
-        'subtitulo' => 'Consulta beneficiarios, cláusula contractual, fechas de solicitud y aprobación.',
+        'subtitulo' => 'Consulta beneficiarios, fechas de solicitud y aprobación.',
     ])
         @slot('filtros')
             <div class="w-full sm:w-52">
@@ -194,7 +194,7 @@
                 class="inline-flex items-center justify-center gap-2 rounded-xl bg-marca px-4 py-2.5 text-sm font-medium text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-marca-700 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 active:scale-[0.98] cursor-pointer"
             >
                 <i data-lucide="users" class="h-4 w-4" aria-hidden="true"></i>
-                <span>Carga masiva de beneficio</span>
+                <span>Carga masiva</span>
             </button>
         @endslot
 
@@ -203,7 +203,7 @@
                 <tr>
                     <th>Cédula</th>
                     <th>Beneficiario</th>
-                    <th>Rol / Parentesco</th>
+                    <th>Parentesco</th>
                     <th>Beneficio</th>
                     <th>Solicitud</th>
                     <th>Aprobación</th>
@@ -265,6 +265,49 @@
         </fieldset>
     </form>
 @endcomponent
+
+{{-- Modal de confirmación para carga masiva de beneficios --}}
+<dialog
+    id="modal-confirmar-carga-masiva"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="modal-confirmar-carga-masiva-titulo"
+    aria-describedby="modal-confirmar-carga-masiva-descripcion"
+    closedby="any"
+    class="z-[60] m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-zinc-200 bg-white p-0 text-zinc-900 shadow-[0_15px_30px_rgba(0,0,0,0.05)] overscroll-contain backdrop:bg-zinc-900/50 backdrop:backdrop-blur-xs backdrop:overflow-hidden backdrop:overscroll-contain"
+>
+    <section class="p-6 space-y-4">
+        <header class="flex items-center justify-between gap-3">
+            <h2 id="modal-confirmar-carga-masiva-titulo" class="text-zinc-900 font-semibold text-base">
+                Confirmar carga masiva
+            </h2>
+        </header>
+
+        <div
+            id="modal-confirmar-carga-masiva-descripcion"
+            class="bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-lg p-4 text-sm leading-relaxed"
+        >
+            <p>¿Estás seguro de realizar esta carga masiva del personal activo del INCES o familiar del INCES?</p>
+        </div>
+
+        <footer class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-1">
+            <button
+                type="button"
+                id="btn-cancelar-confirmar-masiva"
+                class="w-full sm:w-auto rounded-lg px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer"
+            >
+                Cancelar
+            </button>
+            <button
+                type="button"
+                id="btn-aceptar-confirmar-masiva"
+                class="w-full sm:w-auto rounded-lg px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 cursor-pointer"
+            >
+                Aceptar
+            </button>
+        </footer>
+    </section>
+</dialog>
 @endsection
 
 @push('scripts')
