@@ -339,5 +339,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  const modalCargaMasiva = new Modal('#modal-carga-masiva-beneficio');
+  const formMasivo = document.getElementById('form-carga-masiva-beneficio');
+  const chkEmpleados = document.getElementById('masivo_empleados');
+  const chkFamiliares = document.getElementById('masivo_familiares');
+
+  chkEmpleados?.addEventListener('change', () => {
+    if (chkEmpleados.checked && chkFamiliares) chkFamiliares.checked = false;
+  });
+  chkFamiliares?.addEventListener('change', () => {
+    if (chkFamiliares.checked && chkEmpleados) chkEmpleados.checked = false;
+  });
+
+  document.getElementById('btn-carga-masiva-beneficio')?.addEventListener('click', () => {
+    limpiarAlertaFormulario(formMasivo);
+    modalCargaMasiva.abrir({
+      mostrarConfirmar: true,
+      textoConfirmar: 'Asignar beneficio',
+      alConfirmar: async () => {
+        const beneficioId = Number(formMasivo?.elements?.beneficio_id?.value || 0);
+        const empleados = Boolean(chkEmpleados?.checked);
+        const familiares = Boolean(chkFamiliares?.checked);
+
+        if (!beneficioId) {
+          notificarErrorFormulario(formMasivo, 'Selecciona un tipo de beneficio.');
+          return false;
+        }
+        if (empleados === familiares) {
+          notificarErrorFormulario(formMasivo, 'Marca solo una opción: empleados o familiar.');
+          return false;
+        }
+
+        const res = await Solicitud.post('/api/beneficios/carga-masiva', {
+          beneficio_id: beneficioId,
+          tipo_asignacion: empleados ? 'empleado' : 'familiar',
+        });
+
+        if (!res.ok || !res.data?.ok) {
+          notificarErrorFormulario(formMasivo, res.message || 'No se pudo realizar la carga masiva.');
+          return false;
+        }
+
+        mostrarToast('success', res.data.message || 'Carga masiva realizada correctamente.');
+        formMasivo?.reset();
+        await cargarBeneficios();
+        return true;
+      },
+    });
+  });
+
   cargarBeneficios();
 });

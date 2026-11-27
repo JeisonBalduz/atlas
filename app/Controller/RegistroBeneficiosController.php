@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Http\LimpiarInputs;
+use App\Model\Beneficios\DetalleBeneficioModel;
+use App\Model\Beneficios\TipoBeneficiosModel;
+use App\Model\Personas\EmpleadosModel;
+use App\Model\Personas\FamiliaresModel;
 use App\Services\BeneficiosService;
 use App\Services\CatalogosService;
 use App\Services\GestorDocumentos;
@@ -126,6 +130,80 @@ class RegistroBeneficiosController extends BaseController
                 $codigo >= 400 && $codigo < 500 ? $e->getMessage() : 'No se pudo asignar el beneficio.',
                 $codigo >= 400 && $codigo < 600 ? $codigo : 500
             );
+        }
+    }
+
+    public function cargaMasiva(): void
+    {
+        // Captura y saneamiento de parámetros recibidos en la petición
+        $input = new LimpiarInputs();
+        $beneficioId = (int) $input->get('beneficio_id', 0);
+        $tipo = trim((string) $input->get('tipo_asignacion', ''));
+
+        // 2. Valida que el ID del beneficio sea positivo y exista en la base de datos
+        if ($beneficioId <= 0 || !TipoBeneficiosModel::query()->whereKey($beneficioId)->exists()) {
+            $this->jsonError('Selecciona un tipo de beneficio válido.', 422);
+            return;
+        }
+
+        // Valida de forma estricta que el tipo de asignación esté entre las opciones permitidas
+        if (!in_array($tipo, ['empleado', 'familiar'], true)) {
+            $this->jsonError('Selecciona una sola opción: empleados o familiar.', 422);
+            return;
+        }
+
+        try {
+            // Obtiene los persona_id objetivo según el tipo elegido (solo vinculados a empleados activos)
+            $personaIds = $tipo === 'empleado'
+                ? EmpleadosModel::query()
+                ->where('estatus_actual', 1)
+                ->pluck('persona_id')
+                : FamiliaresModel::query()
+                ->whereIn(
+                    'empleado_id',
+                    EmpleadosModel::query()->where('estatus_actual', 1)->select('empleado_id')
+                )
+                ->pluck('persona_id');
+
+            // Consulta qué personas ya tienen asignado este beneficio el día de hoy para no duplicarlas
+            $hoy = date('Y-m-d');
+            $existentes = DetalleBeneficioModel::query()
+                ->where('beneficio_id', $beneficioId)
+                ->where('fecha_solicitud', $hoy)
+                ->pluck('persona_id')
+                ->map(static fn($id): int => (int) $id) // Normaliza cada ID a entero
+                ->all();
+
+            // Filtra duplicados, descarta los ya existentes hoy y construye las filas a insertar
+            $filas = $personaIds
+                ->map(static fn($id): int => (int) $id) // Normaliza IDs a entero para que unique/diff sean precisos
+                ->unique()                               // Evita IDs repetidos en la consulta origen
+                ->diff($existentes)                      // Excluye personas que ya recibieron el beneficio hoy
+                ->map(static fn(int $id): array => [    // Da formato de fila para la tabla detalle_beneficio
+                    'persona_id' => $id,
+                    'beneficio_id' => $beneficioId,
+                    'fecha_solicitud' => $hoy,
+                    'fecha_aprobada' => $hoy
+                ])
+                ->values();                              // Reindexa las claves numéricas de la colección (0, 1, 2...)
+
+            // Ejecuta la inserción masiva en bloques de 500 dentro de una transacción (todo o nada)
+            DB::connection()->transaction(static function () use ($filas): void {
+                foreach ($filas->chunk(500) as $lote) {
+                    DetalleBeneficioModel::query()->insert($lote->values()->all());
+                }
+            });
+
+            // Devuelve el total de registros insertados y un mensaje acorde al resultado
+            $total = $filas->count();
+            $this->jsonOk(
+                ['insertados' => $total],
+                $total > 0 ? "Beneficio asignado a {$total} beneficiarios." : 'No hay beneficiarios nuevos por asignar.',
+                201
+            );
+        } catch (Throwable) {
+            // Captura cualquier fallo técnico (BD, conexión, tipos) y responde con error 500 genérico
+            $this->jsonError('No se pudo realizar la carga masiva del beneficio.', 500);
         }
     }
 

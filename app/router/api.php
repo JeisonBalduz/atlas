@@ -90,6 +90,7 @@ $router->group('/api', function (Router $router): void {
     $router->get('/beneficios', [RegistroBeneficiosController::class, 'listar']);
     $router->get('/beneficios/estado-documental', [RegistroBeneficiosController::class, 'estadoDocumental']);
     $router->post('/beneficios', [RegistroBeneficiosController::class, 'store']);
+    $router->post('/beneficios/carga-masiva', [RegistroBeneficiosController::class, 'cargaMasiva']);
     $router->put('/beneficios/@id:[0-9]+', [RegistroBeneficiosController::class, 'update']);
     $router->post('/beneficios/@id:[0-9]+', [RegistroBeneficiosController::class, 'update']);
     $router->post('/beneficios/@id:[0-9]+/aprobar', [RegistroBeneficiosController::class, 'aprobar']);

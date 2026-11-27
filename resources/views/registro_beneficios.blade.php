@@ -188,6 +188,14 @@
                 ])
                 @endcomponent
             </div>
+            <button
+                type="button"
+                id="btn-carga-masiva-beneficio"
+                class="inline-flex items-center justify-center gap-2 rounded-xl bg-marca px-4 py-2.5 text-sm font-medium text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-marca-700 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 active:scale-[0.98] cursor-pointer"
+            >
+                <i data-lucide="users" class="h-4 w-4" aria-hidden="true"></i>
+                <span>Carga masiva de beneficio</span>
+            </button>
         @endslot
 
         <table id="tabla-beneficios" class="w-full text-sm text-left">
@@ -218,6 +226,44 @@
     'textoConfirmar' => 'Aprobar solicitud',
     'varianteConfirmar' => 'green',
 ])
+@endcomponent
+
+@component('components.modal', [
+    'id' => 'modal-carga-masiva-beneficio',
+    'titulo' => 'Carga masiva de beneficio',
+    'subtitulo' => 'Asigna un beneficio a todos los empleados activos o a sus familiares.',
+    'tamano' => 'md',
+    'textoCancelar' => 'Cancelar',
+    'textoConfirmar' => 'Asignar beneficio',
+    'varianteConfirmar' => 'marca',
+])
+    <form id="form-carga-masiva-beneficio" class="space-y-4" novalidate>
+        @component('components.alerta_formulario')
+        @endcomponent
+
+        @component('components.select', [
+            'label' => 'Tipo de beneficio',
+            'id' => 'masivo_beneficio_id',
+            'name' => 'beneficio_id',
+            'placeholder' => 'Seleccionar beneficio...',
+            'required' => true,
+            'search' => true,
+            'options' => $tipos_beneficio ?? [],
+        ])
+        @endcomponent
+
+        <fieldset class="space-y-2">
+            <legend class="mb-1.5 block text-sm font-medium text-zinc-900">Destinatarios</legend>
+            <label class="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
+                <input type="checkbox" id="masivo_empleados" name="tipo_asignacion" value="empleado" class="h-4 w-4 rounded border-slate-300 text-marca focus:ring-marca-500" />
+                <span>Asignar a empleados</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm text-zinc-700 cursor-pointer">
+                <input type="checkbox" id="masivo_familiares" name="tipo_asignacion" value="familiar" class="h-4 w-4 rounded border-slate-300 text-marca focus:ring-marca-500" />
+                <span>Asignar a familiar</span>
+            </label>
+        </fieldset>
+    </form>
 @endcomponent
 @endsection
 
