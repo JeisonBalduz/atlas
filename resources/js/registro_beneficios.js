@@ -6,7 +6,6 @@ import {
   notificarExitoFormulario,
 } from '/js/components/alerta/alerta.js';
 import { crearBadge } from '/js/components/badge/crearBadge.js';
-import { inicializarRangoFechas } from '/js/components/calendario/calendario.js';
 import { crearListaDetalle, Modal } from '/js/components/modal/Modal.js';
 import {
   crearMarkupSelectPersonalizado,
@@ -14,7 +13,11 @@ import {
 } from '/js/components/select/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast/toast.js';
 import { columnasTablaBeneficios } from '/js/templates/tabla_beneficios.js';
-import { formatearFecha } from '/js/utils/formatearFecha.js';
+import {
+  formatearFecha,
+  inicializarRangoFechasDobleFormato,
+  parsearFechaFlexible,
+} from '/js/utils/formatearFecha.js';
 
 const leerReglasBeneficios = (formulario) => {
   if (!formulario?.dataset?.reglas) return {};
@@ -70,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const contenedorTipoDoc = document.getElementById('contenedor-select-tipo-doc');
 
   let tieneDocumentoVigentePrevio = false;
-  let rangoFechas = inicializarRangoFechas(inputSolicitud, inputAprobada);
+  const rangoFechas = inicializarRangoFechasDobleFormato(inputSolicitud, inputAprobada);
 
   // Recibe el id de persona y su etiqueta; inyecta la opción en el select remoto y sincroniza la UI.
   const seleccionarPersonaRemota = (personaId, nombre, subetiqueta = '') => {
@@ -96,9 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCancelarEdicion?.classList.remove('inline-flex');
     btnCancelarEdicion?.classList.add('hidden');
     formulario?.reset();
-    rangoFechas?.inicio?.clear?.(false);
-    rangoFechas?.fin?.clear?.(false);
-    rangoFechas?.fin?.set?.('minDate', '1930-01-01');
+    rangoFechas?.inicio?.limpiar();
+    rangoFechas?.fin?.limpiar();
+    rangoFechas?.fin?.cal?.set?.('minDate', '1930-01-01');
     limpiarAlertaFormulario(formulario);
     panelRegla?.classList.add('hidden');
     tieneDocumentoVigentePrevio = false;
@@ -123,21 +126,10 @@ document.addEventListener('DOMContentLoaded', () => {
       selectBeneficio.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    if (inputSolicitud) {
-      inputSolicitud.value = registro.fecha_solicitud || '';
-      if (rangoFechas?.inicio?.setDate) {
-        rangoFechas.inicio.setDate(registro.fecha_solicitud || null, false);
-      }
-    }
-    if (rangoFechas?.fin?.set) {
-      rangoFechas.fin.set('minDate', registro.fecha_solicitud || '1930-01-01');
-    }
-    if (inputAprobada) {
-      inputAprobada.value = registro.fecha_aprobada || '';
-      if (rangoFechas?.fin?.setDate) {
-        rangoFechas.fin.setDate(registro.fecha_aprobada || null, false);
-      }
-    }
+    rangoFechas?.inicio?.establecerIso(registro.fecha_solicitud || '');
+    const parsedSolicitud = parsearFechaFlexible(registro.fecha_solicitud || '');
+    rangoFechas?.fin?.cal?.set?.('minDate', parsedSolicitud ? parsedSolicitud.date : '1930-01-01');
+    rangoFechas?.fin?.establecerIso(registro.fecha_aprobada || '');
     if (inputArchivo) inputArchivo.value = '';
 
     formulario?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -290,8 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const esEdicion = dtBeneficioId > 0;
     const personaId = Number(selectPersona?.value || 0);
     const beneficioId = Number(selectBeneficio?.value || 0);
-    const fechaSolicitud = inputSolicitud?.value || '';
-    const fechaAprobada = inputAprobada?.value || '';
+    const fechaSolicitud = rangoFechas?.inicio?.obtenerIso() || '';
+    const fechaAprobada = rangoFechas?.fin?.obtenerIso() || '';
     const regla = reglasPorBeneficio[String(beneficioId)];
 
     if (!personaId || !beneficioId || !fechaSolicitud) {

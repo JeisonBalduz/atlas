@@ -7,10 +7,7 @@ import {
   notificarExitoFormulario,
 } from '/js/components/alerta/alerta.js';
 import { crearBadge } from '/js/components/badge/crearBadge.js';
-import {
-  inicializarCalendario,
-  refrescarReglasCalendario,
-} from '/js/components/calendario/calendario.js';
+import { refrescarReglasCalendario } from '/js/components/calendario/calendario.js';
 import { Modal } from '/js/components/modal/Modal.js';
 import { inicializarSelectsPersonalizados } from '/js/components/select/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast/toast.js';
@@ -25,7 +22,13 @@ import {
   esFechaIsoValida,
   establecerFeriadosRemotos,
 } from '/js/utils/calcularDiasHabiles.js';
-import { formatearFecha } from '/js/utils/formatearFecha.js';
+import {
+  fechaIsoAVisual,
+  fechaVisualAIso,
+  formatearFecha,
+  inicializarCampoFechaDobleFormato,
+  parsearFechaFlexible,
+} from '/js/utils/formatearFecha.js';
 
 const toggleMensajeCampo = (nodoError, mensaje = '') => {
   if (!nodoError) return;
@@ -40,14 +43,17 @@ const toggleMensajeCampo = (nodoError, mensaje = '') => {
 
 const actualizarCalculoVacaciones = ({
   inputInicio,
+  inputInicioIso = null,
   inputDias,
   inputFin,
+  inputFinIso = null,
   nodoReincorporacion,
   nodoErrorInicio,
   nodoErrorDias,
   saldoMaximo = null,
 }) => {
-  const inicio = String(inputInicio?.value || '').trim();
+  const inicioTexto = String(inputInicio?.value || '').trim();
+  const inicio = fechaVisualAIso(inputInicioIso?.value || inicioTexto);
   const diasTexto = String(inputDias?.value || '').trim();
 
   toggleMensajeCampo(nodoErrorInicio, '');
@@ -55,7 +61,7 @@ const actualizarCalculoVacaciones = ({
 
   let hayError = false;
 
-  if (inicio !== '' && (!esFechaIsoValida(inicio) || !esDiaHabilInces(inicio))) {
+  if (inicioTexto !== '' && (!inicio || !esFechaIsoValida(inicio) || !esDiaHabilInces(inicio))) {
     toggleMensajeCampo(
       nodoErrorInicio,
       'La fecha de inicio debe ser un día hábil laborable (lunes a viernes, no feriado).'
@@ -82,6 +88,7 @@ const actualizarCalculoVacaciones = ({
 
   if (hayError || inicio === '' || dias < 1) {
     if (inputFin) inputFin.value = '';
+    if (inputFinIso) inputFinIso.value = '';
     if (nodoReincorporacion) {
       nodoReincorporacion.textContent = '';
       nodoReincorporacion.classList.add('hidden');
@@ -92,6 +99,7 @@ const actualizarCalculoVacaciones = ({
   const { fechaFinal, fechaReincorporacion } = calcularFechaFinalHabiles(inicio, dias);
   if (!fechaFinal) {
     if (inputFin) inputFin.value = '';
+    if (inputFinIso) inputFinIso.value = '';
     if (nodoReincorporacion) {
       nodoReincorporacion.textContent = '';
       nodoReincorporacion.classList.add('hidden');
@@ -99,7 +107,8 @@ const actualizarCalculoVacaciones = ({
     return { valido: false, inicio, dias, fechaFinal: '', fechaReincorporacion: '' };
   }
 
-  if (inputFin) inputFin.value = fechaFinal;
+  if (inputFin) inputFin.value = fechaIsoAVisual(fechaFinal);
+  if (inputFinIso) inputFinIso.value = fechaFinal;
   if (nodoReincorporacion && fechaReincorporacion) {
     nodoReincorporacion.textContent = `Reincorporación estimada: ${formatearFecha(fechaReincorporacion)} (siguiente día hábil)`;
     nodoReincorporacion.classList.remove('hidden');
@@ -160,13 +169,18 @@ const renderDetalleVacaciones = (detalle) => {
   `;
 };
 
-const renderFormularioEdicionVacaciones = (registro) => `
+const renderFormularioEdicionVacaciones = (registro) => {
+  const editInicioIso = parsearFechaFlexible(registro.fecha_inicio)?.iso || '';
+  const editFinIso = parsearFechaFlexible(registro.fecha_final)?.iso || '';
+
+  return `
   <form id="form-editar-vacaciones" class="space-y-4" novalidate>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div>
         <label for="edit-vac-inicio" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha de inicio *</label>
         <div class="relative">
-          <input id="edit-vac-inicio" name="fecha_inicio" type="date" value="${registro.fecha_inicio || ''}" required class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+          <input id="edit-vac-inicio" type="text" value="${fechaIsoAVisual(editInicioIso)}" placeholder="dd-mm-yyyy" autocomplete="off" required class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+          <input type="hidden" id="edit-vac-inicio-iso" name="fecha_inicio" value="${editInicioIso}" />
         </div>
         <p id="edit-vac-inicio-error" class="hidden mt-1 text-xs font-medium text-red-600" role="alert"></p>
       </div>
@@ -178,7 +192,8 @@ const renderFormularioEdicionVacaciones = (registro) => `
     </div>
     <div>
       <label for="edit-vac-fin" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha final (último día hábil) *</label>
-      <input id="edit-vac-fin" name="fecha_final" type="text" value="${registro.fecha_final || ''}" readonly required class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2.5 text-sm font-semibold text-zinc-700 outline-none cursor-not-allowed" />
+      <input id="edit-vac-fin" type="text" value="${fechaIsoAVisual(editFinIso)}" placeholder="dd-mm-yyyy" readonly required class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2.5 text-sm font-semibold text-zinc-700 outline-none cursor-not-allowed" />
+      <input type="hidden" id="edit-vac-fin-iso" name="fecha_final" value="${editFinIso}" />
       <p id="edit-vac-reincorporacion" class="hidden mt-1.5 text-xs font-medium text-zinc-500"></p>
     </div>
     <label class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 cursor-pointer">
@@ -187,6 +202,7 @@ const renderFormularioEdicionVacaciones = (registro) => `
     </label>
   </form>
 `;
+};
 
 const renderFormularioSuspenderVacaciones = (registro) => {
   const fechaInicio = String(registro.fecha_inicio || '').slice(0, 10);
@@ -203,7 +219,8 @@ const renderFormularioSuspenderVacaciones = (registro) => {
     <div>
       <label for="susp-fecha-corte" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha hasta donde disfrutó</label>
       <div class="relative">
-        <input id="susp-fecha-corte" name="fecha_corte" type="text" value="${fechaInicio}" placeholder="YYYY-MM-DD" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+        <input id="susp-fecha-corte" type="text" value="${fechaIsoAVisual(fechaInicio)}" placeholder="dd-mm-yyyy" autocomplete="off" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+        <input type="hidden" id="susp-fecha-corte-iso" name="fecha_corte" value="${fechaInicio}" />
       </div>
       <p id="susp-fecha-corte-error" class="mt-1 text-xs text-red-600 hidden"></p>
       <p class="mt-1 text-xs text-zinc-500">Rango válido: ${formatearFecha(fechaInicio)} al ${formatearFecha(fechaFinal)}. Selecciona la fecha de inicio (${formatearFecha(fechaInicio)}) si no llegó a disfrutar días.</p>
@@ -239,8 +256,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const nodoDiasPendientes = document.getElementById('saldo-dias-pendientes');
   const nodoPeriodosActivos = document.getElementById('saldo-periodos-activos');
   const inputInicio = document.getElementById('fecha_inicio');
+  const inputInicioIso = document.getElementById('fecha_inicio_iso');
   const inputDias = document.getElementById('dias_solicitado');
   const inputFin = document.getElementById('fecha_final');
+  const inputFinIso = document.getElementById('fecha_final_iso');
   const nodoReincorporacion = document.getElementById('texto-reincorporacion-vacaciones');
   const nodoErrorInicio = document.getElementById('fecha_inicio-error');
   const nodoErrorDias = document.getElementById('dias_solicitado-error');
@@ -274,8 +293,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const recalcularPrincipal = () =>
     actualizarCalculoVacaciones({
       inputInicio,
+      inputInicioIso,
       inputDias,
       inputFin,
+      inputFinIso,
       nodoReincorporacion,
       nodoErrorInicio,
       nodoErrorDias,
@@ -322,10 +343,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   selectEmpleado?.addEventListener('change', () => consultarSaldoEmpleado(selectEmpleado.value));
 
-  const calInicio = inicializarCalendario(inputInicio, {
+  const ctrlInicio = inicializarCampoFechaDobleFormato(inputInicio, {
+    inputIso: inputInicioIso,
     soloHabiles: true,
     alSeleccionar: recalcularPrincipal,
   });
+  const calInicio = ctrlInicio?.cal || null;
 
   inputInicio?.addEventListener('input', recalcularPrincipal);
   inputInicio?.addEventListener('change', recalcularPrincipal);
@@ -400,12 +423,15 @@ document.addEventListener('DOMContentLoaded', () => {
       varianteConfirmar: 'marca',
       alAbrir: (dlg) => {
         const inputCorte = dlg.querySelector('#susp-fecha-corte');
+        const inputCorteIso = dlg.querySelector('#susp-fecha-corte-iso');
         const inputDisfrutados = dlg.querySelector('#susp-dias-disfrutados');
         const inputReintegrar = dlg.querySelector('#susp-dias-reintegrar');
         const nodoErrorCorte = dlg.querySelector('#susp-fecha-corte-error');
 
+        let ctrlCorte = null;
+
         const recalcularSuspension = () => {
-          const fechaCorte = String(inputCorte?.value || '').trim();
+          const fechaCorte = ctrlCorte?.obtenerIso() || fechaVisualAIso(inputCorteIso?.value || inputCorte?.value);
           toggleMensajeCampo(nodoErrorCorte, '');
 
           if (!esFechaIsoValida(fechaCorte) || fechaCorte < fechaInicioSol || fechaCorte > fechaFinalSol) {
@@ -429,7 +455,8 @@ document.addEventListener('DOMContentLoaded', () => {
           return true;
         };
 
-        inicializarCalendario(inputCorte, {
+        ctrlCorte = inicializarCampoFechaDobleFormato(inputCorte, {
+          inputIso: inputCorteIso,
           soloHabiles: true,
           minDate: fechaInicioSol,
           maxDate: fechaFinalSol,
@@ -491,17 +518,21 @@ document.addEventListener('DOMContentLoaded', () => {
       varianteConfirmar: 'marca',
       alConfirmar: async (dlg) => {
         const form = dlg.querySelector('#form-editar-vacaciones');
-        const editInicio = form?.elements?.fecha_inicio;
+        const editInicio = dlg.querySelector('#edit-vac-inicio');
+        const editInicioIso = dlg.querySelector('#edit-vac-inicio-iso');
         const editDias = form?.elements?.dias_solicitados;
-        const editFin = form?.elements?.fecha_final;
+        const editFin = dlg.querySelector('#edit-vac-fin');
+        const editFinIso = dlg.querySelector('#edit-vac-fin-iso');
         const editReinc = dlg.querySelector('#edit-vac-reincorporacion');
         const editErrIni = dlg.querySelector('#edit-vac-inicio-error');
         const editErrDias = dlg.querySelector('#edit-vac-dias-error');
 
         const calculo = actualizarCalculoVacaciones({
           inputInicio: editInicio,
+          inputInicioIso: editInicioIso,
           inputDias: editDias,
           inputFin: editFin,
+          inputFinIso: editFinIso,
           nodoReincorporacion: editReinc,
           nodoErrorInicio: editErrIni,
           nodoErrorDias: editErrDias,
@@ -540,8 +571,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (modalAccion.dialogo) {
       const editInicio = modalAccion.dialogo.querySelector('#edit-vac-inicio');
+      const editInicioIso = modalAccion.dialogo.querySelector('#edit-vac-inicio-iso');
       const editDias = modalAccion.dialogo.querySelector('#edit-vac-dias');
       const editFin = modalAccion.dialogo.querySelector('#edit-vac-fin');
+      const editFinIso = modalAccion.dialogo.querySelector('#edit-vac-fin-iso');
       const editReinc = modalAccion.dialogo.querySelector('#edit-vac-reincorporacion');
       const editErrIni = modalAccion.dialogo.querySelector('#edit-vac-inicio-error');
       const editErrDias = modalAccion.dialogo.querySelector('#edit-vac-dias-error');
@@ -549,8 +582,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const recalcularEdit = () =>
         actualizarCalculoVacaciones({
           inputInicio: editInicio,
+          inputInicioIso: editInicioIso,
           inputDias: editDias,
           inputFin: editFin,
+          inputFinIso: editFinIso,
           nodoReincorporacion: editReinc,
           nodoErrorInicio: editErrIni,
           nodoErrorDias: editErrDias,
@@ -558,10 +593,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
       recalcularEditActivo = recalcularEdit;
-      calEditInicioActivo = inicializarCalendario(editInicio, {
+      const ctrlEditInicio = inicializarCampoFechaDobleFormato(editInicio, {
+        inputIso: editInicioIso,
         soloHabiles: true,
         alSeleccionar: recalcularEdit,
       });
+      calEditInicioActivo = ctrlEditInicio?.cal || null;
 
       editInicio?.addEventListener('input', recalcularEdit);
       editInicio?.addEventListener('change', recalcularEdit);
@@ -722,7 +759,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       notificarExitoFormulario(formulario, res.data.message || 'Solicitud de vacaciones registrada correctamente.');
       formulario.reset();
+      ctrlInicio?.limpiar();
       if (inputFin) inputFin.value = '';
+      if (inputFinIso) inputFinIso.value = '';
       if (inputDias) inputDias.removeAttribute('max');
       if (nodoReincorporacion) {
         nodoReincorporacion.textContent = '';

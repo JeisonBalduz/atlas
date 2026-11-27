@@ -5,10 +5,7 @@ import {
   notificarErrorFormulario,
   notificarExitoFormulario,
 } from "/js/components/alerta/alerta.js";
-import {
-  inicializarCalendario,
-  inicializarCalendariosContenedor,
-} from "/js/components/calendario/calendario.js";
+import { inicializarCalendario } from "/js/components/calendario/calendario.js";
 import { inicializarPasoMultiple } from "/js/components/pasoMultiple/pasoMultiple.js";
 import {
   actualizarOpcionesSelect,
@@ -16,6 +13,7 @@ import {
 } from "/js/components/select/selectPersonalizado.js";
 import { mostrarToast } from "/js/components/toast/toast.js";
 import { calcularEdad } from "/js/utils/calcularEdad.js";
+import { inicializarCampoFechaDobleFormato } from "/js/utils/formatearFecha.js";
 
 const obtenerFechaHoyIso = () => {
   const hoy = new Date();
@@ -180,7 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   calFechaNacimiento?.set("dateFormat", "d-m-Y");
 
-  inicializarCalendariosContenedor();
+  const ctrlFechaIngreso = inicializarCampoFechaDobleFormato("#fechaing3");
   configurarValidaciones();
 
   inputFechaNacimiento?.addEventListener("change", () => {
@@ -282,6 +280,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const datosEnvio = new FormData(formulario);
         datosEnvio.set("fecha_nacimiento", resultadoFecha.iso);
+        if (ctrlFechaIngreso) {
+          datosEnvio.set("fechaing", ctrlFechaIngreso.obtenerIso());
+        }
 
         const res = await Solicitud.post(
           "/api/empleados",

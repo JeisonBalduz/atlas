@@ -6,8 +6,12 @@ import {
   notificarExitoFormulario,
 } from "/js/components/alerta/alerta.js";
 import { crearBadge } from "/js/components/badge/crearBadge.js";
-import { inicializarCalendariosContenedor } from "/js/components/calendario/calendario.js";
 import { inicializarSelectsPersonalizados } from "/js/components/select/selectPersonalizado.js";
+import {
+  inicializarCampoFechaDobleFormato,
+  inicializarRangoFechasDobleFormato,
+  obtenerFechaHoyLocalIso,
+} from "/js/utils/formatearFecha.js";
 import {
   filtrarRecaudosPorDiscapacidad,
   sincronizarPanelDiscapacidad,
@@ -100,7 +104,6 @@ const configurarValidaciones = () => {
 
 document.addEventListener("DOMContentLoaded", () => {
   inicializarSelectsPersonalizados();
-  inicializarCalendariosContenedor();
   configurarValidaciones();
 
   const formulario = document.getElementById("formulario-editar-familiar");
@@ -108,6 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const selectTitular = document.getElementById("empleado_id");
   const selectParentesco = document.getElementById("parentesco_id");
   const inputFechaNac = document.getElementById("fecha_nacimiento");
+  const inputFechaNacIso = document.getElementById("fecha_nacimiento_iso");
   const inputCedula = document.getElementById("cedula");
   const avisoCedulaMenor = document.getElementById("aviso-cedula-menor");
   const inputTomo = document.getElementById("tomo");
@@ -137,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Recibe ninguno; aplica regla de cédula < 9 años y visibilidad de tomo y folio.
   const sincronizarReglasDinamicas = () => {
     sincronizarReglaCedulaMenor({
-      inputFecha: inputFechaNac,
+      inputFecha: inputFechaNacIso || inputFechaNac,
       inputCedula,
       avisoCedula: avisoCedulaMenor,
     });
@@ -148,6 +152,16 @@ document.addEventListener("DOMContentLoaded", () => {
       inputFolio,
     });
   };
+
+  inicializarCampoFechaDobleFormato(inputFechaNac, {
+    inputIso: inputFechaNacIso,
+    maxDate: obtenerFechaHoyLocalIso(),
+    alSeleccionar: sincronizarReglasDinamicas,
+  });
+  inicializarRangoFechasDobleFormato(
+    "#fecha_emision_carnet",
+    "#fecha_vencimiento_carnet",
+  );
 
   // Recibe ninguno; consulta al servidor los recaudos vigentes y aplica visibilidad condicional del recaudo ID 10.
   const refrescarRecaudosFamiliar = async () => {

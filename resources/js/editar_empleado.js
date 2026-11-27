@@ -6,7 +6,6 @@ import {
   notificarExitoFormulario,
 } from "/js/components/alerta/alerta.js";
 import { crearBadge } from "/js/components/badge/crearBadge.js";
-import { inicializarCalendariosContenedor } from "/js/components/calendario/calendario.js";
 import { abrirModalFamiliaresEmpleado } from "/js/components/modal/abrirModalFamiliaresEmpleado.js";
 import { Modal } from "/js/components/modal/Modal.js";
 import {
@@ -15,6 +14,12 @@ import {
   inicializarSelectsPersonalizados,
 } from "/js/components/select/selectPersonalizado.js";
 import { mostrarToast } from "/js/components/toast/toast.js";
+import {
+  fechaVisualAIso,
+  inicializarCampoFechaDobleFormato,
+  inicializarRangoFechasDobleFormato,
+  obtenerFechaHoyLocalIso,
+} from "/js/utils/formatearFecha.js";
 
 const OPERADORAS_TELEFONO = {
   "0412": "0412",
@@ -343,8 +348,16 @@ const validarFormularioAntesDeEnviar = (formulario, listaTelefonos) => {
     const grado = String(document.getElementById("grado_discapacidad_id")?.value || "").trim();
     const carnet = String(document.getElementById("numero_carnet")?.value || "").trim();
     const entidad = String(document.getElementById("entidad_emisora")?.value || "").trim();
-    const emision = String(document.getElementById("fecha_emision_carnet")?.value || "").trim();
-    const vencimiento = String(document.getElementById("fecha_vencimiento_carnet")?.value || "").trim();
+    const emision = fechaVisualAIso(
+      document.getElementById("fecha_emision_carnet_iso")?.value ||
+        document.getElementById("fecha_emision_carnet")?.value ||
+        "",
+    );
+    const vencimiento = fechaVisualAIso(
+      document.getElementById("fecha_vencimiento_carnet_iso")?.value ||
+        document.getElementById("fecha_vencimiento_carnet")?.value ||
+        "",
+    );
 
     if (!grado || !carnet || !entidad) {
       notificarErrorFormulario(
@@ -367,7 +380,13 @@ const validarFormularioAntesDeEnviar = (formulario, listaTelefonos) => {
 
 document.addEventListener("DOMContentLoaded", () => {
   inicializarSelectsPersonalizados();
-  inicializarCalendariosContenedor();
+  inicializarCampoFechaDobleFormato("#fecha_nacimiento", {
+    maxDate: obtenerFechaHoyLocalIso(),
+  });
+  inicializarRangoFechasDobleFormato(
+    "#fecha_emision_carnet",
+    "#fecha_vencimiento_carnet",
+  );
   actualizarSubtituloEdicion();
   configurarValidaciones();
 

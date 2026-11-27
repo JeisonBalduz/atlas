@@ -7,11 +7,7 @@ import {
   notificarExitoFormulario,
 } from '/js/components/alerta/alerta.js';
 import { crearBadge } from '/js/components/badge/crearBadge.js';
-import {
-  inicializarCalendario,
-  inicializarRangoFechas,
-  validarRangoFechas,
-} from '/js/components/calendario/calendario.js';
+import { validarRangoFechas } from '/js/components/calendario/calendario.js';
 import { crearListaDetalle, Modal } from '/js/components/modal/Modal.js';
 import {
   crearMarkupSelectPersonalizado,
@@ -20,7 +16,14 @@ import {
 import { mostrarToast } from '/js/components/toast/toast.js';
 import { columnasTablaAusencias } from '/js/templates/tabla_ausencias.js';
 import { calcularDiasEntreFechas } from '/js/utils/calcularDiasEntreFechas.js';
-import { formatearFecha } from '/js/utils/formatearFecha.js';
+import {
+  fechaIsoAVisual,
+  formatearFecha,
+  inicializarCampoFechaDobleFormato,
+  inicializarRangoFechasDobleFormato,
+  obtenerFechaHoyLocalIso,
+  parsearFechaFlexible,
+} from '/js/utils/formatearFecha.js';
 
 const leerMapaOpcionesSelect = (idSelect) => {
   const nodo = document.getElementById(idSelect);
@@ -69,7 +72,7 @@ const renderDetalleAusencia = (detalle, institucionesMapa = {}) => {
     return crearListaDetalle(baseItems);
   }
 
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = obtenerFechaHoyLocalIso();
   const selectInstHtml = crearMarkupSelectPersonalizado({
     id: 'val-reposo-institucion',
     nombre: 'tpinstitucion_emisora_id',
@@ -101,7 +104,8 @@ const renderDetalleAusencia = (detalle, institucionesMapa = {}) => {
           <div>
             <label for="val-reposo-fecha" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha expedición *</label>
             <div class="relative">
-              <input id="val-reposo-fecha" name="fecha_expide" type="date" value="${hoy}" required class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-black" />
+              <input id="val-reposo-fecha" type="text" value="${fechaIsoAVisual(hoy)}" placeholder="dd-mm-yyyy" autocomplete="off" required class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-black" />
+              <input type="hidden" id="val-reposo-fecha-iso" name="fecha_expide" value="${hoy}" />
             </div>
           </div>
           <div>
@@ -158,19 +162,24 @@ const renderFormularioEditarAusencia = (detalle, permisosMapa, repososMapa) => {
       </div>
     `;
 
+  const editInicioIso = parsearFechaFlexible(detalle.fecha_inicio)?.iso || '';
+  const editFinIso = parsearFechaFlexible(detalle.fecha_fin)?.iso || '';
+
   return `
     <form id="form-editar-ausencia" class="space-y-4" novalidate>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label for="edit-aus-inicio" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha inicio *</label>
           <div class="relative">
-            <input id="edit-aus-inicio" name="fecha_inicio" type="date" value="${detalle.fecha_inicio || ''}" required class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+            <input id="edit-aus-inicio" type="text" value="${fechaIsoAVisual(editInicioIso)}" placeholder="dd-mm-yyyy" autocomplete="off" required class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+            <input type="hidden" id="edit-aus-inicio-iso" name="fecha_inicio" value="${editInicioIso}" />
           </div>
         </div>
         <div>
           <label for="edit-aus-fin" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha fin *</label>
           <div class="relative">
-            <input id="edit-aus-fin" name="fecha_fin" type="date" value="${detalle.fecha_fin || ''}" required class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+            <input id="edit-aus-fin" type="text" value="${fechaIsoAVisual(editFinIso)}" placeholder="dd-mm-yyyy" autocomplete="off" required class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+            <input type="hidden" id="edit-aus-fin-iso" name="fecha_fin" value="${editFinIso}" />
           </div>
         </div>
       </div>
@@ -183,7 +192,9 @@ const renderFormularioEditarAusencia = (detalle, permisosMapa, repososMapa) => {
   `;
 };
 
-const renderFormularioReanudarAusencia = (registro) => `
+const renderFormularioReanudarAusencia = (registro) => {
+  const inicioIso = parsearFechaFlexible(registro.fecha_inicio)?.iso || '';
+  return `
   <form id="form-reanudar-ausencia" class="space-y-4" novalidate>
     ${crearAlertaConfirmacion({
       variante: 'green',
@@ -193,12 +204,14 @@ const renderFormularioReanudarAusencia = (registro) => `
     <div>
       <label for="reanudar-fecha" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha efectiva de reincorporación *</label>
       <div class="relative">
-        <input id="reanudar-fecha" name="fecha_reincorporacion" type="date" value="${registro.fecha_inicio || ''}" required class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+        <input id="reanudar-fecha" type="text" value="${fechaIsoAVisual(inicioIso)}" placeholder="dd-mm-yyyy" autocomplete="off" required class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white" />
+        <input type="hidden" id="reanudar-fecha-iso" name="fecha_reincorporacion" value="${inicioIso}" />
       </div>
       <p class="mt-1 text-xs text-zinc-500">Si seleccionas la misma fecha de inicio (${formatearFecha(registro.fecha_inicio)}), se devolverán todos los días (${registro.dias_ausencia}).</p>
     </div>
   </form>
 `;
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
@@ -239,11 +252,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('input[name="tipo_ausencia"]').forEach((r) => r.addEventListener('change', alternarBloques));
 
   const actualizarDias = () => {
-    const dias = calcularDiasEntreFechas(inputInicio?.value, inputFin?.value);
+    const inicioIso = rangoFechas?.inicio?.obtenerIso() || '';
+    const finIso = rangoFechas?.fin?.obtenerIso() || '';
+    const dias = calcularDiasEntreFechas(inicioIso, finIso);
     if (inputDias) inputDias.value = dias > 0 ? String(dias) : '';
   };
 
-  inicializarRangoFechas(inputInicio, inputFin, {
+  const rangoFechas = inicializarRangoFechasDobleFormato(inputInicio, inputFin, {
     alCambiarRango: actualizarDias,
   });
   inputInicio?.addEventListener('change', actualizarDias);
@@ -301,6 +316,11 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         : null,
     });
+
+    if (puedeConvalidar && modalDetalle.dialogo) {
+      const inputExpide = modalDetalle.dialogo.querySelector('#val-reposo-fecha');
+      inicializarCampoFechaDobleFormato(inputExpide);
+    }
   };
 
   const abrirModalEditarAusencia = async (registro) => {
@@ -357,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const editIni = modalAccion.dialogo.querySelector('#edit-aus-inicio');
       const editFin = modalAccion.dialogo.querySelector('#edit-aus-fin');
       const editDias = modalAccion.dialogo.querySelector('#edit-aus-dias');
-      inicializarRangoFechas(editIni, editFin, {
+      inicializarRangoFechasDobleFormato(editIni, editFin, {
         alCambiarRango: (ini, fn) => {
           if (editDias) editDias.value = String(calcularDiasEntreFechas(ini, fn));
         },
@@ -399,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (modalAccion.dialogo) {
       const inputRean = modalAccion.dialogo.querySelector('#reanudar-fecha');
-      inicializarCalendario(inputRean, {
+      inicializarCampoFechaDobleFormato(inputRean, {
         minDate: registro.fecha_inicio || undefined,
         maxDate: registro.fecha_fin || undefined,
       });
@@ -455,8 +475,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const tipo = Number(document.querySelector('input[name="tipo_ausencia"]:checked')?.value || 1);
     const empleadoId = Number(document.getElementById('empleado_id')?.value || 0);
-    const inicio = inputInicio?.value || '';
-    const fin = inputFin?.value || '';
+    const inicio = rangoFechas?.inicio?.obtenerIso() || '';
+    const fin = rangoFechas?.fin?.obtenerIso() || '';
     const dias = calcularDiasEntreFechas(inicio, fin);
 
     if (!empleadoId) {

@@ -101,14 +101,33 @@
             </article>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                @component('components.input', [
-                    'label' => 'Fecha de inicio',
-                    'id' => 'fecha_inicio',
-                    'name' => 'fecha_inicio',
-                    'type' => 'date',
-                    'required' => true,
-                ])
-                @endcomponent
+                <div class="space-y-1.5">
+                    <label
+                        for="fecha_inicio"
+                        class="block text-sm font-medium text-zinc-900">
+                        Fecha de inicio
+                    </label>
+                    <div class="relative">
+                        <input
+                            id="fecha_inicio"
+                            type="text"
+                            placeholder="dd-mm-yyyy"
+                            autocomplete="off"
+                            required
+                            class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                        />
+                        <input
+                            type="hidden"
+                            id="fecha_inicio_iso"
+                            name="fecha_inicio"
+                            value=""
+                        />
+                    </div>
+                    <p id="fecha_inicio-error"
+                       class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                       role="alert">
+                    </p>
+                </div>
 
                 @component('components.input', [
                     'label' => 'Días a disfrutar',
@@ -122,16 +141,34 @@
             </div>
 
             <div>
-                @component('components.input', [
-                    'label' => 'Fecha final (último día hábil)',
-                    'id' => 'fecha_final',
-                    'name' => 'fecha_final',
-                    'type' => 'text',
-                    'placeholder' => 'Se calcula automáticamente',
-                    'readonly' => true,
-                    'required' => true,
-                ])
-                @endcomponent
+                <div class="space-y-1.5">
+                    <label
+                        for="fecha_final"
+                        class="block text-sm font-medium text-zinc-900">
+                        Fecha final (último día hábil)
+                    </label>
+                    <div class="relative">
+                        <input
+                            id="fecha_final"
+                            type="text"
+                            placeholder="dd-mm-yyyy"
+                            autocomplete="off"
+                            readonly
+                            required
+                            class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-3 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                        />
+                        <input
+                            type="hidden"
+                            id="fecha_final_iso"
+                            name="fecha_final"
+                            value=""
+                        />
+                    </div>
+                    <p id="fecha_final-error"
+                       class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                       role="alert">
+                    </p>
+                </div>
                 <p id="texto-reincorporacion-vacaciones" class="hidden mt-1.5 text-xs font-medium text-zinc-500"></p>
             </div>
 

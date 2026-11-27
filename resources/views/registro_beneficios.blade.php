@@ -127,22 +127,60 @@
                 </div>
             </article>
 
-            @component('components.input', [
-                'label' => 'Fecha de solicitud',
-                'id' => 'fecha_solicitud',
-                'name' => 'fecha_solicitud',
-                'type' => 'date',
-                'required' => true,
-            ])
-            @endcomponent
+            <div class="space-y-1.5">
+                <label
+                    for="fecha_solicitud"
+                    class="block text-sm font-medium text-zinc-900">
+                    Fecha de solicitud
+                </label>
+                <div class="relative">
+                    <input
+                        id="fecha_solicitud"
+                        type="text"
+                        placeholder="dd-mm-yyyy"
+                        autocomplete="off"
+                        required
+                        class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                    />
+                    <input
+                        type="hidden"
+                        id="fecha_solicitud_iso"
+                        name="fecha_solicitud"
+                        value=""
+                    />
+                </div>
+                <p id="fecha_solicitud-error"
+                   class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                   role="alert">
+                </p>
+            </div>
 
-            @component('components.input', [
-                'label' => 'Fecha de aprobación (opcional)',
-                'id' => 'fecha_aprobada',
-                'name' => 'fecha_aprobada',
-                'type' => 'date',
-            ])
-            @endcomponent
+            <div class="space-y-1.5">
+                <label
+                    for="fecha_aprobada"
+                    class="block text-sm font-medium text-zinc-900">
+                    Fecha de aprobación (opcional)
+                </label>
+                <div class="relative">
+                    <input
+                        id="fecha_aprobada"
+                        type="text"
+                        placeholder="dd-mm-yyyy"
+                        autocomplete="off"
+                        class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                    />
+                    <input
+                        type="hidden"
+                        id="fecha_aprobada_iso"
+                        name="fecha_aprobada"
+                        value=""
+                    />
+                </div>
+                <p id="fecha_aprobada-error"
+                   class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                   role="alert">
+                </p>
+            </div>
 
             <div class="flex flex-col gap-2">
                 <button

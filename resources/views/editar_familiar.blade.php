@@ -105,7 +105,38 @@
             @component('components.input', ['label' => 'Primer apellido', 'id' => 'primer_apellido', 'name' => 'primer_apellido', 'value' => $persona->primer_apellido ?? '', 'maxlength' => 100, 'required' => true]) @endcomponent
             @component('components.input', ['label' => 'Segundo apellido', 'id' => 'segundo_apellido', 'name' => 'segundo_apellido', 'value' => $persona->segundo_apellido ?? '', 'maxlength' => 100, 'required' => true]) @endcomponent
 
-            @component('components.input', ['label' => 'Fecha de nacimiento', 'id' => 'fecha_nacimiento', 'name' => 'fecha_nacimiento', 'value' => isset($persona->fecha_nacimiento) ? $persona->fecha_nacimiento->format('Y-m-d') : '', 'type' => 'date', 'required' => true]) @endcomponent
+            @php
+                $fechaNacIso = isset($persona->fecha_nacimiento) ? $persona->fecha_nacimiento->format('Y-m-d') : '';
+                $fechaNacVisual = isset($persona->fecha_nacimiento) ? $persona->fecha_nacimiento->format('d-m-Y') : '';
+            @endphp
+            <div class="space-y-1.5">
+                <label
+                    for="fecha_nacimiento"
+                    class="block text-sm font-medium text-zinc-900">
+                    Fecha de nacimiento
+                </label>
+                <div class="relative">
+                    <input
+                        id="fecha_nacimiento"
+                        type="text"
+                        value="{{ $fechaNacVisual }}"
+                        placeholder="dd-mm-yyyy"
+                        autocomplete="off"
+                        required
+                        class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                    />
+                    <input
+                        type="hidden"
+                        id="fecha_nacimiento_iso"
+                        name="fecha_nacimiento"
+                        value="{{ $fechaNacIso }}"
+                    />
+                </div>
+                <p id="fecha_nacimiento-error"
+                   class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                   role="alert">
+                </p>
+            </div>
             @component('components.select', ['label' => 'Género', 'id' => 'genero', 'name' => 'genero', 'required' => true, 'options' => $generos ?? ['Masculino' => 'Masculino', 'Femenino' => 'Femenino'], 'selected' => $genero_actual ?? ($persona->genero ?? '')]) @endcomponent
 
             @component('components.select', ['label' => 'Parentesco', 'id' => 'parentesco_id', 'name' => 'parentesco_id', 'required' => true, 'search' => true, 'options' => $parentescos ?? [], 'selected' => $familiar->parentesco_id ?? '']) @endcomponent
@@ -172,22 +203,66 @@
                     'required' => $tieneDiscapacidad,
                 ])
                 @endcomponent
-                @component('components.input', [
-                    'label' => 'Fecha de emisión',
-                    'id' => 'fecha_emision_carnet',
-                    'name' => 'fecha_emision_carnet',
-                    'type' => 'date',
-                    'value' => isset($discapacidad->fecha_emision_carnet) ? $discapacidad->fecha_emision_carnet->format('Y-m-d') : '',
-                ])
-                @endcomponent
-                @component('components.input', [
-                    'label' => 'Fecha de vencimiento',
-                    'id' => 'fecha_vencimiento_carnet',
-                    'name' => 'fecha_vencimiento_carnet',
-                    'type' => 'date',
-                    'value' => isset($discapacidad->fecha_vencimiento_carnet) ? $discapacidad->fecha_vencimiento_carnet->format('Y-m-d') : '',
-                ])
-                @endcomponent
+                @php
+                    $fechaEmisionIso = isset($discapacidad->fecha_emision_carnet) ? $discapacidad->fecha_emision_carnet->format('Y-m-d') : '';
+                    $fechaEmisionVisual = isset($discapacidad->fecha_emision_carnet) ? $discapacidad->fecha_emision_carnet->format('d-m-Y') : '';
+                    $fechaVencIso = isset($discapacidad->fecha_vencimiento_carnet) ? $discapacidad->fecha_vencimiento_carnet->format('Y-m-d') : '';
+                    $fechaVencVisual = isset($discapacidad->fecha_vencimiento_carnet) ? $discapacidad->fecha_vencimiento_carnet->format('d-m-Y') : '';
+                @endphp
+                <div class="space-y-1.5">
+                    <label
+                        for="fecha_emision_carnet"
+                        class="block text-sm font-medium text-zinc-900">
+                        Fecha de emisión
+                    </label>
+                    <div class="relative">
+                        <input
+                            id="fecha_emision_carnet"
+                            type="text"
+                            value="{{ $fechaEmisionVisual }}"
+                            placeholder="dd-mm-yyyy"
+                            autocomplete="off"
+                            class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                        />
+                        <input
+                            type="hidden"
+                            id="fecha_emision_carnet_iso"
+                            name="fecha_emision_carnet"
+                            value="{{ $fechaEmisionIso }}"
+                        />
+                    </div>
+                    <p id="fecha_emision_carnet-error"
+                       class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                       role="alert">
+                    </p>
+                </div>
+                <div class="space-y-1.5">
+                    <label
+                        for="fecha_vencimiento_carnet"
+                        class="block text-sm font-medium text-zinc-900">
+                        Fecha de vencimiento
+                    </label>
+                    <div class="relative">
+                        <input
+                            id="fecha_vencimiento_carnet"
+                            type="text"
+                            value="{{ $fechaVencVisual }}"
+                            placeholder="dd-mm-yyyy"
+                            autocomplete="off"
+                            class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                        />
+                        <input
+                            type="hidden"
+                            id="fecha_vencimiento_carnet_iso"
+                            name="fecha_vencimiento_carnet"
+                            value="{{ $fechaVencIso }}"
+                        />
+                    </div>
+                    <p id="fecha_vencimiento_carnet-error"
+                       class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                       role="alert">
+                    </p>
+                </div>
                 <div class="sm:col-span-2 space-y-1.5">
                     <label for="descripcion_discapacidad" class="block text-sm font-medium text-zinc-900">
                         Descripción / Observaciones

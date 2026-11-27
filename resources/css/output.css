@@ -447,6 +447,12 @@
   .my-1 {
     margin-block: var(--spacing);
   }
+  .ms-2 {
+    margin-inline-start: calc(var(--spacing) * 2);
+  }
+  .me-2 {
+    margin-inline-end: calc(var(--spacing) * 2);
+  }
   .mt-0 {
     margin-top: 0px;
   }
@@ -479,6 +485,9 @@
   }
   .mr-3 {
     margin-right: calc(var(--spacing) * 3);
+  }
+  .mr-4 {
+    margin-right: calc(var(--spacing) * 4);
   }
   .mb-1 {
     margin-bottom: var(--spacing);
@@ -2596,6 +2605,9 @@
     }
   }
   @media (width >= 48rem) {
+    .md\:order-0 {
+      order: 0;
+    }
     .md\:order-none {
       order: 0;
     }

@@ -1,11 +1,12 @@
 import { InputUI } from "/js/class/validator/InputUI.js";
+import { fechaVisualAIso, parsearFechaFlexible } from "/js/utils/formatearFecha.js";
 
-// Recibe una fecha ISO (YYYY-MM-DD); retorna la edad exacta cumplida en años o null si no es válida.
-export const calcularEdadDesdeIso = (fechaIso) => {
-  const texto = String(fechaIso || "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) return null;
+// Recibe una fecha ISO (YYYY-MM-DD) o visual (dd-mm-yyyy); retorna la edad exacta cumplida en años o null si no es válida.
+export const calcularEdadDesdeIso = (fechaTexto) => {
+  const parsed = parsearFechaFlexible(fechaTexto);
+  if (!parsed) return null;
 
-  const [anio, mes, dia] = texto.split("-").map(Number);
+  const { anio, mes, dia } = parsed;
   const hoy = new Date();
   let edad = hoy.getFullYear() - anio;
   const mesActual = hoy.getMonth() + 1;
@@ -157,8 +158,16 @@ export const validarBloqueDiscapacidadFamiliar = (formulario) => {
   const grado = String(formulario.querySelector("#grado_discapacidad_id")?.value || "").trim();
   const carnet = String(formulario.querySelector("#numero_carnet")?.value || "").trim();
   const entidad = String(formulario.querySelector("#entidad_emisora")?.value || "").trim();
-  const emision = String(formulario.querySelector("#fecha_emision_carnet")?.value || "").trim();
-  const vencimiento = String(formulario.querySelector("#fecha_vencimiento_carnet")?.value || "").trim();
+  const emision = fechaVisualAIso(
+    formulario.querySelector("#fecha_emision_carnet_iso")?.value ||
+      formulario.querySelector("#fecha_emision_carnet")?.value ||
+      "",
+  );
+  const vencimiento = fechaVisualAIso(
+    formulario.querySelector("#fecha_vencimiento_carnet_iso")?.value ||
+      formulario.querySelector("#fecha_vencimiento_carnet")?.value ||
+      "",
+  );
 
   if (!grado || !carnet || !entidad) {
     return "Completa el grado de discapacidad, número de carnet CONAPDIS y entidad emisora.";

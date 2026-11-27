@@ -104,23 +104,61 @@
             @endcomponent
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                @component('components.input', [
-                    'label' => 'Fecha inicio',
-                    'id' => 'fecha_inicio',
-                    'name' => 'fecha_inicio',
-                    'type' => 'date',
-                    'required' => true,
-                ])
-                @endcomponent
+                <div class="space-y-1.5">
+                    <label
+                        for="fecha_inicio"
+                        class="block text-sm font-medium text-zinc-900">
+                        Fecha inicio
+                    </label>
+                    <div class="relative">
+                        <input
+                            id="fecha_inicio"
+                            type="text"
+                            placeholder="dd-mm-yyyy"
+                            autocomplete="off"
+                            required
+                            class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                        />
+                        <input
+                            type="hidden"
+                            id="fecha_inicio_iso"
+                            name="fecha_inicio"
+                            value=""
+                        />
+                    </div>
+                    <p id="fecha_inicio-error"
+                       class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                       role="alert">
+                    </p>
+                </div>
 
-                @component('components.input', [
-                    'label' => 'Fecha fin',
-                    'id' => 'fecha_fin',
-                    'name' => 'fecha_fin',
-                    'type' => 'date',
-                    'required' => true,
-                ])
-                @endcomponent
+                <div class="space-y-1.5">
+                    <label
+                        for="fecha_fin"
+                        class="block text-sm font-medium text-zinc-900">
+                        Fecha fin
+                    </label>
+                    <div class="relative">
+                        <input
+                            id="fecha_fin"
+                            type="text"
+                            placeholder="dd-mm-yyyy"
+                            autocomplete="off"
+                            required
+                            class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                        />
+                        <input
+                            type="hidden"
+                            id="fecha_fin_iso"
+                            name="fecha_fin"
+                            value=""
+                        />
+                    </div>
+                    <p id="fecha_fin-error"
+                       class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                       role="alert">
+                    </p>
+                </div>
             </div>
 
             @component('components.input', [

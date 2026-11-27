@@ -41,7 +41,7 @@
     {{-- Columna izquierda en escritorio (md+): Empleado Titular + 3. Documentos del Familiar; en móvil usa contents para respetar orden 1 -> 2 -> 3 --}}
     <div class="contents md:col-span-5 md:flex md:flex-col md:gap-6 md:self-start">
         {{-- Bloque 1: Selección del empleado titular y tarjeta resumen --}}
-        <section class="col-span-full order-1 md:order-none h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+        <section class="col-span-full order-1 md:order-0 h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
             <header>
                 <h2 class="text-lg font-semibold text-zinc-900">Empleado Titular</h2>
                 <p class="text-sm text-zinc-500">Selecciona al trabajador responsable de la carga familiar.</p>
@@ -84,9 +84,9 @@
         </section>
 
         {{-- Bloque 3: Documentos del Familiar según Parentesco (Contrato Colectivo) --}}
-        <section class="col-span-full order-3 md:order-none h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+        <section class="col-span-full order-3 md:order-0 h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
             <header>
-                <h2 class="text-lg font-semibold text-zinc-900">3. Documentos del Familiar</h2>
+                <h2 class="text-lg font-semibold text-zinc-900">Documentos del Familiar</h2>
                 <p class="text-sm text-zinc-500">Selecciona el parentesco para visualizar los recaudos exigidos por el Contrato Colectivo.</p>
             </header>
 
@@ -95,28 +95,11 @@
                     Selecciona un parentesco arriba para cargar los campos de documentos correspondientes.
                 </p>
             </div>
-
-            <footer class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
-                <button
-                    type="reset"
-                    id="btn-limpiar-familiar"
-                    class="w-full sm:w-auto rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-900 transition-all hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 cursor-pointer"
-                >
-                    Limpiar
-                </button>
-                <button
-                    type="submit"
-                    class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-marca px-5 py-2.5 text-sm font-medium text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-marca-700 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 active:scale-[0.98] cursor-pointer"
-                >
-                    <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i>
-                    <span>Guardar Familiar</span>
-                </button>
-            </footer>
         </section>
     </div>
 
     {{-- Bloque 2: Datos personales del familiar y datos de filiación --}}
-    <section class="col-span-full md:col-span-7 order-2 md:order-none self-start h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-6">
+    <section class="col-span-full md:col-span-7 order-2 md:order-0 self-start h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-6">
         <header>
             <h2 class="text-lg font-semibold text-zinc-900">Datos del Familiar y Filiación</h2>
             <p class="text-sm text-zinc-500">Campos alineados con los modelos Personas y Familiares.</p>
@@ -190,14 +173,50 @@
             ])
             @endcomponent
 
-            @component('components.input', [
-                'label' => 'Fecha de nacimiento',
-                'id' => 'fecha_nacimiento',
-                'name' => 'fecha_nacimiento',
-                'type' => 'date',
-                'required' => true,
-            ])
-            @endcomponent
+            <div class="space-y-1.5">
+                <label
+                    for="fecha_nacimiento"
+                    class="block text-sm font-medium text-zinc-900">
+                    Fecha de nacimiento
+                </label>
+                <div class="relative">
+                    <input
+                        id="fecha_nacimiento"
+                        type="text"
+                        placeholder="dd-mm-yyyy"
+                        autocomplete="off"
+                        required
+                        class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                    />
+                    <input
+                        type="hidden"
+                        id="fecha_nacimiento_iso"
+                        name="fecha_nacimiento"
+                        value=""
+                    />
+                </div>
+                <p id="fecha_nacimiento-error"
+                   class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                   role="alert">
+                </p>
+            </div>
+
+            <div class="space-y-1.5">
+                <label
+                    for="edad_familiar"
+                    class="block text-sm font-medium text-zinc-900">
+                    Edad
+                </label>
+                <input
+                    id="edad_familiar"
+                    type="text"
+                    readonly
+                    placeholder="Calculada automáticamente"
+                    aria-describedby="edad_familiar_ayuda"
+                    class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2.5 text-sm font-medium text-zinc-700 outline-none cursor-not-allowed"
+                />
+                <p id="edad_familiar_ayuda" class="text-xs text-zinc-500 mt-1">La edad se calcula con la fecha de nacimiento</p>
+            </div>
 
             @component('components.select', [
                 'label' => 'Género',
@@ -271,7 +290,7 @@
 
             <input type="hidden" id="tiene_discapacidad" name="tiene_discapacidad" value="0" />
 
-            <div id="panel-discapacidad-familiar" class="hidden rounded-2xl border border-slate-200 bg-slate-50/70 p-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div id="panel-discapacidad-familiar" class="hidden rounded-2xl border border-slate-200 bg-slate-50/70 p-4 grid-cols-1 gap-4 sm:grid-cols-2">
                 @component('components.select', [
                     'label' => 'Tipo de discapacidad',
                     'id' => 'tipo_discapacidad',
@@ -304,20 +323,58 @@
                     'maxlength' => 100,
                 ])
                 @endcomponent
-                @component('components.input', [
-                    'label' => 'Fecha de emisión',
-                    'id' => 'fecha_emision_carnet',
-                    'name' => 'fecha_emision_carnet',
-                    'type' => 'date',
-                ])
-                @endcomponent
-                @component('components.input', [
-                    'label' => 'Fecha de vencimiento',
-                    'id' => 'fecha_vencimiento_carnet',
-                    'name' => 'fecha_vencimiento_carnet',
-                    'type' => 'date',
-                ])
-                @endcomponent
+                <div class="space-y-1.5">
+                    <label
+                        for="fecha_emision_carnet"
+                        class="block text-sm font-medium text-zinc-900">
+                        Fecha de emisión
+                    </label>
+                    <div class="relative">
+                        <input
+                            id="fecha_emision_carnet"
+                            type="text"
+                            placeholder="dd-mm-yyyy"
+                            autocomplete="off"
+                            class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                        />
+                        <input
+                            type="hidden"
+                            id="fecha_emision_carnet_iso"
+                            name="fecha_emision_carnet"
+                            value=""
+                        />
+                    </div>
+                    <p id="fecha_emision_carnet-error"
+                       class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                       role="alert">
+                    </p>
+                </div>
+                <div class="space-y-1.5">
+                    <label
+                        for="fecha_vencimiento_carnet"
+                        class="block text-sm font-medium text-zinc-900">
+                        Fecha de vencimiento
+                    </label>
+                    <div class="relative">
+                        <input
+                            id="fecha_vencimiento_carnet"
+                            type="text"
+                            placeholder="dd-mm-yyyy"
+                            autocomplete="off"
+                            class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-10 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                        />
+                        <input
+                            type="hidden"
+                            id="fecha_vencimiento_carnet_iso"
+                            name="fecha_vencimiento_carnet"
+                            value=""
+                        />
+                    </div>
+                    <p id="fecha_vencimiento_carnet-error"
+                       class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                       role="alert">
+                    </p>
+                </div>
                 <div class="sm:col-span-2 space-y-1.5">
                     <label for="descripcion_discapacidad" class="block text-sm font-medium text-zinc-900">
                         Descripción / Observaciones
@@ -330,6 +387,24 @@
                 </div>
             </div>
         </div>
+
+        <footer class="flex justify-end border-t border-slate-200 pt-5">
+            <button
+                    type="reset"
+                    id="btn-limpiar-familiar"
+                    class="mr-4 w-full sm:w-auto rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-900 transition-all hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 cursor-pointer"
+                >
+                    Limpiar
+                </button>
+            <button
+                type="submit"
+                class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-marca px-5 py-2.5 text-sm font-medium text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-marca-700 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 active:scale-[0.98] cursor-pointer"
+            >
+                <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i>
+                <span>Guardar Familiar</span>
+            </button>
+            
+        </footer>
     </section>
 </form>
 @endsection

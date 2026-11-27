@@ -7,8 +7,38 @@ import {
   notificarExitoFormulario,
 } from "/js/components/alerta/alerta.js";
 import { crearBadge } from "/js/components/badge/crearBadge.js";
-import { inicializarCalendariosContenedor } from "/js/components/calendario/calendario.js";
 import { inicializarSelectsPersonalizados } from "/js/components/select/selectPersonalizado.js";
+import {
+  inicializarCampoFechaDobleFormato,
+  inicializarRangoFechasDobleFormato,
+  obtenerFechaHoyLocalIso,
+  parsearFechaFlexible,
+} from "/js/utils/formatearFecha.js";
+
+const formatearEdadFamiliar = (fechaValor) => {
+  const parsed = parsearFechaFlexible(fechaValor);
+  if (!parsed) return "";
+
+  const { anio, mes, dia } = parsed;
+  const hoy = new Date();
+  const anioHoy = hoy.getFullYear();
+  const mesHoy = hoy.getMonth() + 1;
+  const diaHoy = hoy.getDate();
+
+  const esFutura =
+    anio > anioHoy ||
+    (anio === anioHoy && (mes > mesHoy || (mes === mesHoy && dia > diaHoy)));
+  if (esFutura) return "";
+
+  let edad = anioHoy - anio;
+  if (mesHoy < mes || (mesHoy === mes && diaHoy < dia)) {
+    edad -= 1;
+  }
+
+  if (edad < 0 || edad > 130) return "";
+  if (edad === 0) return "Menos de 1 año";
+  return `${edad} ${edad === 1 ? "año" : "años"}`;
+};
 import {
   filtrarRecaudosPorDiscapacidad,
   sincronizarPanelDiscapacidad,
@@ -136,12 +166,13 @@ const configurarValidaciones = () => {
 
 document.addEventListener("DOMContentLoaded", () => {
   inicializarSelectsPersonalizados();
-  inicializarCalendariosContenedor();
   configurarValidaciones();
 
   const selectEmpleado = document.getElementById("empleado_id");
   const selectParentesco = document.getElementById("parentesco_id");
   const inputFechaNac = document.getElementById("fecha_nacimiento");
+  const inputFechaNacIso = document.getElementById("fecha_nacimiento_iso");
+  const inputEdadVisual = document.getElementById("edad_familiar");
   const inputCedula = document.getElementById("cedula");
   const avisoCedulaMenor = document.getElementById("aviso-cedula-menor");
   const inputTomo = document.getElementById("tomo");
@@ -184,10 +215,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Recibe ninguno; aplica regla de cédula para < 9 años, visibilidad de tomo/folio y recaudos.
+  const actualizarEdadVisual = () => {
+    if (!inputEdadVisual) return;
+    inputEdadVisual.value = formatearEdadFamiliar(
+      inputFechaNacIso?.value || inputFechaNac?.value || "",
+    );
+  };
+
+  // Recibe ninguno; aplica regla de cédula para < 9 años, edad visual, visibilidad de tomo/folio y recaudos.
   const sincronizarReglasDinamicas = () => {
+    actualizarEdadVisual();
     sincronizarReglaCedulaMenor({
-      inputFecha: inputFechaNac,
+      inputFecha: inputFechaNacIso || inputFechaNac,
       inputCedula,
       avisoCedula: avisoCedulaMenor,
     });
@@ -198,6 +237,16 @@ document.addEventListener("DOMContentLoaded", () => {
       inputFolio,
     });
   };
+
+  inicializarCampoFechaDobleFormato(inputFechaNac, {
+    inputIso: inputFechaNacIso,
+    maxDate: obtenerFechaHoyLocalIso(),
+    alSeleccionar: sincronizarReglasDinamicas,
+  });
+  inicializarRangoFechasDobleFormato(
+    "#fecha_emision_carnet",
+    "#fecha_vencimiento_carnet",
+  );
 
   const cargarResumenTitular = async (empleadoId) => {
     if (!empleadoId) {
@@ -305,6 +354,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .getElementById("btn-limpiar-familiar")
     ?.addEventListener("click", () => {
       limpiarAlertaFormulario(formulario);
+      if (inputEdadVisual) inputEdadVisual.value = "";
       tarjetaTitular?.classList.add("hidden");
       sincronizarPanelDiscapacidad({
         activo: false,

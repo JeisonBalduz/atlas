@@ -5,7 +5,6 @@ import {
   notificarErrorFormulario,
   notificarExitoFormulario,
 } from '/js/components/alerta/alerta.js';
-import { inicializarRangoFechas } from '/js/components/calendario/calendario.js';
 import { inicializarDropdownsAcciones } from '/js/components/dropdown/crearDropdownAcciones.js';
 import { crearListaDetalle, Modal } from '/js/components/modal/Modal.js';
 import {
@@ -14,12 +13,23 @@ import {
 } from '/js/components/select/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast/toast.js';
 import { columnasTablaFamiliares } from '/js/templates/tabla_familiares.js';
-import { formatearFecha } from '/js/utils/formatearFecha.js';
+import {
+  fechaIsoAVisual,
+  formatearFecha,
+  inicializarRangoFechasDobleFormato,
+  obtenerFechaHoyLocalIso,
+  parsearFechaFlexible,
+} from '/js/utils/formatearFecha.js';
 
 // Recibe catálogos de discapacidad y registro existente opcional; construye el formulario modal de discapacidad familiar.
 const renderFormularioDiscapacidadFamiliar = (catalogos, existente = null) => {
-  const hoy = new Date().toISOString().slice(0, 10);
-  const enCincoAnios = new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const hoy = obtenerFechaHoyLocalIso();
+  const baseHoy = parsearFechaFlexible(hoy);
+  const enCincoAnios = baseHoy
+    ? `${String(baseHoy.anio + 5).padStart(4, '0')}-${String(baseHoy.mes).padStart(2, '0')}-${String(baseHoy.dia).padStart(2, '0')}`
+    : hoy;
+  const emisionIso = parsearFechaFlexible(existente?.fecha_emision_carnet)?.iso || hoy;
+  const vencimientoIso = parsearFechaFlexible(existente?.fecha_vencimiento_carnet)?.iso || enCincoAnios;
 
   const mapaTipos = {};
   Object.values(catalogos?.tipos || {}).forEach((nombre) => {
@@ -70,11 +80,17 @@ const renderFormularioDiscapacidadFamiliar = (catalogos, existente = null) => {
       </div>
       <div>
         <label for="disc-fam-emision" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha de emisión</label>
-        <input id="disc-fam-emision" name="fecha_emision_carnet" type="date" value="${existente?.fecha_emision_carnet || hoy}" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
+        <div class="relative">
+          <input id="disc-fam-emision" type="text" value="${fechaIsoAVisual(emisionIso)}" placeholder="dd-mm-yyyy" autocomplete="off" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
+          <input type="hidden" id="disc-fam-emision-iso" name="fecha_emision_carnet" value="${emisionIso}" />
+        </div>
       </div>
       <div>
         <label for="disc-fam-vencimiento" class="block text-sm font-medium text-zinc-900 mb-1.5">Fecha de vencimiento</label>
-        <input id="disc-fam-vencimiento" name="fecha_vencimiento_carnet" type="date" value="${existente?.fecha_vencimiento_carnet || enCincoAnios}" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
+        <div class="relative">
+          <input id="disc-fam-vencimiento" type="text" value="${fechaIsoAVisual(vencimientoIso)}" placeholder="dd-mm-yyyy" autocomplete="off" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-zinc-900 outline-none focus:border-black focus:bg-white focus:ring-2 focus:ring-black focus:ring-offset-2" />
+          <input type="hidden" id="disc-fam-vencimiento-iso" name="fecha_vencimiento_carnet" value="${vencimientoIso}" />
+        </div>
       </div>
       <div class="md:col-span-2">
         <label for="disc-fam-descripcion" class="block text-sm font-medium text-zinc-900 mb-1.5">Descripción / Observaciones</label>
@@ -225,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (modalDiscapacidad.dialogo) {
-      inicializarRangoFechas('#disc-fam-emision', '#disc-fam-vencimiento');
+      inicializarRangoFechasDobleFormato('#disc-fam-emision', '#disc-fam-vencimiento');
     }
   };
 

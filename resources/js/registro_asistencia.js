@@ -6,12 +6,14 @@ import {
   notificarExitoFormulario,
 } from '/js/components/alerta/alerta.js';
 import { crearBadge } from '/js/components/badge/crearBadge.js';
-import { inicializarCalendario } from '/js/components/calendario/calendario.js';
 import { crearListaDetalle, Modal } from '/js/components/modal/Modal.js';
 import { inicializarSelectsPersonalizados } from '/js/components/select/selectPersonalizado.js';
 import { mostrarToast } from '/js/components/toast/toast.js';
 import { columnasTablaAsistencia } from '/js/templates/tabla_asistencia.js';
-import { formatearFecha } from '/js/utils/formatearFecha.js';
+import {
+  formatearFecha,
+  inicializarCampoFechaDobleFormato,
+} from '/js/utils/formatearFecha.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   inicializarSelectsPersonalizados();
@@ -20,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formulario = document.getElementById('formulario-asistencia');
   const selectEmpleado = document.getElementById('empleado_id');
   const inputFecha = document.getElementById('fecha_asistencia');
+  const inputFechaIso = document.getElementById('fecha_asistencia_iso');
   const inputHora = document.getElementById('hora_asistencia');
   const selectTurno = document.getElementById('turno');
   const btnEntrada = document.getElementById('btn-marcar-entrada');
@@ -37,9 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let estadoActualTrabajador = null;
   let procesando = false;
 
-  inicializarCalendario(inputFecha);
-  const calFiltro = inicializarCalendario(inputFiltroFecha, {
-    placeholder: 'Filtrar por fecha...',
+  const ctrlFechaJornada = inicializarCampoFechaDobleFormato(inputFecha, {
+    inputIso: inputFechaIso,
+  });
+  const ctrlFiltroFecha = inicializarCampoFechaDobleFormato(inputFiltroFecha, {
     alSeleccionar: () => cargarAsistencias(),
   });
 
@@ -65,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     limpiarAlertaFormulario(formulario);
 
     const empleadoId = Number(selectEmpleado?.value || 0);
-    const fecha = inputFecha?.value || '';
+    const fecha = ctrlFechaJornada?.obtenerIso() || '';
 
     if (!empleadoId || !fecha) {
       tarjetaEstado?.classList.add('hidden');
@@ -163,7 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const cargarAsistencias = async () => {
     const params = {};
-    if (inputFiltroFecha?.value) params.fecha = inputFiltroFecha.value;
+    const filtroIso = ctrlFiltroFecha?.obtenerIso() || '';
+    if (filtroIso) params.fecha = filtroIso;
 
     const res = await Solicitud.get('/api/asistencia', {
       params,
@@ -182,8 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   btnLimpiarFiltro?.addEventListener('click', () => {
-    if (inputFiltroFecha) inputFiltroFecha.value = '';
-    calFiltro?.clear(false);
+    ctrlFiltroFecha?.limpiar();
     cargarAsistencias();
   });
 
@@ -191,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (procesando) return;
 
     const empleadoId = Number(selectEmpleado?.value || 0);
-    const fecha = inputFecha?.value || '';
+    const fecha = ctrlFechaJornada?.obtenerIso() || '';
     const hora = inputHora?.value ? `${inputHora.value}:00` : '';
     const turno = selectTurno?.value || 'Diurno';
 
