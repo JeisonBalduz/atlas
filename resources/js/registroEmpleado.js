@@ -301,7 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         setTimeout(() => {
           window.location.reload();
-        }, 700);
+        }, 1500);
       } finally {
         enviando = false;
         if (btnFinalizar) btnFinalizar.disabled = false;
