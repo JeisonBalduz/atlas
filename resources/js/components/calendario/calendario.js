@@ -74,23 +74,48 @@ const obtenerLocaleEs = () => {
   return { firstDayOfWeek: 1 };
 };
 
-// Posiciona el calendario en coordenadas viewport (`position: fixed`) dentro de `<dialog>` evitando desfase y recorte.
-const posicionarCalendarioEnModal = (input, calendario, dialogoPadre) => {
-  if (!input || !calendario || !dialogoPadre?.open) return false;
+// Verifica si el input sigue visible dentro del viewport y de cualquier contenedor scrollable ancestro.
+const estaInputVisible = (input, inputRect) => {
+  if (
+    inputRect.bottom <= 0 ||
+    inputRect.top >= window.innerHeight ||
+    inputRect.right <= 0 ||
+    inputRect.left >= window.innerWidth
+  ) {
+    return false;
+  }
+
+  let contenedor = input.parentElement;
+  while (contenedor && contenedor !== document.body && contenedor !== document.documentElement) {
+    const esCuerpoModal = contenedor.hasAttribute('data-modal-cuerpo');
+    const estilo = window.getComputedStyle(contenedor);
+    const scrollY = esCuerpoModal || estilo.overflowY === 'auto' || estilo.overflowY === 'scroll';
+    const scrollX = estilo.overflowX === 'auto' || estilo.overflowX === 'scroll';
+
+    if (scrollY || scrollX) {
+      const contRect = contenedor.getBoundingClientRect();
+      if (scrollY && (inputRect.bottom <= contRect.top + 4 || inputRect.top >= contRect.bottom - 4)) {
+        return false;
+      }
+      if (scrollX && (inputRect.right <= contRect.left + 4 || inputRect.left >= contRect.right - 4)) {
+        return false;
+      }
+    }
+
+    contenedor = contenedor.parentElement;
+  }
+
+  return true;
+};
+
+// Posiciona el calendario en coordenadas viewport (`position: fixed`) anclado al input, tanto en vista como en `<dialog>`.
+const posicionarCalendario = (input, calendario, dialogoPadre = null) => {
+  if (!input || !calendario) return false;
+  if (dialogoPadre && !dialogoPadre.open) return false;
 
   const inputRect = input.getBoundingClientRect();
   if (inputRect.width === 0 && inputRect.height === 0) return false;
-
-  const cuerpoModal = input.closest('[data-modal-cuerpo]');
-  if (cuerpoModal) {
-    const cuerpoRect = cuerpoModal.getBoundingClientRect();
-    const visibleEnCuerpo = inputRect.bottom > cuerpoRect.top + 4 && inputRect.top < cuerpoRect.bottom - 4;
-    if (!visibleEnCuerpo) return false;
-  }
-
-  if (inputRect.bottom <= 0 || inputRect.top >= window.innerHeight) {
-    return false;
-  }
+  if (!estaInputVisible(input, inputRect)) return false;
 
   calendario.classList.add('atlas-fp-modal');
   calendario.style.position = 'fixed';
@@ -102,12 +127,13 @@ const posicionarCalendarioEnModal = (input, calendario, dialogoPadre) => {
   const anchoCal = calRect.width || 312;
   const altoCal = calRect.height || 320;
   const margen = 8;
+  const gap = 6;
 
   const espacioAbajo = window.innerHeight - inputRect.bottom;
   const espacioArriba = inputRect.top;
   const abrirArriba = espacioAbajo < altoCal + 10 && espacioArriba > espacioAbajo;
 
-  let top = abrirArriba ? inputRect.top - altoCal - 6 : inputRect.bottom + 6;
+  let top = abrirArriba ? inputRect.top - altoCal - gap : inputRect.bottom + gap;
   top = Math.max(margen, Math.min(top, window.innerHeight - altoCal - margen));
 
   let left = inputRect.left;
@@ -161,20 +187,48 @@ export const inicializarCalendario = (selectorOElemento, opciones = {}) => {
   const valorInicial = REGEX_FECHA_ISO.test(input.value) ? input.value : '';
   const dialogoPadre = input.closest('dialog');
   const deshabilitados = construirDeshabilitados(opciones);
-  let controladorModalAbierto = null;
+  let instanciaActual = null;
+  let listenersActivos = false;
+  let rafPosicionId = null;
 
-  const sincronizarPosicionModal = (instancia) => {
-    const cal = instancia?.calendarContainer;
-    if (!dialogoPadre || !cal) return;
-
-    if (!posicionarCalendarioEnModal(input, cal, dialogoPadre)) {
-      instancia.close();
+  const ejecutarReposicion = () => {
+    rafPosicionId = null;
+    if (!instanciaActual?.isOpen) return;
+    const cal = instanciaActual.calendarContainer;
+    if (!cal) return;
+    if (!posicionarCalendario(input, cal, dialogoPadre)) {
+      instanciaActual.close();
     }
   };
 
-  const limpiarEventosModal = (cal) => {
-    controladorModalAbierto?.abort();
-    controladorModalAbierto = null;
+  const programarReposicion = () => {
+    if (rafPosicionId !== null) return;
+    rafPosicionId = window.requestAnimationFrame(ejecutarReposicion);
+  };
+
+  const onScrollCapture = (evento) => {
+    const cal = instanciaActual?.calendarContainer;
+    if (cal && evento?.target instanceof Node && cal.contains(evento.target)) {
+      return;
+    }
+    programarReposicion();
+  };
+
+  const onDialogoClose = () => {
+    instanciaActual?.close();
+  };
+
+  const limpiarPosicionYListeners = (cal = instanciaActual?.calendarContainer) => {
+    if (rafPosicionId !== null) {
+      window.cancelAnimationFrame(rafPosicionId);
+      rafPosicionId = null;
+    }
+    if (listenersActivos) {
+      window.removeEventListener('scroll', onScrollCapture, true);
+      window.removeEventListener('resize', programarReposicion);
+      dialogoPadre?.removeEventListener('close', onDialogoClose);
+      listenersActivos = false;
+    }
     if (cal && typeof cal.hidePopover === 'function' && cal.matches?.(':popover-open')) {
       try {
         cal.hidePopover();
@@ -182,6 +236,15 @@ export const inicializarCalendario = (selectorOElemento, opciones = {}) => {
         // Ignorar si ya fue ocultado
       }
     }
+  };
+
+  const vincularListenersPosicion = (instancia) => {
+    instanciaActual = instancia;
+    limpiarPosicionYListeners(null);
+    listenersActivos = true;
+    window.addEventListener('scroll', onScrollCapture, true);
+    window.addEventListener('resize', programarReposicion);
+    dialogoPadre?.addEventListener('close', onDialogoClose, { once: true });
   };
 
   const configuracion = {
@@ -197,65 +260,52 @@ export const inicializarCalendario = (selectorOElemento, opciones = {}) => {
     disable: deshabilitados,
     onOpen(_fechasSeleccionadas, _fechaStr, instancia) {
       const cal = instancia?.calendarContainer;
-      if (!dialogoPadre || !cal) return;
+      if (!cal) return;
 
-      cal.classList.add('atlas-fp-modal');
-      if (typeof cal.showPopover === 'function') {
-        if (!cal.hasAttribute('popover')) {
-          cal.setAttribute('popover', 'manual');
-        }
-        try {
-          if (!cal.matches?.(':popover-open')) {
-            cal.showPopover();
+      instanciaActual = instancia;
+
+      if (dialogoPadre) {
+        cal.classList.add('atlas-fp-modal');
+        if (typeof cal.showPopover === 'function') {
+          if (!cal.hasAttribute('popover')) {
+            cal.setAttribute('popover', 'manual');
           }
-        } catch {
-          // Respaldo silencioso si ya está en Top Layer
+          try {
+            if (!cal.matches?.(':popover-open')) {
+              cal.showPopover();
+            }
+          } catch {
+            // Respaldo silencioso si ya está en Top Layer
+          }
         }
       }
 
-      sincronizarPosicionModal(instancia);
-      requestAnimationFrame(() => {
-        if (instancia.isOpen) sincronizarPosicionModal(instancia);
-      });
+      if (!posicionarCalendario(input, cal, dialogoPadre)) {
+        instancia.close();
+        return;
+      }
 
-      controladorModalAbierto?.abort();
-      controladorModalAbierto = new AbortController();
-      const { signal } = controladorModalAbierto;
-
-      window.addEventListener(
-        'scroll',
-        (ev) => {
-          if (cal.contains(ev.target)) return;
-          sincronizarPosicionModal(instancia);
-        },
-        { capture: true, passive: true, signal }
-      );
-      window.addEventListener(
-        'resize',
-        () => sincronizarPosicionModal(instancia),
-        { passive: true, signal }
-      );
-      dialogoPadre.addEventListener(
-        'close',
-        () => instancia.close(),
-        { once: true, signal }
-      );
+      vincularListenersPosicion(instancia);
+      programarReposicion();
     },
     onMonthChange(_f, _s, instancia) {
-      if (dialogoPadre && instancia?.isOpen) {
-        requestAnimationFrame(() => sincronizarPosicionModal(instancia));
+      if (instancia?.isOpen) {
+        instanciaActual = instancia;
+        programarReposicion();
       }
     },
     onYearChange(_f, _s, instancia) {
-      if (dialogoPadre && instancia?.isOpen) {
-        requestAnimationFrame(() => sincronizarPosicionModal(instancia));
+      if (instancia?.isOpen) {
+        instanciaActual = instancia;
+        programarReposicion();
       }
     },
     onClose(_fechasSeleccionadas, _fechaStr, instancia) {
-      limpiarEventosModal(instancia?.calendarContainer);
+      limpiarPosicionYListeners(instancia?.calendarContainer);
     },
     onDestroy(_fechasSeleccionadas, _fechaStr, instancia) {
-      limpiarEventosModal(instancia?.calendarContainer);
+      limpiarPosicionYListeners(instancia?.calendarContainer);
+      instanciaActual = null;
     },
     onChange(_fechasSeleccionadas, fechaStr, instancia) {
       if (input.value !== fechaStr) {
