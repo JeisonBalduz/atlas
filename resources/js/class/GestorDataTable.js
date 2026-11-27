@@ -28,34 +28,69 @@ export const IDIOMA_ES = {
   },
 };
 
-const transformarSelectLongitud = (tablaEl) => {
-  const contenedorDt = tablaEl.closest('.dt-container');
-  const selectLongitud = contenedorDt?.querySelector('.dt-length select');
-  if (!selectLongitud || selectLongitud.closest('[data-custom-select]')) return;
-
-  const valorActual = String(selectLongitud.value || '10');
-  const opciones = [...selectLongitud.options].map((opt) => ({
-    valor: String(opt.value),
-    texto: String(opt.textContent || opt.value).trim(),
-  }));
-
-  const envoltura = document.createElement('div');
-  envoltura.className = 'inline-block w-24 align-middle mx-1';
-  envoltura.setAttribute('data-custom-select', '');
-
-  const relativo = document.createElement('div');
-  relativo.className = 'relative';
-  envoltura.appendChild(relativo);
-
-  selectLongitud.parentNode?.insertBefore(envoltura, selectLongitud);
-  selectLongitud.className = 'custom-select-native sr-only';
-  selectLongitud.setAttribute('data-placeholder', valorActual);
+// Recibe un select nativo de DataTables; lo oculta de forma estricta para que no reaparezca por cascada CSS.
+const ocultarSelectNativo = (selectLongitud) => {
+  selectLongitud.hidden = true;
+  selectLongitud.className = 'custom-select-native hidden pointer-events-none';
   selectLongitud.setAttribute('tabindex', '-1');
   selectLongitud.setAttribute('aria-hidden', 'true');
-  relativo.appendChild(selectLongitud);
+};
 
-  relativo.insertAdjacentHTML('beforeend', crearMarkupSelectLongitud(opciones, valorActual));
-  inicializarSelectsPersonalizados(contenedorDt);
+const transformarSelectLongitud = (tablaEl) => {
+  const contenedorDt = tablaEl.closest('.dt-container');
+  if (!contenedorDt) return;
+
+  const selectsLongitud = contenedorDt.querySelectorAll('.dt-length select');
+  selectsLongitud.forEach((selectLongitud) => {
+    ocultarSelectNativo(selectLongitud);
+
+    const envolturaExistente = selectLongitud.closest('[data-custom-select]');
+    if (envolturaExistente) {
+      inicializarSelectsPersonalizados(envolturaExistente.parentElement || contenedorDt);
+      return;
+    }
+
+    const valorActual = String(selectLongitud.value || '10');
+    const opciones = [...selectLongitud.options].map((opt) => ({
+      valor: String(opt.value),
+      texto: String(opt.textContent || opt.value).trim(),
+    }));
+
+    const envoltura = document.createElement('div');
+    envoltura.className = 'inline-block w-24 align-middle mx-1';
+    envoltura.setAttribute('data-custom-select', '');
+
+    const relativo = document.createElement('div');
+    relativo.className = 'relative';
+    envoltura.appendChild(relativo);
+
+    selectLongitud.parentNode?.insertBefore(envoltura, selectLongitud);
+    selectLongitud.setAttribute('data-placeholder', valorActual);
+    relativo.appendChild(selectLongitud);
+
+    relativo.insertAdjacentHTML('beforeend', crearMarkupSelectLongitud(opciones, valorActual));
+
+    const botonTrigger = relativo.querySelector('.custom-select-trigger');
+    if (selectLongitud.id && botonTrigger) {
+      if (!botonTrigger.id) {
+        botonTrigger.id = `${selectLongitud.id}-trigger`;
+      }
+      const labelExterna = contenedorDt.querySelector(`.dt-length label[for="${selectLongitud.id}"]`);
+      if (labelExterna && !labelExterna.dataset.triggerVinculado) {
+        labelExterna.dataset.triggerVinculado = '1';
+        labelExterna.setAttribute('for', botonTrigger.id);
+        labelExterna.addEventListener('click', (evento) => {
+          if (evento.target.closest('[data-custom-select]')) return;
+          evento.preventDefault();
+          botonTrigger.click();
+          botonTrigger.focus();
+        });
+      }
+    }
+
+    inicializarSelectsPersonalizados(envoltura.parentElement || contenedorDt);
+  });
+
   window.lucide?.createIcons();
 };
 
@@ -127,7 +162,10 @@ export class GestorDataTable {
 
     this.instancia = new window.DataTable(tablaEl, configuracion);
     transformarSelectLongitud(tablaEl);
-    this.instancia.on('draw', () => window.lucide?.createIcons());
+    this.instancia.on('init', () => transformarSelectLongitud(tablaEl));
+    this.instancia.on('draw', () => {
+      transformarSelectLongitud(tablaEl);
+    });
 
     if (typeof alAccionar === 'function') {
       const contenedor = selectorDelegacion ? document.querySelector(selectorDelegacion) : tablaEl;
@@ -157,7 +195,16 @@ export class GestorDataTable {
   }
 
   destruir() {
+    const contenedorDt = this.instancia?.table()?.node()?.closest('.dt-container');
+    contenedorDt?.querySelectorAll('.dt-length [data-custom-select]').forEach((wrapper) => {
+      const selectNativo = wrapper.querySelector('select.custom-select-native');
+      if (selectNativo && wrapper.parentNode) {
+        wrapper.parentNode.insertBefore(selectNativo, wrapper);
+      }
+      wrapper.remove();
+    });
     this.instancia?.destroy();
+    this.instancia = null;
   }
 
   obtenerInstancia() {
