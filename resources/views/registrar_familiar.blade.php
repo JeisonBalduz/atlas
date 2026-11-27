@@ -38,53 +38,87 @@
     @component('components.alerta_formulario')
     @endcomponent
 
-    {{-- Bloque 1: Selección del empleado titular y tarjeta resumen --}}
-    <section class="col-span-full md:col-span-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
-        <header>
-            <h2 class="text-lg font-semibold text-zinc-900">1. Empleado Titular</h2>
-            <p class="text-sm text-zinc-500">Selecciona al trabajador responsable de la carga familiar.</p>
-        </header>
+    {{-- Columna izquierda en escritorio (md+): Empleado Titular + 3. Documentos del Familiar; en móvil usa contents para respetar orden 1 -> 2 -> 3 --}}
+    <div class="contents md:col-span-5 md:flex md:flex-col md:gap-6 md:self-start">
+        {{-- Bloque 1: Selección del empleado titular y tarjeta resumen --}}
+        <section class="col-span-full order-1 md:order-none h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+            <header>
+                <h2 class="text-lg font-semibold text-zinc-900">Empleado Titular</h2>
+                <p class="text-sm text-zinc-500">Selecciona al trabajador responsable de la carga familiar.</p>
+            </header>
 
-        @component('components.select', [
-            'label' => 'Empleado titular',
-            'id' => 'empleado_id',
-            'name' => 'empleado_id',
-            'placeholder' => 'Buscar empleado por nombre o cédula...',
-            'required' => true,
-            'search' => true,
-            'remoteUrl' => '/api/select/empleados',
-            'options' => $empleados ?? [],
-            'selected' => $empleado_seleccionado ?? '',
-        ])
-        @endcomponent
+            @component('components.select', [
+                'label' => 'Empleado titular',
+                'id' => 'empleado_id',
+                'name' => 'empleado_id',
+                'placeholder' => 'Buscar empleado por nombre o cédula...',
+                'required' => true,
+                'search' => true,
+                'remoteUrl' => '/api/select/empleados?incluir_pendientes=1',
+                'options' => $empleados ?? [],
+                'selected' => $empleado_seleccionado ?? '',
+            ])
+            @endcomponent
 
-        {{-- Tarjeta resumen del empleado seleccionado --}}
-        <article id="tarjeta-resumen-titular" class="hidden rounded-xl border border-marca-200 bg-marca-50 p-4 space-y-2">
-            <div class="flex items-center gap-2 text-sm font-semibold text-marca-800">
-                <i data-lucide="badge-check" class="h-4 w-4 shrink-0" aria-hidden="true"></i>
-                <span id="titular-nombre"></span>
+            {{-- Tarjeta resumen del empleado seleccionado --}}
+            <article id="tarjeta-resumen-titular" class="hidden rounded-xl border border-marca-200 bg-marca-50 p-4 space-y-2">
+                <div class="flex items-center gap-2 text-sm font-semibold text-marca-800">
+                    <i data-lucide="badge-check" class="h-4 w-4 shrink-0" aria-hidden="true"></i>
+                    <span id="titular-nombre"></span>
+                </div>
+                <dl class="grid grid-cols-2 gap-2 text-xs text-zinc-700">
+                    <div>
+                        <dt class="text-zinc-500">Cédula</dt>
+                        <dd id="titular-cedula" class="font-semibold text-zinc-900"></dd>
+                    </div>
+                    <div>
+                        <dt class="text-zinc-500">Código</dt>
+                        <dd id="titular-codigo" class="font-semibold text-zinc-900"></dd>
+                    </div>
+                    <div class="col-span-2">
+                        <dt class="text-zinc-500">Cargo y Departamento</dt>
+                        <dd id="titular-cargo" class="font-medium text-zinc-900"></dd>
+                    </div>
+                </dl>
+            </article>
+        </section>
+
+        {{-- Bloque 3: Documentos del Familiar según Parentesco (Contrato Colectivo) --}}
+        <section class="col-span-full order-3 md:order-none h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
+            <header>
+                <h2 class="text-lg font-semibold text-zinc-900">3. Documentos del Familiar</h2>
+                <p class="text-sm text-zinc-500">Selecciona el parentesco para visualizar los recaudos exigidos por el Contrato Colectivo.</p>
+            </header>
+
+            <div id="contenedor-recaudos-familiar" class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-1">
+                <p class="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-zinc-500">
+                    Selecciona un parentesco arriba para cargar los campos de documentos correspondientes.
+                </p>
             </div>
-            <dl class="grid grid-cols-2 gap-2 text-xs text-zinc-700">
-                <div>
-                    <dt class="text-zinc-500">Cédula</dt>
-                    <dd id="titular-cedula" class="font-semibold text-zinc-900"></dd>
-                </div>
-                <div>
-                    <dt class="text-zinc-500">Código</dt>
-                    <dd id="titular-codigo" class="font-semibold text-zinc-900"></dd>
-                </div>
-                <div class="col-span-2">
-                    <dt class="text-zinc-500">Cargo y Departamento</dt>
-                    <dd id="titular-cargo" class="font-medium text-zinc-900"></dd>
-                </div>
-            </dl>
-        </article>
-    </section>
+
+            <footer class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
+                <button
+                    type="reset"
+                    id="btn-limpiar-familiar"
+                    class="w-full sm:w-auto rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-900 transition-all hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 cursor-pointer"
+                >
+                    Limpiar
+                </button>
+                <button
+                    type="submit"
+                    class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-marca px-5 py-2.5 text-sm font-medium text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-marca-700 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 active:scale-[0.98] cursor-pointer"
+                >
+                    <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i>
+                    <span>Guardar Familiar</span>
+                </button>
+            </footer>
+        </section>
+    </div>
 
     {{-- Bloque 2: Datos personales del familiar y datos de filiación --}}
-    <section class="col-span-full md:col-span-7 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-6">
+    <section class="col-span-full md:col-span-7 order-2 md:order-none self-start h-fit rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-6">
         <header>
-            <h2 class="text-lg font-semibold text-zinc-900">2. Datos del Familiar y Filiación</h2>
+            <h2 class="text-lg font-semibold text-zinc-900">Datos del Familiar y Filiación</h2>
             <p class="text-sm text-zinc-500">Campos alineados con los modelos Personas y Familiares.</p>
         </header>
 
@@ -296,37 +330,6 @@
                 </div>
             </div>
         </div>
-    </section>
-
-    {{-- Bloque 3: Documentos del Familiar según Parentesco (Contrato Colectivo) --}}
-    <section class="col-span-full rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_15px_30px_rgba(0,0,0,0.05)] space-y-5">
-        <header>
-            <h2 class="text-lg font-semibold text-zinc-900">3. Documentos del Familiar</h2>
-            <p class="text-sm text-zinc-500">Selecciona el parentesco para visualizar los recaudos exigidos por el Contrato Colectivo.</p>
-        </header>
-
-        <div id="contenedor-recaudos-familiar" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <p class="col-span-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-zinc-500">
-                Selecciona un parentesco arriba para cargar los campos de documentos correspondientes.
-            </p>
-        </div>
-
-        <footer class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
-            <button
-                type="reset"
-                id="btn-limpiar-familiar"
-                class="w-full sm:w-auto rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-900 transition-all hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 cursor-pointer"
-            >
-                Limpiar
-            </button>
-            <button
-                type="submit"
-                class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-marca px-5 py-2.5 text-sm font-medium text-white shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all hover:bg-marca-700 focus:outline-none focus:ring-2 focus:ring-marca-500 focus:ring-offset-2 active:scale-[0.98] cursor-pointer"
-            >
-                <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i>
-                <span>Guardar Familiar</span>
-            </button>
-        </footer>
     </section>
 </form>
 @endsection

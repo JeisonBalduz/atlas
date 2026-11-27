@@ -515,12 +515,12 @@ final class CatalogosService
     /**
      * @return list<array{value: string, label: string, sublabel: string}>
      */
-    public function buscarEmpleadosActivosParaSelect(string $busqueda = '', int $limite = 30): array
+    public function buscarEmpleadosActivosParaSelect(string $busqueda = '', int $limite = 30, bool $incluirPendientes = false): array
     {
         $limiteSeguro = max(1, min($limite, 50));
         $query = EmpleadosModel::query()
             ->join('personas', 'personas.persona_id', '=', 'empleados.persona_id')
-            ->where('empleados.estatus_actual', 1)
+            ->whereIn('empleados.estatus_actual', $incluirPendientes ? [1, 3] : [1])
             ->select([
                 'empleados.empleado_id',
                 'empleados.codigo_empleado',

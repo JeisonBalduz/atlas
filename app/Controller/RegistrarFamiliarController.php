@@ -8,6 +8,7 @@ use App\Http\LimpiarInputs;
 use App\Model\Beneficios\DetalleDiscapacidadModel;
 use App\Model\Beneficios\GradoDiscapacidadModel;
 use App\Model\Catalogos\TipoParentescoModel;
+use App\Model\Personas\EmpleadosModel;
 use App\Model\Personas\FamiliaresModel;
 use App\Model\Personas\PersonasModel;
 use App\Services\CatalogosService;
@@ -35,10 +36,16 @@ class RegistrarFamiliarController extends BaseController
     public function render(): void
     {
         $empleadoPreseleccionado = $this->app->request()->query['empleado'] ?? '';
-        $empleadoSeleccionado = is_numeric($empleadoPreseleccionado) && (int) $empleadoPreseleccionado > 0
-            ? (string) (int) $empleadoPreseleccionado
-            : '';
+        $empleadoId = is_numeric($empleadoPreseleccionado) && (int) $empleadoPreseleccionado > 0
+            ? (int) $empleadoPreseleccionado
+            : 0;
 
+        $empleadoValido = $empleadoId > 0 && EmpleadosModel::query()
+            ->where('empleado_id', $empleadoId)
+            ->whereIn('estatus_actual', [1, 3])
+            ->exists();
+
+        $empleadoSeleccionado = $empleadoValido ? (string) $empleadoId : '';
         $empleadosPreseleccionados = $empleadoSeleccionado !== ''
             ? $this->catalogos->empleadoParaSelectPorId((int) $empleadoSeleccionado)
             : [];

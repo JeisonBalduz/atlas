@@ -78,8 +78,9 @@ class RegistrosEmpleadosController extends BaseController
         $query = $this->app->request()->query;
         $busqueda = trim((string) ($query['q'] ?? ''));
         $limite = is_numeric($query['limit'] ?? null) ? (int) $query['limit'] : 30;
+        $incluirPendientes = in_array((string) ($query['incluir_pendientes'] ?? ''), ['1', 'true'], true);
 
-        $this->jsonOk($this->catalogos->buscarEmpleadosActivosParaSelect($busqueda, $limite));
+        $this->jsonOk($this->catalogos->buscarEmpleadosActivosParaSelect($busqueda, $limite, $incluirPendientes));
     }
 
     public function datatable(): void
