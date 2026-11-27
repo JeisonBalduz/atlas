@@ -274,7 +274,7 @@
     aria-labelledby="modal-confirmar-carga-masiva-titulo"
     aria-describedby="modal-confirmar-carga-masiva-descripcion"
     closedby="any"
-    class="z-[60] m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-zinc-200 bg-white p-0 text-zinc-900 shadow-[0_15px_30px_rgba(0,0,0,0.05)] overscroll-contain backdrop:bg-zinc-900/50 backdrop:backdrop-blur-xs backdrop:overflow-hidden backdrop:overscroll-contain"
+    class="z-60 m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-zinc-200 bg-white p-0 text-zinc-900 shadow-[0_15px_30px_rgba(0,0,0,0.05)] overscroll-contain backdrop:bg-zinc-900/50 backdrop:backdrop-blur-xs backdrop:overflow-hidden backdrop:overscroll-contain"
 >
     <section class="p-6 space-y-4">
         <header class="flex items-center justify-between gap-3">
