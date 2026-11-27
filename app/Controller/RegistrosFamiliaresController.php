@@ -14,6 +14,7 @@ use App\Model\Personas\PersonasModel;
 use App\Services\CatalogosService;
 use App\Services\DataTableEloquent;
 use App\Services\GestorDocumentos;
+use App\Services\UtilidadesService;
 use App\Utils\Config;
 use DateTimeImmutable;
 use flight\Engine;
@@ -25,6 +26,8 @@ use Throwable;
  */
 class RegistrosFamiliaresController extends BaseController
 {
+    private UtilidadesService $utilidades;
+
     /**
      * Recibe Engine, Config, CatalogosService y GestorDocumentos opcional para la gestión de familiares.
      */
@@ -33,8 +36,10 @@ class RegistrosFamiliaresController extends BaseController
         Config $config,
         private CatalogosService $catalogos,
         private ?GestorDocumentos $gestorDocumentos = null,
+        ?UtilidadesService $utilidades = null,
     ) {
         parent::__construct($app, $config);
+        $this->utilidades = $utilidades ?? new UtilidadesService();
     }
 
     public function render(): void
@@ -51,6 +56,14 @@ class RegistrosFamiliaresController extends BaseController
 
         try {
             $query = FamiliaresModel::query()
+                ->select('familiares.*')
+                ->addSelect([
+                    'edad_texto' => PersonasModel::selectRaw(
+                        $this->utilidades->expresionSql('personas.fecha_nacimiento')
+                    )
+                        ->whereColumn('personas.persona_id', 'familiares.persona_id')
+                        ->limit(1),
+                ])
                 ->with([
                     'persona.detallesDiscapacidad.gradoDiscapacidad',
                     'persona.documentos',
@@ -58,6 +71,11 @@ class RegistrosFamiliaresController extends BaseController
                     'empleado.persona',
                     'empleado.cargo',
                 ]);
+
+            $ordenarPorEdad = static fn (Builder $q, string $dir): Builder => $q->orderBy(
+                PersonasModel::select('fecha_nacimiento')->whereColumn('personas.persona_id', 'familiares.persona_id')->limit(1),
+                $dir === 'asc' ? 'desc' : 'asc'
+            );
 
             $columnasOrdenables = [
                 'cedula_titular' => static fn (Builder $q, string $dir): Builder => $q->orderBy(
@@ -85,10 +103,8 @@ class RegistrosFamiliaresController extends BaseController
                     TipoParentescoModel::select('parentesco')->whereColumn('tipo_parentesco.parentesco_id', 'familiares.parentesco_id')->limit(1),
                     $dir
                 ),
-                'edad' => static fn (Builder $q, string $dir): Builder => $q->orderBy(
-                    PersonasModel::select('fecha_nacimiento')->whereColumn('personas.persona_id', 'familiares.persona_id')->limit(1),
-                    $dir === 'asc' ? 'desc' : 'asc'
-                ),
+                'edad' => $ordenarPorEdad,
+                'edad_texto' => $ordenarPorEdad,
                 'genero' => static fn (Builder $q, string $dir): Builder => $q->orderBy(
                     PersonasModel::select('genero')->whereColumn('personas.persona_id', 'familiares.persona_id')->limit(1),
                     $dir
@@ -117,10 +133,13 @@ class RegistrosFamiliaresController extends BaseController
                     $personaTit = $familiar->empleado?->persona;
 
                     $edad = null;
+                    $edadTexto = null;
                     $fechaNac = null;
                     if ($personaFam instanceof PersonasModel && $personaFam->fecha_nacimiento !== null) {
                         $fechaNac = $personaFam->fecha_nacimiento->format('Y-m-d');
                         $edad = $personaFam->fecha_nacimiento->diff($hoy)->y;
+                        $textoSql = trim((string) ($familiar->getAttribute('edad_texto') ?? ''));
+                        $edadTexto = $textoSql !== '' ? $textoSql : null;
                     }
 
                     $genero = $personaFam instanceof PersonasModel && $personaFam->genero !== ''
@@ -184,6 +203,7 @@ class RegistrosFamiliaresController extends BaseController
                         'parentesco_id' => (int) $familiar->parentesco_id,
                         'parentesco' => (string) ($familiar->tipoParentesco?->parentesco ?? ''),
                         'edad' => $edad,
+                        'edad_texto' => $edadTexto,
                         'fecha_nacimiento' => $fechaNac,
                         'genero' => $genero,
                         'tomo' => $tomo,

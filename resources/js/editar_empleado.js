@@ -19,7 +19,42 @@ import {
   inicializarCampoFechaDobleFormato,
   inicializarRangoFechasDobleFormato,
   obtenerFechaHoyLocalIso,
+  parsearFechaFlexible,
 } from "/js/utils/formatearFecha.js";
+
+// Recibe fecha (dd-mm-yyyy o YYYY-MM-DD); retorna años cumplidos o meses si tiene menos de 1 año.
+const calcularEdadTexto = (fechaValor) => {
+  const parsed = parsearFechaFlexible(fechaValor);
+  if (!parsed) return "";
+
+  const { anio, mes, dia } = parsed;
+  const hoy = new Date();
+  const anioHoy = hoy.getFullYear();
+  const mesHoy = hoy.getMonth() + 1;
+  const diaHoy = hoy.getDate();
+
+  const esFutura =
+    anio > anioHoy ||
+    (anio === anioHoy && (mes > mesHoy || (mes === mesHoy && dia > diaHoy)));
+  if (esFutura) return "";
+
+  let anios = anioHoy - anio;
+  if (mesHoy < mes || (mesHoy === mes && diaHoy < dia)) {
+    anios -= 1;
+  }
+
+  if (anios < 0 || anios > 130) return "";
+  if (anios >= 1) {
+    return `${anios} ${anios === 1 ? "año" : "años"}`;
+  }
+
+  let meses = (anioHoy - anio) * 12 + (mesHoy - mes);
+  if (diaHoy < dia) {
+    meses -= 1;
+  }
+  meses = Math.max(0, meses);
+  return `${meses} ${meses === 1 ? "mes" : "meses"}`;
+};
 
 const OPERADORAS_TELEFONO = {
   "0412": "0412",
@@ -380,9 +415,32 @@ const validarFormularioAntesDeEnviar = (formulario, listaTelefonos) => {
 
 document.addEventListener("DOMContentLoaded", () => {
   inicializarSelectsPersonalizados();
-  inicializarCampoFechaDobleFormato("#fecha_nacimiento", {
+  const inputFechaNac = document.getElementById("fecha_nacimiento");
+  const inputFechaNacIso = document.getElementById("fecha_nacimiento_iso");
+  const inputEdadVisual = document.getElementById("edad_visual");
+
+  // Recibe fecha opcional; recalcula y muestra la edad visual sin incluirla en el envío.
+  const actualizarEdadVisual = (fechaOpcional = null) => {
+    if (!inputEdadVisual) return;
+    const valor =
+      fechaOpcional !== null
+        ? fechaOpcional
+        : inputFechaNac
+          ? inputFechaNac.value
+          : inputFechaNacIso?.value || "";
+    inputEdadVisual.value = calcularEdadTexto(valor);
+  };
+
+  inicializarCampoFechaDobleFormato(inputFechaNac || "#fecha_nacimiento", {
+    inputIso: inputFechaNacIso,
     maxDate: obtenerFechaHoyLocalIso(),
+    alSeleccionar: (fechaIso) => actualizarEdadVisual(fechaIso),
   });
+  inputFechaNac?.addEventListener("change", () => actualizarEdadVisual());
+  inputFechaNac?.addEventListener("input", () => actualizarEdadVisual());
+  inputFechaNacIso?.addEventListener("change", () =>
+    actualizarEdadVisual(inputFechaNacIso.value),
+  );
   inicializarRangoFechasDobleFormato(
     "#fecha_emision_carnet",
     "#fecha_vencimiento_carnet",

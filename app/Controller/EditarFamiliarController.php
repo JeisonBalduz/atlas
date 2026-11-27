@@ -13,6 +13,7 @@ use App\Model\Personas\FamiliaresModel;
 use App\Model\Personas\PersonasModel;
 use App\Services\CatalogosService;
 use App\Services\GestorDocumentos;
+use App\Services\UtilidadesService;
 use App\Utils\Config;
 use DateTimeImmutable;
 use flight\Engine;
@@ -23,13 +24,17 @@ use Throwable;
  */
 class EditarFamiliarController extends BaseController
 {
+    private UtilidadesService $utilidades;
+
     public function __construct(
         Engine $app,
         Config $config,
         private CatalogosService $catalogos,
         private ?GestorDocumentos $gestorDocumentos = null,
+        ?UtilidadesService $utilidades = null,
     ) {
         parent::__construct($app, $config);
+        $this->utilidades = $utilidades ?? new UtilidadesService();
     }
 
     public function render(?string $id = null): void
@@ -95,9 +100,15 @@ class EditarFamiliarController extends BaseController
             $recaudosVisibles[] = $recaudoDiscapacidad;
         }
 
+        $fechaNacIso = $familiar->persona->fecha_nacimiento !== null
+            ? $familiar->persona->fecha_nacimiento->format('Y-m-d')
+            : null;
+        $edadCalculada = $this->utilidades->calcularEdad($fechaNacIso);
+
         $this->renderVista('editar_familiar', [
             'familiar' => $familiar,
             'persona' => $familiar->persona,
+            'edadCalculada' => $edadCalculada,
             'titular' => (object) [
                 'empleado_id' => $titular?->empleado_id,
                 'nombre' => $titularNombre,

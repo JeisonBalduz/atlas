@@ -134,6 +134,7 @@
                     <th>Código</th>
                     <th>Cédula</th>
                     <th>Nombre completo</th>
+                    <th class="text-center">Edad</th>
                     <th>Cargo</th>
                     <th>Departamento</th>
                     <th>Dependencia</th>

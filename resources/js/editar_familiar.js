@@ -11,7 +11,42 @@ import {
   inicializarCampoFechaDobleFormato,
   inicializarRangoFechasDobleFormato,
   obtenerFechaHoyLocalIso,
+  parsearFechaFlexible,
 } from "/js/utils/formatearFecha.js";
+
+// Recibe fecha (dd-mm-yyyy o YYYY-MM-DD); retorna años cumplidos o meses si tiene menos de 1 año.
+const calcularEdadTexto = (fechaValor) => {
+  const parsed = parsearFechaFlexible(fechaValor);
+  if (!parsed) return "";
+
+  const { anio, mes, dia } = parsed;
+  const hoy = new Date();
+  const anioHoy = hoy.getFullYear();
+  const mesHoy = hoy.getMonth() + 1;
+  const diaHoy = hoy.getDate();
+
+  const esFutura =
+    anio > anioHoy ||
+    (anio === anioHoy && (mes > mesHoy || (mes === mesHoy && dia > diaHoy)));
+  if (esFutura) return "";
+
+  let anios = anioHoy - anio;
+  if (mesHoy < mes || (mesHoy === mes && diaHoy < dia)) {
+    anios -= 1;
+  }
+
+  if (anios < 0 || anios > 130) return "";
+  if (anios >= 1) {
+    return `${anios} ${anios === 1 ? "año" : "años"}`;
+  }
+
+  let meses = (anioHoy - anio) * 12 + (mesHoy - mes);
+  if (diaHoy < dia) {
+    meses -= 1;
+  }
+  meses = Math.max(0, meses);
+  return `${meses} ${meses === 1 ? "mes" : "meses"}`;
+};
 import {
   filtrarRecaudosPorDiscapacidad,
   sincronizarPanelDiscapacidad,
@@ -112,6 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const selectParentesco = document.getElementById("parentesco_id");
   const inputFechaNac = document.getElementById("fecha_nacimiento");
   const inputFechaNacIso = document.getElementById("fecha_nacimiento_iso");
+  const inputEdadVisual = document.getElementById("edad_visual");
   const inputCedula = document.getElementById("cedula");
   const avisoCedulaMenor = document.getElementById("aviso-cedula-menor");
   const inputTomo = document.getElementById("tomo");
@@ -153,10 +189,25 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  // Recibe fecha opcional; recalcula y muestra la edad visual sin alterar el envío al servidor.
+  const actualizarEdadVisual = (fechaOpcional = null) => {
+    if (!inputEdadVisual) return;
+    const valor =
+      fechaOpcional !== null
+        ? fechaOpcional
+        : inputFechaNac
+          ? inputFechaNac.value
+          : inputFechaNacIso?.value || "";
+    inputEdadVisual.value = calcularEdadTexto(valor);
+  };
+
   inicializarCampoFechaDobleFormato(inputFechaNac, {
     inputIso: inputFechaNacIso,
     maxDate: obtenerFechaHoyLocalIso(),
-    alSeleccionar: sincronizarReglasDinamicas,
+    alSeleccionar: (fechaIso) => {
+      sincronizarReglasDinamicas();
+      actualizarEdadVisual(fechaIso);
+    },
   });
   inicializarRangoFechasDobleFormato(
     "#fecha_emision_carnet",
@@ -224,8 +275,18 @@ document.addEventListener("DOMContentLoaded", () => {
     refrescarRecaudosFamiliar();
   });
 
-  inputFechaNac?.addEventListener("change", sincronizarReglasDinamicas);
-  inputFechaNac?.addEventListener("input", sincronizarReglasDinamicas);
+  inputFechaNac?.addEventListener("change", () => {
+    sincronizarReglasDinamicas();
+    actualizarEdadVisual();
+  });
+  inputFechaNac?.addEventListener("input", () => {
+    sincronizarReglasDinamicas();
+    actualizarEdadVisual();
+  });
+  inputFechaNacIso?.addEventListener("change", () => {
+    sincronizarReglasDinamicas();
+    actualizarEdadVisual(inputFechaNacIso.value);
+  });
 
   btnToggleDisc?.addEventListener("click", () => {
     const proximo = inputTieneDisc?.value !== "1";

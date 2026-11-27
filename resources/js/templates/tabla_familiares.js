@@ -114,10 +114,10 @@ export const columnasTablaFamiliares = () => [
   { data: 'nombre_familiar', name: 'nombre_familiar', render: (v, _t, fila) => renderNombreFamiliar(v, fila) },
   { data: 'parentesco', name: 'parentesco', render: (v) => crearBadge(v || 'Sin definir', 'marca') },
   {
-    data: 'edad',
-    name: 'edad',
+    data: 'edad_texto',
+    name: 'edad_texto',
     className: 'text-center',
-    render: (v) => (v !== null && v !== undefined ? `<span class="whitespace-nowrap">${v} años</span>` : '—'),
+    render: (v) => `<span class="text-zinc-900 whitespace-nowrap">${v || '—'}</span>`,
   },
   {
     data: 'genero',

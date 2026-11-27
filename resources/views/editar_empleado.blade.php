@@ -206,6 +206,23 @@
                        role="alert">
                     </p>
                 </div>
+                <div class="space-y-1.5">
+                    <label
+                        for="edad_visual"
+                        class="block text-sm font-medium text-zinc-900">
+                        Edad
+                    </label>
+                    <input
+                        id="edad_visual"
+                        type="text"
+                        value="{{ $edadCalculada ?? '' }}"
+                        readonly
+                        placeholder="Calculada automáticamente"
+                        aria-describedby="edad_visual_ayuda"
+                        class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm font-medium text-zinc-900 outline-none cursor-not-allowed"
+                    />
+                    <p id="edad_visual_ayuda" class="text-xs text-zinc-500 mt-1">La edad se calcula con la fecha de nacimiento</p>
+                </div>
                 @component('components.select', [
                     'label' => 'Género',
                     'id' => 'genero',
@@ -215,17 +232,15 @@
                     'selected' => $persona->genero ?? '',
                 ])
                 @endcomponent
-                <div class="sm:col-span-2">
-                    @component('components.select', [
-                        'label' => 'Estado civil',
-                        'id' => 'estado_civil_id',
-                        'name' => 'estado_civil_id',
-                        'required' => true,
-                        'options' => $estados_civiles ?? [],
-                        'selected' => $persona->estado_civil_id ?? '',
-                    ])
-                    @endcomponent
-                </div>
+                @component('components.select', [
+                    'label' => 'Estado civil',
+                    'id' => 'estado_civil_id',
+                    'name' => 'estado_civil_id',
+                    'required' => true,
+                    'options' => $estados_civiles ?? [],
+                    'selected' => $persona->estado_civil_id ?? '',
+                ])
+                @endcomponent
             </div>
         </section>
 

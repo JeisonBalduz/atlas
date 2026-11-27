@@ -137,10 +137,27 @@
                    role="alert">
                 </p>
             </div>
+            <div class="space-y-1.5">
+                <label
+                    for="edad_visual"
+                    class="block text-sm font-medium text-zinc-900">
+                    Edad
+                </label>
+                <input
+                    id="edad_visual"
+                    type="text"
+                    value="{{ $edadCalculada ?? '' }}"
+                    readonly
+                    placeholder="Calculada automáticamente"
+                    aria-describedby="edad_visual_ayuda"
+                    class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm font-medium text-zinc-900 outline-none cursor-not-allowed"
+                />
+                <p id="edad_visual_ayuda" class="text-xs text-zinc-500 mt-1">La edad se calcula con la fecha de nacimiento</p>
+            </div>
             @component('components.select', ['label' => 'Género', 'id' => 'genero', 'name' => 'genero', 'required' => true, 'options' => $generos ?? ['Masculino' => 'Masculino', 'Femenino' => 'Femenino'], 'selected' => $genero_actual ?? ($persona->genero ?? '')]) @endcomponent
 
             @component('components.select', ['label' => 'Parentesco', 'id' => 'parentesco_id', 'name' => 'parentesco_id', 'required' => true, 'search' => true, 'options' => $parentescos ?? [], 'selected' => $familiar->parentesco_id ?? '']) @endcomponent
-            <div data-bloque-tomo-folio class="grid grid-cols-2 gap-3 {{ $mostrarTomoFolio ? '' : 'hidden' }}">
+            <div data-bloque-tomo-folio class="sm:col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-2 {{ $mostrarTomoFolio ? '' : 'hidden' }}">
                 @component('components.input', ['label' => 'Tomo', 'id' => 'tomo', 'name' => 'tomo', 'value' => ($familiar->tomo ?? 0) > 0 ? $familiar->tomo : '', 'maxlength' => 6, 'required' => $mostrarTomoFolio]) @endcomponent
                 @component('components.input', ['label' => 'Folio', 'id' => 'folio', 'name' => 'folio', 'value' => ($familiar->folio ?? 0) > 0 ? $familiar->folio : '', 'maxlength' => 6, 'required' => $mostrarTomoFolio]) @endcomponent
             </div>

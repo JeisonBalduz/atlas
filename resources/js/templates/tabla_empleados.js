@@ -180,6 +180,12 @@ export const columnasTablaEmpleados = () => [
   { data: 'codigo_empleado', name: 'codigo_empleado', render: (valor) => renderTextoSimple(valor) },
   { data: 'cedula', name: 'cedula', render: (valor) => renderTextoSimple(valor) },
   { data: 'nombre_completo', name: 'nombre_completo', render: (valor, _t, fila) => renderNombre(valor, fila) },
+  {
+    data: 'edad_texto',
+    name: 'edad_texto',
+    className: 'text-center',
+    render: (valor) => `<span class="text-zinc-900 whitespace-nowrap">${valor || '—'}</span>`,
+  },
   { data: 'cargo', name: 'cargo', render: (valor) => valor || '—' },
   { data: 'departamento', name: 'departamento', render: (valor) => valor || '—' },
   { data: 'dependencia', name: 'dependencia', render: (valor) => valor || '—' },

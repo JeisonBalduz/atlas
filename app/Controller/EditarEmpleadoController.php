@@ -14,6 +14,7 @@ use App\Model\Personas\TelefonoPersonasModel;
 use App\Services\CatalogosService;
 use App\Services\EmpleadosService;
 use App\Services\GestorDocumentos;
+use App\Services\UtilidadesService;
 use App\Utils\Config;
 use flight\Engine;
 use InvalidArgumentException;
@@ -34,6 +35,7 @@ final class EditarEmpleadoController extends BaseController
     private const TIPOS_VIVIENDA = ['Casa', 'Departamento'];
 
     private EmpleadosService $empleadosService;
+    private UtilidadesService $utilidades;
 
     public function __construct(
         Engine $app,
@@ -41,9 +43,11 @@ final class EditarEmpleadoController extends BaseController
         private CatalogosService $catalogos,
         private ?GestorDocumentos $gestorDocumentos = null,
         ?EmpleadosService $empleadosService = null,
+        ?UtilidadesService $utilidades = null,
     ) {
         parent::__construct($app, $config);
         $this->empleadosService = $empleadosService ?? new EmpleadosService();
+        $this->utilidades = $utilidades ?? new UtilidadesService();
     }
 
     public function render(?string $id = null): void
@@ -108,10 +112,15 @@ final class EditarEmpleadoController extends BaseController
         }
         $operadorasMap = array_combine(self::OPERADORAS_TELEFONO, self::OPERADORAS_TELEFONO);
         $viviendaSeleccionada = $this->normalizarTipoVivienda((string) ($direccion instanceof DireccionModel ? $direccion->vivienda : ''));
+        $fechaNacIso = $persona->fecha_nacimiento !== null
+            ? $persona->fecha_nacimiento->format('Y-m-d')
+            : null;
+        $edadCalculada = $this->utilidades->calcularEdad($fechaNacIso);
 
         $this->renderVista('editar_empleado', [
             'empleado' => $empleado,
             'persona' => $persona,
+            'edadCalculada' => $edadCalculada,
             'direccion' => $direccion,
             'vivienda_seleccionada' => $viviendaSeleccionada,
             'telefonos' => $telefonos,

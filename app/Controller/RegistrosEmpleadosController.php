@@ -18,6 +18,7 @@ use App\Model\Personas\PersonasModel;
 use App\Services\CatalogosService;
 use App\Services\DataTableEloquent;
 use App\Services\GestorDocumentos;
+use App\Services\UtilidadesService;
 use App\Utils\Config;
 use DateTimeImmutable;
 use finfo;
@@ -30,13 +31,17 @@ use Throwable;
  */
 class RegistrosEmpleadosController extends BaseController
 {
+    private UtilidadesService $utilidades;
+
     public function __construct(
         Engine $app,
         Config $config,
         private CatalogosService $catalogos,
         private ?GestorDocumentos $gestorDocumentos = null,
+        ?UtilidadesService $utilidades = null,
     ) {
         parent::__construct($app, $config);
+        $this->utilidades = $utilidades ?? new UtilidadesService();
     }
 
     public function render(): void
@@ -89,6 +94,14 @@ class RegistrosEmpleadosController extends BaseController
 
         try {
             $query = EmpleadosModel::query()
+                ->select('empleados.*')
+                ->addSelect([
+                    'edad_texto' => PersonasModel::selectRaw(
+                        $this->utilidades->expresionSql('personas.fecha_nacimiento')
+                    )
+                        ->whereColumn('personas.persona_id', 'empleados.persona_id')
+                        ->limit(1),
+                ])
                 ->with([
                     'persona.detallesDiscapacidad.gradoDiscapacidad',
                     'persona.telefonos',
@@ -102,6 +115,11 @@ class RegistrosEmpleadosController extends BaseController
                 ])
                 ->withCount('familiares');
 
+            $ordenarPorEdad = static fn (Builder $q, string $dir): Builder => $q->orderBy(
+                PersonasModel::select('fecha_nacimiento')->whereColumn('personas.persona_id', 'empleados.persona_id')->limit(1),
+                $dir === 'asc' ? 'desc' : 'asc'
+            );
+
             $columnasOrdenables = [
                 'codigo_empleado' => 'codigo_empleado',
                 'cedula' => static fn (Builder $q, string $dir): Builder => $q->orderBy(
@@ -111,6 +129,8 @@ class RegistrosEmpleadosController extends BaseController
                 'nombre_completo' => static fn (Builder $q, string $dir): Builder => $q
                     ->orderBy(PersonasModel::select('primer_apellido')->whereColumn('personas.persona_id', 'empleados.persona_id')->limit(1), $dir)
                     ->orderBy(PersonasModel::select('primer_nombre')->whereColumn('personas.persona_id', 'empleados.persona_id')->limit(1), $dir),
+                'edad' => $ordenarPorEdad,
+                'edad_texto' => $ordenarPorEdad,
                 'cargo' => static fn (Builder $q, string $dir): Builder => $q->orderBy(
                     CargoModel::select('cargo')->whereColumn('cargo.cargo_id', 'empleados.cargo_id')->limit(1),
                     $dir
@@ -204,6 +224,12 @@ class RegistrosEmpleadosController extends BaseController
                         }
                     }
 
+                    $edadTexto = null;
+                    if ($persona instanceof PersonasModel && $persona->fecha_nacimiento !== null) {
+                        $textoSql = trim((string) ($empleado->getAttribute('edad_texto') ?? ''));
+                        $edadTexto = $textoSql !== '' ? $textoSql : null;
+                    }
+
                     return [
                         'empleado_id' => (int) $empleado->empleado_id,
                         'persona_id' => (int) $empleado->persona_id,
@@ -214,6 +240,7 @@ class RegistrosEmpleadosController extends BaseController
                             ? strtoupper((string) $persona->nacionalidad) . '-' . (string) $persona->cedula
                             : '',
                         'nombre_completo' => CatalogosService::nombreCompletoPersona($persona),
+                        'edad_texto' => $edadTexto,
                         'cargo' => (string) ($empleado->cargo?->cargo ?? ''),
                         'departamento' => (string) ($empleado->departamento?->departamento ?? ''),
                         'dependencia' => (string) ($empleado->dependencia?->dependencia ?? ''),
