@@ -14,27 +14,6 @@
     @include('layouts.header'){{-- CARGAR HEADER --}}
 @endsection
 
-@php
-    // Datos de demostración para los selects (reemplazar por datos de la BD)
-    $anioActual = (int) date('Y');
-    $anios = array_combine(range($anioActual - 16, $anioActual - 80), range($anioActual - 16, $anioActual - 80));
-    $meses = [
-        '01' => 'Enero',
-        '02' => 'Febrero',
-        '03' => 'Marzo',
-        '04' => 'Abril',
-        '05' => 'Mayo',
-        '06' => 'Junio',
-        '07' => 'Julio',
-        '08' => 'Agosto',
-        '09' => 'Septiembre',
-        '10' => 'Octubre',
-        '11' => 'Noviembre',
-        '12' => 'Diciembre',
-    ];
-    $dias = array_combine(range(1, 31), range(1, 31));
-@endphp
-
 @section('contenido') {{-- CARGAR CONTENIDO PRINCIPAL --}}
     <form id="form-registro" data-tipos-documentos="{{ json_encode($tipos_documentos ?? [], JSON_UNESCAPED_UNICODE) }}" class="mx-auto max-w-4xl scroll-mt-6 space-y-6" novalidate>
 
@@ -125,14 +104,13 @@
                         @endcomponent
                     </div>
 
-                    
-
+                    {{-- Fecha de nacimiento (componente date + calendario.js: visible dd-mm-yyyy / envío YYYY-MM-DD) --}}
                     @component('components.input', [
-                        'label' => 'Edad',
-                        'id' => 'edad',
-                        'name' => 'edad',
-                        'placeholder' => 'Ej: 30',
-                        'maxlength' => 2,
+                        'label' => 'Fecha de nacimiento',
+                        'id' => 'fecha_nacimiento',
+                        'name' => 'fecha_nacimiento',
+                        'type' => 'date',
+                        'placeholder' => 'dd-mm-yyyy',
                         'required' => true,
                     ])
                     @endcomponent
@@ -155,40 +133,32 @@
                     ])
                     @endcomponent
 
-                    <fieldset class="md:col-span-2">
-                        <legend class="mb-3 text-sm font-semibold text-zinc-900">Fecha de nacimiento</legend>
-                        <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                            @component('components.select', [
-                                'label' => 'Año',
-                                'id' => 'ano',
-                                'name' => 'ano',
-                                'required' => true,
-                                'search' => true,
-                                'options' => $anios,
-                            ])
-                            @endcomponent
-
-                            @component('components.select', [
-                                'label' => 'Mes',
-                                'id' => 'meses',
-                                'name' => 'meses',
-                                'required' => true,
-                                'search' => true,
-                                'options' => $meses,
-                            ])
-                            @endcomponent
-
-                            @component('components.select', [
-                                'label' => 'Día',
-                                'id' => 'dia',
-                                'name' => 'dia',
-                                'required' => true,
-                                'search' => true,
-                                'options' => $dias,
-                            ])
-                            @endcomponent
+                    {{-- Edad --}}
+                    <div class="space-y-1.5">
+                        <label
+                            for="edad"
+                            class="block text-sm font-medium text-zinc-900">
+                            Edad
+                        </label>
+                        <div class="relative">
+                            <input
+                                id="edad"
+                                name="edad"
+                                type="text"
+                                placeholder="Ej: 30"
+                                maxlength="2"
+                                autocomplete="off"
+                                aria-describedby="edad-ayuda"
+                                required
+                                class="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-3 pr-3 text-sm text-black outline-none transition duration-200 focus:bg-white focus:ring-2 focus:ring-offset-2 focus:border-black focus:ring-black"
+                            />
                         </div>
-                    </fieldset>
+                        <p id="edad-ayuda" class="text-xs text-zinc-500 mt-1">La edad se calcula con la fecha de nacimiento</p>
+                        <p id="edad-error"
+                           class="input-error-msg hidden text-xs font-medium text-red-600 mt-1 transition-all duration-200"
+                           role="alert">
+                        </p>
+                    </div>
                 </div>
             </section>
 

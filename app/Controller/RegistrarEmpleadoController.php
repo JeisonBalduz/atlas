@@ -12,6 +12,7 @@ use App\Model\Personas\TelefonoPersonasModel;
 use App\Services\CatalogosService;
 use App\Services\GestorDocumentos;
 use App\Utils\Config;
+use DateTimeImmutable;
 use flight\Engine;
 use Throwable;
 
@@ -86,9 +87,29 @@ class RegistrarEmpleadoController extends BaseController
         $segundoApellido = substr((string) ($input->get('segundo_apellido') ?? $input->get('segundoApellido', '')), 0, 100);
         $genero = (string) $input->get('genero', 'Masculino');
 
-        $fechaNacimiento = (string) $input->get('fecha_nacimiento', '');
-        if ($fechaNacimiento === '' && $input->get('ano') && $input->get('meses') && $input->get('dia')) {
-            $fechaNacimiento = sprintf('%04d-%02d-%02d', (int) $input->get('ano'), (int) $input->get('meses'), (int) $input->get('dia'));
+        $fechaNacimiento = trim((string) $input->get('fecha_nacimiento', ''));
+        if ($fechaNacimiento === '') {
+            $this->jsonError('La fecha de nacimiento es obligatoria.', 422);
+            return;
+        }
+
+        $dtFechaNacimiento = DateTimeImmutable::createFromFormat('Y-m-d', $fechaNacimiento);
+        if ($dtFechaNacimiento === false || $dtFechaNacimiento->format('Y-m-d') !== $fechaNacimiento) {
+            $this->jsonError('La fecha de nacimiento debe tener el formato válido YYYY-MM-DD.', 422);
+            return;
+        }
+
+        $hoy = new DateTimeImmutable('today');
+        $fechaNacNormalizada = $dtFechaNacimiento->setTime(0, 0);
+        if ($fechaNacNormalizada > $hoy) {
+            $this->jsonError('La fecha de nacimiento no puede ser futura.', 422);
+            return;
+        }
+
+        $edadCalculada = $fechaNacNormalizada->diff($hoy)->y;
+        if ($edadCalculada > 110) {
+            $this->jsonError('La fecha de nacimiento excede el rango de edad permitido.', 422);
+            return;
         }
 
         $estadoCivilId = (int) ($input->get('estado_civil_id') ?? $input->get('civil', 0));
